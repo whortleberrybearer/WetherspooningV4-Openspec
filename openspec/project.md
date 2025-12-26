@@ -5,7 +5,7 @@ Wetherspooning is a website that displays the locations of Wetherspoons pubs and
 
 ## Tech Stack
 [Explain your testing approach and requirements]
-- **Frontend:** Vue.js, [PrimeVue](https://primevue.org/)
+- **Frontend:** Vue, Typescript, [PrimeVue](https://primevue.org/)
 - **Backend:**
 
 ## Project Conventions
@@ -15,6 +15,7 @@ Wetherspooning is a website that displays the locations of Wetherspoons pubs and
 
 ### Architecture Patterns
 - **Frontend:**
+  - Single page app.
   - Follow mobile first design principles.
 
 ### Testing Strategy
