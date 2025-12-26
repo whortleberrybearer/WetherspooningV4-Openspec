@@ -109,21 +109,11 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
 }
 
 onMounted(async () => {
-  try {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-    if (!apiKey) {
-      throw new Error('Google Maps API key not configured')
-    }
+  setOptions({ key: import.meta.env.VITE_GOOGLE_MAPS_API_KEY, v: 'weekly' })
+  await importLibrary('maps')
+  await importLibrary('marker')
 
-    setOptions({ key: apiKey, v: 'weekly' })
-    await importLibrary('maps')
-    await importLibrary('marker')
-    
-    initMap()
-    await loadPubs()
-  } catch (err) {
-    error.value = 'Failed to initialize map. Please check your configuration.'
-    console.error('Map initialization error:', err)
-  }
+  initMap()
+  await loadPubs()
 })
 </script>
