@@ -22,9 +22,10 @@ Wetherspooning is a website that displays the locations of Wetherspoons pubs and
 
 ### Git Workflow
 - Use Github Flow
-  - Create a feature branch for every new feature
-  - Implement the changes, commit often
+  - Create a feature branch when starting a new change
+  - Implement the changes, commit often, e.g. after the completion of each task
   - Create a pull request when feature is complete
+- Commit following initial generation of a specification
 - Commit messages should be brief
 - Use pull request template form .github\PULL_REQUEST_TEMPLATE\pull_request_template.md
 - Use Conventional Commits for pull request titles
