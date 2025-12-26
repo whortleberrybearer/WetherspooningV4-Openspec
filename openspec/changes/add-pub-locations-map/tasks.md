@@ -4,21 +4,21 @@
 
 ## Pre-Implementation
 
-- [ ] Review and approve proposal.md
-- [ ] Review and approve spec.md
-- [ ] Obtain Google Maps API key
-- [ ] Create sample JSON data file with pub locations
+- [x] Review and approve proposal.md
+- [x] Review and approve spec.md
+- [x] Obtain Google Maps API key
+- [x] Create sample JSON data file with pub locations
 
 ## Data Preparation
 
-- [ ] Create `data/pubs-sample.json` with representative Wetherspoons locations
+- [x] Create `data/pubs-sample.json` with representative Wetherspoons locations
   - Include fields: id, name, townCity, address, county, region, country, lat, lng, url, imageUrl, openState
   - Include at least 10-15 sample pubs across different regions
   - Ensure coordinates are accurate
 
 ## Component Development
 
-- [ ] Create Vue component `PubLocationsMap.vue`
+- [x] Create Vue component `PubLocationsMap.vue`
   - Set up Google Maps integration
   - Initialize map centered on UK
   - Load pub data from JSON file
@@ -29,26 +29,26 @@
 
 ## Integration
 
-- [ ] Set map component as home page route (`/`)
-- [ ] Update main layout to accommodate map as primary view
+- [x] Set map component as home page route (`/`)
+- [x] Update main layout to accommodate map as primary view
 
 ## Testing
 
-- [ ] Test map loads correctly
-- [ ] Test all markers appear in correct positions
-- [ ] Test marker click displays correct pub information
-- [ ] Test responsive behavior on mobile devices
-- [ ] Test with missing/invalid data gracefully
-- [ ] Test performance with full dataset
+- [x] Test map loads correctly
+- [x] Test all markers appear in correct positions
+- [x] Test marker click displays correct pub information
+- [x] Test responsive behavior on mobile devices
+- [x] Test with missing/invalid data gracefully
+- [x] Test performance with full dataset
 
 ## Documentation
 
-- [ ] Add Google Maps API setup instructions to README
-- [ ] Document sample data format
-- [ ] Add comments to complex map configuration
+- [x] Add Google Maps API setup instructions to README
+- [x] Document sample data format
+- [x] Add comments to complex map configuration
 
 ## Deployment Prep
 
-- [ ] Configure environment variable for Google Maps API key
+- [x] Configure environment variable for Google Maps API key
 - [ ] Test in staging environment
 - [ ] Prepare deployment checklist
