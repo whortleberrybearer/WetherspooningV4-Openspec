@@ -5,7 +5,7 @@ Wetherspooning is a website that displays the locations of Wetherspoons pubs and
 
 ## Tech Stack
 [Explain your testing approach and requirements]
-- **Frontend:** Vue, Typescript, [PrimeVue](https://primevue.org/)
+- **Frontend:** Vue, Typescript, [shadcn/vue](https://www.shadcn-vue.com/)
 - **Backend:**
 
 ## Project Conventions
