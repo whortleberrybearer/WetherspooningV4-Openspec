@@ -120,12 +120,21 @@ const loadGoogleMapsScript = () => {
       return
     }
 
+    // Create a unique callback name
+    const callbackName = 'initGoogleMaps_' + Date.now()
+    
+    // Set up the callback
+    ;(window as any)[callbackName] = () => {
+      delete (window as any)[callbackName]
+      resolve()
+    }
+
     const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`
-    script.async = true
-    script.defer = true
-    script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Failed to load Google Maps'))
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async&callback=${callbackName}`
+    script.onerror = () => {
+      delete (window as any)[callbackName]
+      reject(new Error('Failed to load Google Maps'))
+    }
     document.head.appendChild(script)
   })
 }
