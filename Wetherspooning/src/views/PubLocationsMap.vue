@@ -1,18 +1,4 @@
 <template>
-<div class="flex flex-col items-center p-7 rounded-2xl">
-  <div>
-    <div class="bg-sky-600"></div>
-  </div>
-  <div class="flex bg-sky-600 text-white px-4 py-2 rounded-b-2xl space-x-4 text-lg">
-    <span>Class Warfare</span>
-    <span>The Anti-Patterns</span>
-    <span class="flex">
-      <span>No. 4</span>
-      <span>·</span>
-      <span>2025</span>
-    </span>
-  </div>
-</div>
   <div class="fixed inset-0 w-full h-screen">
     <div v-if="error" class="absolute top-5 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground px-6 py-3 rounded-md z-[1000] shadow-lg">
       {{ error }}
