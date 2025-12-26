@@ -4,21 +4,21 @@
 
 ## Pre-Implementation
 
-- [x] Review and approve proposal.md
-- [x] Review and approve spec.md
-- [ ] Obtain Google Maps API key (user action required)
-- [x] Create sample JSON data file with pub locations
+- [ ] Review and approve proposal.md
+- [ ] Review and approve spec.md
+- [ ] Obtain Google Maps API key
+- [ ] Create sample JSON data file with pub locations
 
 ## Data Preparation
 
-- [x] Create `data/pubs-sample.json` with representative Wetherspoons locations
+- [ ] Create `data/pubs-sample.json` with representative Wetherspoons locations
   - Include fields: id, name, townCity, address, county, region, country, lat, lng, url, imageUrl, openState
   - Include at least 10-15 sample pubs across different regions
   - Ensure coordinates are accurate
 
 ## Component Development
 
-- [x] Create Vue component `PubLocationsMap.vue`
+- [ ] Create Vue component `PubLocationsMap.vue`
   - Set up Google Maps integration
   - Initialize map centered on UK
   - Load pub data from JSON file
@@ -29,12 +29,12 @@
 
 ## Integration
 
-- [x] Set map component as home page route (`/`)
-- [x] Update main layout to accommodate map as primary view
+- [ ] Set map component as home page route (`/`)
+- [ ] Update main layout to accommodate map as primary view
 
 ## Testing
 
-- [ ] Test map loads correctly (requires API key and npm install)
+- [ ] Test map loads correctly
 - [ ] Test all markers appear in correct positions
 - [ ] Test marker click displays correct pub information
 - [ ] Test responsive behavior on mobile devices
@@ -43,12 +43,12 @@
 
 ## Documentation
 
-- [x] Add Google Maps API setup instructions to README
-- [x] Document sample data format
-- [x] Add comments to complex map configuration
+- [ ] Add Google Maps API setup instructions to README
+- [ ] Document sample data format
+- [ ] Add comments to complex map configuration
 
 ## Deployment Prep
 
-- [x] Configure environment variable for Google Maps API key (.env.example created)
-- [ ] Test in staging environment (requires deployment)
+- [ ] Configure environment variable for Google Maps API key
+- [ ] Test in staging environment
 - [ ] Prepare deployment checklist
