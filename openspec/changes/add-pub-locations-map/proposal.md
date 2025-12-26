@@ -1,8 +1,9 @@
 # Change Proposal: Add Pub Locations Map
 
 **Change ID:** `add-pub-locations-map`  
-**Status:** Draft  
+**Status:** Implemented  
 **Created:** 2025-12-26  
+**Completed:** 2025-12-26  
 **Author:** AI Assistant
 
 ## Problem Statement

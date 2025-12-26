@@ -50,5 +50,5 @@
 ## Deployment Prep
 
 - [x] Configure environment variable for Google Maps API key
-- [ ] Test in staging environment
-- [ ] Prepare deployment checklist
+- [x] Test in staging environment
+- [x] Prepare deployment checklist
