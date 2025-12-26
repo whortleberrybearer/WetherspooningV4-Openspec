@@ -1,9 +1,23 @@
 <template>
-  <div class="pub-locations-map">
-    <div v-if="error" class="error-message">
+<div class="flex flex-col items-center p-7 rounded-2xl">
+  <div>
+    <div class="bg-sky-600"></div>
+  </div>
+  <div class="flex bg-sky-600 text-white px-4 py-2 rounded-b-2xl space-x-4 text-lg">
+    <span>Class Warfare</span>
+    <span>The Anti-Patterns</span>
+    <span class="flex">
+      <span>No. 4</span>
+      <span>·</span>
+      <span>2025</span>
+    </span>
+  </div>
+</div>
+  <div class="fixed inset-0 w-full h-screen">
+    <div v-if="error" class="absolute top-5 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground px-6 py-3 rounded-md z-[1000] shadow-lg">
       {{ error }}
     </div>
-    <div ref="mapContainer" class="map-container"></div>
+    <div ref="mapContainer" class="w-full h-full"></div>
   </div>
 </template>
 
@@ -97,11 +111,11 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
   if (!infoWindow.value) return
 
   const content = `
-    <div class="pub-info">
-      <h3>${pub.name}</h3>
-      <p>${pub.address}</p>
-      <p>${pub.townCity}, ${pub.county}</p>
-      ${pub.url ? `<a href="${pub.url}" target="_blank" rel="noopener">View Details</a>` : ''}
+    <div class="p-3 min-w-[200px]">
+      <h3 class="text-base font-semibold mb-2">${pub.name}</h3>
+      <p class="text-sm text-muted-foreground mb-1">${pub.address}</p>
+      <p class="text-sm text-muted-foreground mb-2">${pub.townCity}, ${pub.county}</p>
+      ${pub.url ? `<a href="${pub.url}" target="_blank" rel="noopener" class="inline-block text-sm text-primary font-medium hover:underline">View Details</a>` : ''}
     </div>
   `
 
@@ -128,67 +142,3 @@ onMounted(async () => {
   }
 })
 </script>
-
-<style scoped>
-.pub-locations-map {
-  width: 100%;
-  height: 100vh;
-  position: relative;
-}
-
-.map-container {
-  width: 100%;
-  height: 100%;
-}
-
-.error-message {
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #f44336;
-  color: white;
-  padding: 12px 24px;
-  border-radius: 4px;
-  z-index: 1000;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-  .pub-locations-map {
-    height: 100vh;
-  }
-}
-
-@media (min-width: 769px) {
-  .pub-locations-map {
-    height: calc(100vh - 60px); /* Account for potential header */
-  }
-}
-
-/* Info window styling (global) */
-:global(.pub-info h3) {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-:global(.pub-info p) {
-  margin: 4px 0;
-  font-size: 14px;
-  color: #666;
-}
-
-:global(.pub-info a) {
-  display: inline-block;
-  margin-top: 8px;
-  color: #1976d2;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-:global(.pub-info a:hover) {
-  text-decoration: underline;
-}
-</style>
