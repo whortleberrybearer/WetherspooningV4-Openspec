@@ -9,7 +9,8 @@
 
 <script setup lang="ts">
 /// <reference types="@types/google.maps" />
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, shallowRef } from 'vue'
+import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 
 interface Pub {
   id: number
@@ -27,8 +28,8 @@ interface Pub {
 }
 
 const mapContainer = ref<HTMLElement | null>(null)
-const map = ref<google.maps.Map | null>(null)
-const markers = ref<google.maps.Marker[]>([])
+const map = shallowRef<google.maps.Map | null>(null)
+const markers = ref<google.maps.marker.AdvancedMarkerElement[]>([])
 const pubs = ref<Pub[]>([])
 const infoWindow = ref<google.maps.InfoWindow | null>(null)
 const error = ref<string>('')
@@ -46,6 +47,7 @@ const initMap = () => {
     mapTypeControl: true,
     streetViewControl: false,
     fullscreenControl: true,
+    mapId: 'Main',
   }
 
   map.value = new google.maps.Map(mapContainer.value, mapOptions)
@@ -77,7 +79,7 @@ const createMarkers = () => {
       return
     }
 
-    const marker = new google.maps.Marker({
+    const marker = new google.maps.marker.AdvancedMarkerElement({
       position: { lat: pub.lat, lng: pub.lng },
       map: map.value!,
       title: pub.name,
@@ -91,7 +93,7 @@ const createMarkers = () => {
   })
 }
 
-const showPubInfo = (pub: Pub, marker: google.maps.Marker) => {
+const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement) => {
   if (!infoWindow.value) return
 
   const content = `
@@ -107,41 +109,17 @@ const showPubInfo = (pub: Pub, marker: google.maps.Marker) => {
   infoWindow.value.open(map.value!, marker)
 }
 
-const loadGoogleMapsScript = () => {
-  return new Promise<void>((resolve, reject) => {
-    if (window.google && window.google.maps) {
-      resolve()
-      return
-    }
-
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
-    if (!apiKey) {
-      reject(new Error('Google Maps API key not configured'))
-      return
-    }
-
-    // Create a unique callback name
-    const callbackName = 'initGoogleMaps_' + Date.now()
-    
-    // Set up the callback
-    ;(window as any)[callbackName] = () => {
-      delete (window as any)[callbackName]
-      resolve()
-    }
-
-    const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async&callback=${callbackName}`
-    script.onerror = () => {
-      delete (window as any)[callbackName]
-      reject(new Error('Failed to load Google Maps'))
-    }
-    document.head.appendChild(script)
-  })
-}
-
 onMounted(async () => {
   try {
-    await loadGoogleMapsScript()
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
+    if (!apiKey) {
+      throw new Error('Google Maps API key not configured')
+    }
+
+    setOptions({ key: apiKey, v: 'weekly' })
+    await importLibrary('maps')
+    await importLibrary('marker')
+    
     initMap()
     await loadPubs()
   } catch (err) {

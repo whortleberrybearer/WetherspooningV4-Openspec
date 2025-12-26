@@ -16,6 +16,7 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@googlemaps/js-api-loader": "^2.0.2",
     "vue": "^3.5.25",
     "vue-router": "^4.6.3"
   },
