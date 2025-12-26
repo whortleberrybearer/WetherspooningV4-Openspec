@@ -8,7 +8,6 @@
 </template>
 
 <script setup lang="ts">
-/// <reference types="@types/google.maps" />
 import { ref, onMounted, shallowRef } from 'vue'
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 
@@ -47,7 +46,7 @@ const initMap = () => {
     mapTypeControl: true,
     streetViewControl: false,
     fullscreenControl: true,
-    mapId: 'Main',
+    mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID,
   }
 
   map.value = new google.maps.Map(mapContainer.value, mapOptions)
@@ -111,7 +110,7 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
 
 onMounted(async () => {
   try {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
     if (!apiKey) {
       throw new Error('Google Maps API key not configured')
     }
