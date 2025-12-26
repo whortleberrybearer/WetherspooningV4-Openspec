@@ -20,7 +20,13 @@ A Vue 3 application for exploring Wetherspoons pub locations across the UK using
 2. Create a new project or select an existing one
 3. Enable the **Maps JavaScript API**
 4. Create an API key under **Credentials**
-5. (Optional) Restrict your API key:
+5. Create a Map ID for Advanced Markers:
+   - Go to [Maps Management](https://console.cloud.google.com/google/maps-apis/studio/maps)
+   - Click **Create Map ID**
+   - Choose **JavaScript** as the map type
+   - Give it a name (e.g., "Wetherspoon Map")
+   - Copy the Map ID
+6. (Optional) Restrict your API key:
    - Add HTTP referrers for production domains
    - Limit to Maps JavaScript API only
 
@@ -37,9 +43,10 @@ npm install
 cp .env.example .env
 ```
 
-2. Edit `.env` and add your Google Maps API key:
+2. Edit `.env` and add your Google Maps API key and Map ID:
 ```
 VITE_GOOGLE_MAPS_API_KEY=your_actual_api_key_here
+VITE_GOOGLE_MAPS_MAP_ID=your_map_id_here
 ```
 
 **Important:** Never commit your `.env` file with the actual API key to version control.
