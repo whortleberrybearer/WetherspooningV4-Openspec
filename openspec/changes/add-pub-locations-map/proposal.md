@@ -14,7 +14,7 @@ Users need a visual way to see the geographic distribution of Wetherspoons pubs 
 
 ## Proposed Solution
 
-Create an interactive Google Maps-based view that displays all Wetherspoons pub locations as markers on a map. The initial implementation will:
+Create an interactive Google Maps-based view that displays all Wetherspoons pub locations as markers on a map. The map will serve as the home page of the application. The initial implementation will:
 - Load pub location data from a sample JSON file
 - Display each pub as a marker on Google Maps
 - Show basic pub information when a marker is clicked

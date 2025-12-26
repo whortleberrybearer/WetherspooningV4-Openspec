@@ -29,9 +29,8 @@
 
 ## Integration
 
-- [ ] Add route for map view (e.g., `/map`)
-- [ ] Add navigation link to map view
-- [ ] Update main layout to accommodate map page
+- [ ] Set map component as home page route (`/`)
+- [ ] Update main layout to accommodate map as primary view
 
 ## Testing
 

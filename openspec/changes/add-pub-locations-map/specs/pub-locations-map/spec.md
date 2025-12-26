@@ -7,7 +7,7 @@
 
 ## Overview
 
-The Pub Locations Map capability provides an interactive Google Maps-based visualization of Wetherspoons pub locations, allowing users to discover and explore pubs geographically.
+The Pub Locations Map capability provides an interactive Google Maps-based visualization of Wetherspoons pub locations as the home page, allowing users to discover and explore pubs geographically.
 
 ## ADDED Requirements
 
@@ -22,9 +22,10 @@ The system MUST display an interactive Google Map centered on the UK showing Wet
 - Map displays standard roadmap view
 - Map includes zoom controls and fullscreen option
 - Map is responsive and fills available viewport
+- Map is displayed as the home page at route `/`
 
-#### Scenario: User Accesses Map View
-**Given** the user navigates to the map page  
+#### Scenario: User Accesses Home Page
+**Given** the user navigates to the home page  
 **When** the page loads  
 **Then** an interactive Google Map is displayed  
 **And** the map is centered on the UK  
@@ -172,28 +173,7 @@ The system MUST integrate with Google Maps JavaScript API securely and efficient
 
 ---
 
-### Requirement: Navigation Access (REQ-PLM-007)
-**Priority:** MUST  
-**Category:** Functional
-
-Users MUST be able to easily navigate to the pub locations map from the main application.
-
-**Acceptance Criteria:**
-- Map view is accessible via route `/map`
-- Navigation menu includes link to map view
-- Link is clearly labeled (e.g., "Map" or "Pub Locations Map")
-- Navigation works on both mobile and desktop
-
-#### Scenario: Navigate to Map View
-**Given** the user is on the home page  
-**When** the user clicks the "Map" navigation link  
-**Then** the browser navigates to `/map`  
-**And** the pub locations map component loads  
-**And** the URL updates to show `/map`
-
----
-
-### Requirement: Performance (REQ-PLM-008)
+### Requirement: Performance (REQ-PLM-007)
 **Priority:** MUST  
 **Category:** Non-Functional
 

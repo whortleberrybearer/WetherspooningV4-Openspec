@@ -4,7 +4,7 @@
 
 ## Architecture Overview
 
-This feature adds a new map view to the Vue.js frontend that integrates Google Maps API to display Wetherspoons pub locations.
+This feature adds a new map view to the Vue.js frontend that integrates Google Maps API to display Wetherspoons pub locations. The map will serve as the home page of the application.
 
 ```
 ┌─────────────────────────────────────┐
