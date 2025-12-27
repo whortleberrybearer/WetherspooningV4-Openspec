@@ -135,10 +135,33 @@ const createMarkers = () => {
       return
     }
 
+    // Check if pub is closed for visual differentiation
+    const isClosed = pub.openState?.toLowerCase().includes('closed') || false
+
+    // Create marker with visual differentiation for closed pubs
+    const markerElement = document.createElement('div')
+    markerElement.className = 'custom-marker'
+    markerElement.style.width = '12px'
+    markerElement.style.height = '12px'
+    markerElement.style.borderRadius = '50%'
+    markerElement.style.border = '2px solid white'
+    markerElement.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)'
+    
+    if (isClosed) {
+      // Closed pubs: gray with reduced opacity
+      markerElement.style.backgroundColor = '#9ca3af'
+      markerElement.style.opacity = '0.6'
+    } else {
+      // Open pubs: red (standard Google Maps style)
+      markerElement.style.backgroundColor = '#ea4335'
+      markerElement.style.opacity = '1'
+    }
+
     const marker = new google.maps.marker.AdvancedMarkerElement({
       position: { lat: pub.lat, lng: pub.lng },
       map: map.value!,
       title: pub.name,
+      content: markerElement,
     })
 
     marker.addListener('click', () => {
@@ -170,16 +193,23 @@ const toggleSidebar = () => {
 }
 
 const handlePubSelect = (pub: Pub) => {
-  // Find the marker for the selected pub
-  const marker = markers.value.find((m, index) => pubs.value[index]?.id === pub.id)
+  // Find the marker for the selected pub based on position
+  const marker = markers.value.find(m => {
+    const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
+    const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat
+    const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng
+    return lat === pub.lat && lng === pub.lng
+  })
   
-  if (marker && map.value) {
+  if (map.value) {
     // Pan map to pub location
     map.value.panTo({ lat: pub.lat, lng: pub.lng })
     map.value.setZoom(15)
     
-    // Show info window
-    showPubInfo(pub, marker)
+    // Show info window - marker should always exist since sidebar is filtered same as map
+    if (marker) {
+      showPubInfo(pub, marker)
+    }
   }
 }
 

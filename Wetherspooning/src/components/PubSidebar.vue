@@ -155,14 +155,26 @@ const isPubClosed = (pub: Pub): boolean => {
 }
 
 /**
+ * Filter pubs based on toggle state.
+ * Toggle ON: show all pubs
+ * Toggle OFF: show only open pubs
+ */
+const filteredPubs = computed(() => {
+  if (props.showClosedPubs) {
+    return props.pubs
+  }
+  return props.pubs.filter(pub => !isPubClosed(pub))
+})
+
+/**
  * Groups pubs hierarchically by country → county → pub, with alphabetical sorting at each level.
  * Computed property ensures efficient re-computation only when pubs array changes.
  */
 const groupedPubs = computed(() => {
   const grouped: Record<string, Record<string, Pub[]>> = {}
 
-  // Group pubs by country and county
-  props.pubs.forEach((pub) => {
+  // Group filtered pubs by country and county
+  filteredPubs.value.forEach((pub) => {
     if (!grouped[pub.country]) {
       grouped[pub.country] = {}
     }
@@ -172,22 +184,30 @@ const groupedPubs = computed(() => {
     grouped[pub.country]![pub.county]!.push(pub)
   })
 
-  // Sort countries alphabetically
+  // Sort countries alphabetically and filter out empty groups
   const sortedCountries: Record<string, Record<string, Pub[]>> = {}
   Object.keys(grouped)
     .sort()
     .forEach((country) => {
-      sortedCountries[country] = {}
+      const counties: Record<string, Pub[]> = {}
       
       // Sort counties within each country alphabetically
       Object.keys(grouped[country]!)
         .sort()
         .forEach((county) => {
-          // Sort pubs by town/city within each county alphabetically
-          sortedCountries[country]![county] = grouped[country]![county]!.sort((a, b) =>
+          // Only include county if it has pubs after filtering
+          const countyPubs = grouped[country]![county]!.sort((a, b) =>
             a.townCity.localeCompare(b.townCity)
           )
+          if (countyPubs.length > 0) {
+            counties[county] = countyPubs
+          }
         })
+      
+      // Only include country if it has counties with pubs
+      if (Object.keys(counties).length > 0) {
+        sortedCountries[country] = counties
+      }
     })
 
   return sortedCountries
@@ -219,20 +239,19 @@ const toggleCounty = (country: string, county: string) => {
 /**
  * Calculates display count for a country based on toggle state.
  * - Toggle ON: "X (Y closed)" or "X" if all open
- * - Toggle OFF: "X" (open count only)
+ * - Toggle OFF: "X" (open count only, from filtered list)
  */
 const getCountryTotal = (counties: Record<string, Pub[]>) => {
   const allPubs = Object.values(counties).flat()
   const total = allPubs.length
   const closedCount = allPubs.filter(isPubClosed).length
-  const openCount = total - closedCount
 
   if (props.showClosedPubs) {
     // Toggle ON: show total with closed count if any closed pubs exist
     return closedCount > 0 ? `${total} (${closedCount} closed)` : `${total}`
   } else {
-    // Toggle OFF: show only open count
-    return `${openCount}`
+    // Toggle OFF: show count from filtered list (already filtered to open only)
+    return `${total}`
   }
 }
 
@@ -242,12 +261,12 @@ const getCountryTotal = (counties: Record<string, Pub[]>) => {
 const getCountyTotal = (pubs: Pub[]) => {
   const total = pubs.length
   const closedCount = pubs.filter(isPubClosed).length
-  const openCount = total - closedCount
 
   if (props.showClosedPubs) {
     return closedCount > 0 ? `${total} (${closedCount} closed)` : `${total}`
   } else {
-    return `${openCount}`
+    // Toggle OFF: show count from filtered list (already filtered to open only)
+    return `${total}`
   }
 }
 </script>
