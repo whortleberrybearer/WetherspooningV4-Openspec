@@ -8,17 +8,30 @@
   >
     <!-- Header -->
     <div class="flex items-center justify-between p-4 border-b border-border">
-      <h2 class="text-lg font-semibold">Wetherspooning</h2>
-      <button
-        @click="$emit('close')"
-        class="p-2 hover:bg-accent rounded-md transition-colors"
-        aria-label="Close sidebar"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
+      <div class="flex flex-col gap-2 flex-1">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Wetherspooning</h2>
+          <button
+            @click="$emit('close')"
+            class="p-2 hover:bg-accent rounded-md transition-colors"
+            aria-label="Close sidebar"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            :checked="showClosedPubs"
+            @change="$emit('toggleClosedPubs')"
+            class="w-4 h-4 rounded border-border text-primary focus:ring-primary focus:ring-2"
+          />
+          <span class="text-sm text-muted-foreground">Show Closed Pubs</span>
+        </label>
+      </div>
     </div>
 
     <!-- Content -->
@@ -74,7 +87,7 @@
                 </svg>
                 <span class="text-sm font-medium">{{ countyName }}</span>
               </div>
-              <span class="text-xs text-muted-foreground">{{ pubs.length }}</span>
+              <span class="text-xs text-muted-foreground">{{ getCountyTotal(pubs) }}</span>
             </button>
 
             <!-- Pubs within County -->
@@ -83,9 +96,12 @@
                 v-for="pub in pubs"
                 :key="pub.id"
                 @click="$emit('selectPub', pub)"
-                class="w-full text-left p-2 hover:bg-accent rounded-md transition-colors"
+                :class="[
+                  'w-full text-left p-2 hover:bg-accent rounded-md transition-colors',
+                  isPubClosed(pub) ? 'opacity-50' : ''
+                ]"
               >
-                <div class="text-sm">{{ pub.name }}</div>
+                <div :class="['text-sm', isPubClosed(pub) ? 'text-muted-foreground' : '']">{{ pub.name }}</div>
                 <div class="text-xs text-muted-foreground">{{ pub.townCity }}</div>
               </button>
             </div>
@@ -117,16 +133,38 @@ interface Pub {
 interface Props {
   pubs: Pub[]
   isOpen: boolean
+  showClosedPubs: boolean
 }
 
 const props = defineProps<Props>()
 defineEmits<{
   close: []
   selectPub: [pub: Pub]
+  toggleClosedPubs: []
 }>()
 
 const expandedCountries = ref(new Set<string>())
 const expandedCounties = ref(new Set<string>())
+
+/**
+ * Helper function to check if a pub is closed
+ */
+const isPubClosed = (pub: Pub): boolean => {
+  const state = pub.openState || 'Open'
+  return state.toLowerCase().includes('closed')
+}
+
+/**
+ * Filter pubs based on toggle state.
+ * Toggle ON: show all pubs
+ * Toggle OFF: show only open pubs
+ */
+const filteredPubs = computed(() => {
+  if (props.showClosedPubs) {
+    return props.pubs
+  }
+  return props.pubs.filter(pub => !isPubClosed(pub))
+})
 
 /**
  * Groups pubs hierarchically by country → county → pub, with alphabetical sorting at each level.
@@ -135,8 +173,8 @@ const expandedCounties = ref(new Set<string>())
 const groupedPubs = computed(() => {
   const grouped: Record<string, Record<string, Pub[]>> = {}
 
-  // Group pubs by country and county
-  props.pubs.forEach((pub) => {
+  // Group filtered pubs by country and county
+  filteredPubs.value.forEach((pub) => {
     if (!grouped[pub.country]) {
       grouped[pub.country] = {}
     }
@@ -146,22 +184,30 @@ const groupedPubs = computed(() => {
     grouped[pub.country]![pub.county]!.push(pub)
   })
 
-  // Sort countries alphabetically
+  // Sort countries alphabetically and filter out empty groups
   const sortedCountries: Record<string, Record<string, Pub[]>> = {}
   Object.keys(grouped)
     .sort()
     .forEach((country) => {
-      sortedCountries[country] = {}
+      const counties: Record<string, Pub[]> = {}
       
       // Sort counties within each country alphabetically
       Object.keys(grouped[country]!)
         .sort()
         .forEach((county) => {
-          // Sort pubs by town/city within each county alphabetically
-          sortedCountries[country]![county] = grouped[country]![county]!.sort((a, b) =>
+          // Only include county if it has pubs after filtering
+          const countyPubs = grouped[country]![county]!.sort((a, b) =>
             a.townCity.localeCompare(b.townCity)
           )
+          if (countyPubs.length > 0) {
+            counties[county] = countyPubs
+          }
         })
+      
+      // Only include country if it has counties with pubs
+      if (Object.keys(counties).length > 0) {
+        sortedCountries[country] = counties
+      }
     })
 
   return sortedCountries
@@ -191,9 +237,36 @@ const toggleCounty = (country: string, county: string) => {
 }
 
 /**
- * Calculates total number of pubs across all counties in a country.
+ * Calculates display count for a country based on toggle state.
+ * - Toggle ON: "X (Y closed)" or "X" if all open
+ * - Toggle OFF: "X" (open count only, from filtered list)
  */
 const getCountryTotal = (counties: Record<string, Pub[]>) => {
-  return Object.values(counties).reduce((sum, pubs) => sum + pubs.length, 0)
+  const allPubs = Object.values(counties).flat()
+  const total = allPubs.length
+  const closedCount = allPubs.filter(isPubClosed).length
+
+  if (props.showClosedPubs) {
+    // Toggle ON: show total with closed count if any closed pubs exist
+    return closedCount > 0 ? `${total} (${closedCount} closed)` : `${total}`
+  } else {
+    // Toggle OFF: show count from filtered list (already filtered to open only)
+    return `${total}`
+  }
+}
+
+/**
+ * Calculates display count for a county based on toggle state.
+ */
+const getCountyTotal = (pubs: Pub[]) => {
+  const total = pubs.length
+  const closedCount = pubs.filter(isPubClosed).length
+
+  if (props.showClosedPubs) {
+    return closedCount > 0 ? `${total} (${closedCount} closed)` : `${total}`
+  } else {
+    // Toggle OFF: show count from filtered list (already filtered to open only)
+    return `${total}`
+  }
 }
 </script>
