@@ -22,6 +22,19 @@
             </svg>
           </button>
         </div>
+        
+        <!-- Login/User Menu -->
+        <div class="flex items-center gap-2">
+          <button
+            v-if="!isAuthenticated"
+            @click="showLoginDialog = true"
+            class="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          >
+            Login
+          </button>
+          <UserMenu v-else />
+        </div>
+        
         <label class="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
@@ -33,6 +46,9 @@
         </label>
       </div>
     </div>
+
+    <!-- Login Dialog -->
+    <LoginDialog :is-open="showLoginDialog" @close="showLoginDialog = false" />
 
     <!-- Content -->
     <div class="flex-1 overflow-y-auto p-4">
@@ -114,6 +130,9 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useAuth } from '@/composables/useAuth'
+import LoginDialog from '@/components/LoginDialog.vue'
+import UserMenu from '@/components/UserMenu.vue'
 
 interface Pub {
   id: number
@@ -142,6 +161,9 @@ defineEmits<{
   selectPub: [pub: Pub]
   toggleClosedPubs: []
 }>()
+
+const { isAuthenticated } = useAuth()
+const showLoginDialog = ref(false)
 
 const expandedCountries = ref(new Set<string>())
 const expandedCounties = ref(new Set<string>())
