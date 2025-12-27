@@ -10,16 +10,19 @@
 
 ### 1.2 Implement useVisits Composable
 - [x] Create `src/composables/useVisits.ts`
-- [x] Define reactive state: `visitedPubIds` (Set), `isLoading`, `error`
+- [x] Define reactive state: `visitedPubIds` (Set), `visits` (array), `isLoading`, `error`
 - [x] Implement `loadVisits(userId: number)` method
   - Fetch from `/data/visits-sample.json`
   - Filter to matching userId
-  - Populate Set with pub IDs
+  - Populate Set with pub IDs AND store full Visit objects
   - Handle errors gracefully
 - [x] Implement `isVisited(pubId: number)` method (O(1) Set lookup)
 - [x] Implement `getGroupCounts(pubs: Pub[])` method
   - Count visited pubs in array
   - Return `{ visited: number, total: number }`
+- [x] Implement `getVisitDate(pubId: number)` method (REQ-PVD-006)
+  - Find Visit object for pubId
+  - Return `visitedAt` ISO string or null
 - [x] Implement `clearVisits()` method for logout
 - [x] Add JSDoc comments for all exported methods
 
@@ -63,18 +66,28 @@
 - [x] Keep existing white border and shadow styles
 - [x] Ensure all markers remain clickable and hoverable
 
-### 2.3 Handle Visit Data Changes
+### 2.3 Update Info Window Display
+- [x] Modify `showPubInfo()` function
+- [x] Import `getVisitDate` from useVisits
+- [x] Format visit date as human-readable string (REQ-PLM-008)
+- [x] Display as "Visited on {date}" in info window
+- [x] Show only when authenticated and pub is visited
+- [x] Style with green text color
+
+### 2.4 Handle Visit Data Changes
 - [x] Watch for changes to `visitedPubIds` or authentication state
 - [x] Recreate markers when visit data loads
 - [x] Recreate markers when visit data clears (logout)
 - [x] Ensure smooth transitions without breaking existing watches
 
-### 2.4 Component Test Map Markers
+### 2.5 Component Test Map Markers
 - [ ] Test unauthenticated user sees 2 marker states (red, gray)
 - [ ] Test authenticated user sees 4 marker states
 - [ ] Test marker colors match specification
 - [ ] Test markers recreate when authentication changes
 - [ ] Test markers recreate when visit data loads
+- [ ] Test info window displays visit date for visited pubs
+- [ ] Test info window does NOT display visit date for unvisited pubs
 
 ## Phase 3: Sidebar Visit Progress
 
@@ -89,6 +102,7 @@
 - [x] Modify country group rendering to show visit counts
 - [x] Modify county group rendering to show visit counts
 - [x] When authenticated, display "✓ Visited X/Y" format
+- [x] When authenticated AND showClosedPubs is ON, display "✓ Visited X/Y (Z closed)" format (REQ-PNS-001)
 - [x] When not authenticated, display "(Y pubs)" format
 - [x] Use `getGroupCounts(pubsInGroup)` to calculate counts
 - [x] Apply muted text color for visit counts
@@ -100,6 +114,12 @@
 
 ### 3.4 Add Visual Indicators
 - [x] Add checkmark icon (✓) before "Visited" text
+- [x] Add visit date display on individual pub items (REQ-PNS-009)
+  - Import `getVisitDate` from useVisits
+  - Create `formatVisitDate` helper for human-readable dates
+  - Display as "Visited {date}" below pub location
+  - Show only when authenticated and pub is visited
+  - Style with green text color
 - [x] Only show checkmark when `visited > 0`
 - [ ] Consider success color for 100% completion (optional enhancement)
 - [x] Ensure consistent spacing and alignment
@@ -111,6 +131,8 @@
 - [ ] Test counts clear after logout
 - [ ] Test counts respect closed pubs filter
 - [ ] Test checkmark appears when visits > 0
+- [ ] Test closed count displays when showClosedPubs is ON
+- [ ] Test visit dates display on individual pub items for visited pubs
 
 ## Phase 4: Integration & Polish
 

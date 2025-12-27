@@ -119,6 +119,12 @@
               >
                 <div :class="['text-sm', isPubClosed(pub) ? 'text-muted-foreground' : '']">{{ pub.name }}</div>
                 <div class="text-xs text-muted-foreground">{{ pub.townCity }}</div>
+                <div 
+                  v-if="isAuthenticated && isVisited(pub.id)" 
+                  class="text-xs text-green-600 mt-0.5"
+                >
+                  Visited {{ formatVisitDate(getVisitDate(pub.id)) }}
+                </div>
               </button>
             </div>
           </div>
@@ -164,7 +170,7 @@ defineEmits<{
 }>()
 
 const { user, isAuthenticated } = useAuth()
-const { getGroupCounts, loadVisits, clearVisits } = useVisits()
+const { getGroupCounts, loadVisits, clearVisits, isVisited, getVisitDate } = useVisits()
 const showLoginDialog = ref(false)
 
 // Watch authentication state to load/clear visit data
@@ -273,7 +279,7 @@ const toggleCounty = (country: string, county: string) => {
 
 /**
  * Calculates display count for a country based on toggle state and authentication.
- * - Authenticated: "✓ Visited X/Y" or "Visited 0/Y"
+ * - Authenticated: "✓ Visited X/Y (Z closed)" or "✓ Visited X/Y" or "Visited 0/Y"
  * - Not authenticated: "Y pubs" or "Y (Z closed)"
  */
 const getCountryTotal = (counties: Record<string, Pub[]>) => {
@@ -282,7 +288,15 @@ const getCountryTotal = (counties: Record<string, Pub[]>) => {
   if (isAuthenticated.value) {
     // Show visit progress for authenticated users
     const { visited, total } = getGroupCounts(allPubs)
-    return visited > 0 ? `✓ Visited ${visited}/${total}` : `Visited ${visited}/${total}`
+    const visitText = visited > 0 ? `✓ Visited ${visited}/${total}` : `Visited ${visited}/${total}`
+    
+    // Add closed count if showing closed pubs
+    if (props.showClosedPubs) {
+      const closedCount = allPubs.filter(isPubClosed).length
+      return closedCount > 0 ? `${visitText} (${closedCount} closed)` : visitText
+    }
+    
+    return visitText
   } else {
     // Show total counts for unauthenticated users
     const total = allPubs.length
@@ -298,14 +312,22 @@ const getCountryTotal = (counties: Record<string, Pub[]>) => {
 
 /**
  * Calculates display count for a county based on toggle state and authentication.
- * - Authenticated: "✓ Visited X/Y" or "Visited 0/Y"
+ * - Authenticated: "✓ Visited X/Y (Z closed)" or "✓ Visited X/Y" or "Visited 0/Y"
  * - Not authenticated: "Y pubs" or "Y (Z closed)"
  */
 const getCountyTotal = (pubs: Pub[]) => {
   if (isAuthenticated.value) {
     // Show visit progress for authenticated users
     const { visited, total } = getGroupCounts(pubs)
-    return visited > 0 ? `✓ Visited ${visited}/${total}` : `Visited ${visited}/${total}`
+    const visitText = visited > 0 ? `✓ Visited ${visited}/${total}` : `Visited ${visited}/${total}`
+    
+    // Add closed count if showing closed pubs
+    if (props.showClosedPubs) {
+      const closedCount = pubs.filter(isPubClosed).length
+      return closedCount > 0 ? `${visitText} (${closedCount} closed)` : visitText
+    }
+    
+    return visitText
   } else {
     // Show total counts for unauthenticated users
     const total = pubs.length
@@ -316,6 +338,26 @@ const getCountyTotal = (pubs: Pub[]) => {
     } else {
       return `${total}`
     }
+  }
+}
+
+/**
+ * Format a visit date for display.
+ * Converts ISO date string to human-readable format.
+ */
+const formatVisitDate = (isoDate: string | null): string | null => {
+  if (!isoDate) return null
+  
+  try {
+    const date = new Date(isoDate)
+    return date.toLocaleDateString('en-GB', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    })
+  } catch (error) {
+    console.error('Error formatting date:', error)
+    return null
   }
 }
 </script>

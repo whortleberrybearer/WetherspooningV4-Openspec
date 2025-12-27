@@ -25,6 +25,7 @@ interface Pub {
  */
 interface VisitState {
   visitedPubIds: Set<number>
+  visits: Visit[]  // Store full visit data for date retrieval
   isLoading: boolean
   error: string | null
 }
@@ -32,6 +33,7 @@ interface VisitState {
 // Global visit state
 const visitState = reactive<VisitState>({
   visitedPubIds: new Set(),
+  visits: [],
   isLoading: false,
   error: null
 })
@@ -88,6 +90,9 @@ export function useVisits() {
         return visit.userId === userId
       })
 
+      // Store full visit data for date retrieval
+      visitState.visits = userVisits
+      
       // Populate Set with visited pub IDs for O(1) lookup
       visitState.visitedPubIds.clear()
       userVisits.forEach(visit => {
@@ -130,10 +135,22 @@ export function useVisits() {
   }
 
   /**
+   * Get the visit date for a specific pub.
+   * 
+   * @param pubId - The ID of the pub to get visit date for
+   * @returns ISO date string if pub is visited and has a date, null otherwise
+   */
+  const getVisitDate = (pubId: number): string | null => {
+    const visit = visitState.visits.find(v => v.pubId === pubId)
+    return visit?.visitedAt || null
+  }
+
+  /**
    * Clear all visit data (typically called on logout).
    */
   const clearVisits = (): void => {
     visitState.visitedPubIds.clear()
+    visitState.visits = []
     visitState.error = null
     visitState.isLoading = false
   }
@@ -148,6 +165,7 @@ export function useVisits() {
     loadVisits,
     isVisited,
     getGroupCounts,
+    getVisitDate,
     clearVisits
   }
 }

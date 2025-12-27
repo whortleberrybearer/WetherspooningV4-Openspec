@@ -69,7 +69,7 @@ const showClosedPubs = ref(false)
 
 // Authentication and visit tracking
 const { user, isAuthenticated } = useAuth()
-const { isVisited, loadVisits, clearVisits } = useVisits()
+const { isVisited, getVisitDate, loadVisits, clearVisits } = useVisits()
 
 // Watch authentication state to load/clear visit data
 watch(isAuthenticated, async (authenticated) => {
@@ -206,11 +206,31 @@ const createMarkers = () => {
 const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement) => {
   if (!infoWindow.value) return
 
+  // Format visit date if available
+  let visitDateText = ''
+  if (isAuthenticated.value && isVisited(pub.id)) {
+    const visitDate = getVisitDate(pub.id)
+    if (visitDate) {
+      try {
+        const date = new Date(visitDate)
+        const formattedDate = date.toLocaleDateString('en-GB', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        })
+        visitDateText = `<p class="text-sm text-green-600 mb-2">Visited on ${formattedDate}</p>`
+      } catch (error) {
+        console.error('Error formatting visit date:', error)
+      }
+    }
+  }
+
   const content = `
     <div class="p-3 min-w-[200px]">
       <h3 class="text-base font-semibold mb-2">${pub.name}</h3>
       <p class="text-sm text-muted-foreground mb-1">${pub.address}</p>
       <p class="text-sm text-muted-foreground mb-2">${pub.townCity}, ${pub.county}</p>
+      ${visitDateText}
       ${pub.url ? `<a href="${pub.url}" target="_blank" rel="noopener" class="inline-block text-sm text-primary font-medium hover:underline">View Details</a>` : ''}
     </div>
   `
