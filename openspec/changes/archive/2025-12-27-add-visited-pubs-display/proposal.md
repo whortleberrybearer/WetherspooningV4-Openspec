@@ -51,23 +51,27 @@ New capability to manage pub visit data for authenticated users.
 **Type:** modify  
 **Spec:** `openspec/specs/pub-locations-map/spec.md`
 
-Update map to show 4 visual states based on visit status and open state.
+Update map to show 4 visual states based on visit status and open state, and display visit dates in info windows.
 
 **Modified Requirements:**
-- REQ-PLM-004: Pub Information Display - Show visit date in info window for visited pubs
 - REQ-PLM-002: Pub Markers - Add visual differentiation for visited pubs (4 states)
-- REQ-PLM-007: Visual Differentiation - Update to support visit-based styling alongside open/closed state
+- REQ-PLM-004: Pub Information Display - Show visit date in info window for visited pubs
+
+**New Requirements:**
+- REQ-PLM-008: Visit Date Display in Info Window - Display visit date for authenticated users
 
 ### Modified Capability: pub-navigation-sidebar
 **Type:** modify  
 **Spec:** `openspec/specs/pub-navigation-sidebar/spec.md`
 
-Add visit progress tracking to sidebar groups.
+Add visit progress tracking to sidebar groups with closed count display and visit dates on individual pub items.
 
-**Modified Requirements:** with closed count
-- REQ-PNS-004: Pub Selection - Display visit date on individual pub items
-- REQ-PNS-006: Group Count Display - Include visited/total format with closed count and
-- REQ-PNS-006: Group Count Display - Include visited/total format with progress indicator
+**Modified Requirements:**
+- REQ-PNS-001: Visit Progress Display - Include visited/total format with closed count when showing closed pubs
+- REQ-PNS-004: Pub Selection - Integrate with visit data for visit indicators
+
+**New Requirements:**
+- REQ-PNS-009: Visit Date Display on Pub Items - Show visit date on individual pub entries
 
 ## Dependencies
 - Requires user-authentication capability (already implemented)
