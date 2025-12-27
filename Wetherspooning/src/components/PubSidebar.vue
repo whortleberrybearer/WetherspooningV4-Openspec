@@ -8,7 +8,7 @@
   >
     <!-- Header -->
     <div class="flex items-center justify-between p-4 border-b border-border">
-      <h2 class="text-lg font-semibold">Pub Locations</h2>
+      <h2 class="text-lg font-semibold">Wetherspooning</h2>
       <button
         @click="$emit('close')"
         class="p-2 hover:bg-accent rounded-md transition-colors"
