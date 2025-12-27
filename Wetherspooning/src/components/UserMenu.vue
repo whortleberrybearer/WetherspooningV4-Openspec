@@ -2,7 +2,7 @@
   <div class="relative">
     <!-- Menu Trigger -->
     <button
-      @click="isOpen = !isOpen"
+      @click.stop="isOpen = !isOpen"
       @keydown.escape="isOpen = false"
       class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent rounded-md transition-colors"
       aria-haspopup="true"
@@ -108,12 +108,15 @@ const handleClickOutside = () => {
 // Click outside directive
 const vClickOutside = {
   mounted(el: HTMLElement & { clickOutsideEvent?: (event: Event) => void }, binding: { value: () => void }) {
-    el.clickOutsideEvent = (event: Event) => {
-      if (!(el === event.target || el.contains(event.target as Node))) {
-        binding.value()
+    // Delay adding the listener to avoid immediate triggering
+    setTimeout(() => {
+      el.clickOutsideEvent = (event: Event) => {
+        if (!(el === event.target || el.contains(event.target as Node))) {
+          binding.value()
+        }
       }
-    }
-    document.addEventListener('click', el.clickOutsideEvent)
+      document.addEventListener('click', el.clickOutsideEvent)
+    }, 0)
   },
   unmounted(el: HTMLElement & { clickOutsideEvent?: (event: Event) => void }) {
     if (el.clickOutsideEvent) {
