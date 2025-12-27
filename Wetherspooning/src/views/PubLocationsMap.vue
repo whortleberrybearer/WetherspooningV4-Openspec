@@ -40,6 +40,8 @@
 import { ref, onMounted, shallowRef, computed, watch } from 'vue'
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 import PubSidebar from '@/components/PubSidebar.vue'
+import { useAuth } from '@/composables/useAuth'
+import { useVisits } from '@/composables/useVisits'
 
 interface Pub {
   id: number
@@ -64,6 +66,25 @@ const infoWindow = ref<google.maps.InfoWindow | null>(null)
 const error = ref<string>('')
 const sidebarOpen = ref(false)
 const showClosedPubs = ref(false)
+
+// Authentication and visit tracking
+const { user, isAuthenticated } = useAuth()
+const { isVisited, getVisitDate, loadVisits, clearVisits } = useVisits()
+
+// Watch authentication state to load/clear visit data
+watch(isAuthenticated, async (authenticated) => {
+  if (authenticated && user.value) {
+    // Load visits when user logs in (using userId 1 for test user)
+    await loadVisits(1)
+    // Recreate markers to show visit status
+    createMarkers()
+  } else {
+    // Clear visits when user logs out
+    clearVisits()
+    // Recreate markers to remove visit status
+    createMarkers()
+  }
+})
 
 // Filter pubs for map markers only
 const filteredPubsForMap = computed(() => {
@@ -135,10 +156,11 @@ const createMarkers = () => {
       return
     }
 
-    // Check if pub is closed for visual differentiation
+    // Check if pub is closed and visited for visual differentiation
     const isClosed = pub.openState?.toLowerCase().includes('closed') || false
+    const visited = isVisited(pub.id)
 
-    // Create marker with visual differentiation for closed pubs
+    // Create marker with visual differentiation for 4 states
     const markerElement = document.createElement('div')
     markerElement.className = 'custom-marker'
     markerElement.style.width = '12px'
@@ -147,12 +169,21 @@ const createMarkers = () => {
     markerElement.style.border = '2px solid white'
     markerElement.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)'
     
-    if (isClosed) {
-      // Closed pubs: gray with reduced opacity
+    // Determine marker color and opacity based on visited and open state
+    if (visited && !isClosed) {
+      // Visited + Open: Green at 100% opacity
+      markerElement.style.backgroundColor = '#34a853'
+      markerElement.style.opacity = '1'
+    } else if (visited && isClosed) {
+      // Visited + Closed: Blue at 60% opacity
+      markerElement.style.backgroundColor = '#4285f4'
+      markerElement.style.opacity = '0.6'
+    } else if (!visited && isClosed) {
+      // Unvisited + Closed: Gray at 60% opacity
       markerElement.style.backgroundColor = '#9ca3af'
       markerElement.style.opacity = '0.6'
     } else {
-      // Open pubs: red (standard Google Maps style)
+      // Unvisited + Open: Red at 100% opacity (default)
       markerElement.style.backgroundColor = '#ea4335'
       markerElement.style.opacity = '1'
     }
@@ -175,11 +206,31 @@ const createMarkers = () => {
 const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement) => {
   if (!infoWindow.value) return
 
+  // Format visit date if available
+  let visitDateText = ''
+  if (isAuthenticated.value && isVisited(pub.id)) {
+    const visitDate = getVisitDate(pub.id)
+    if (visitDate) {
+      try {
+        const date = new Date(visitDate)
+        const formattedDate = date.toLocaleDateString('en-GB', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        })
+        visitDateText = `<p class="text-sm text-green-600 mb-2">Visited on ${formattedDate}</p>`
+      } catch (error) {
+        console.error('Error formatting visit date:', error)
+      }
+    }
+  }
+
   const content = `
     <div class="p-3 min-w-[200px]">
       <h3 class="text-base font-semibold mb-2">${pub.name}</h3>
       <p class="text-sm text-muted-foreground mb-1">${pub.address}</p>
       <p class="text-sm text-muted-foreground mb-2">${pub.townCity}, ${pub.county}</p>
+      ${visitDateText}
       ${pub.url ? `<a href="${pub.url}" target="_blank" rel="noopener" class="inline-block text-sm text-primary font-medium hover:underline">View Details</a>` : ''}
     </div>
   `

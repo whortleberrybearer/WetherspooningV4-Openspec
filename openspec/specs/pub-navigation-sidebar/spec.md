@@ -154,22 +154,33 @@ The sidebar MUST be fully functional and optimized for mobile devices.
 **Priority:** MUST  
 **Category:** Non-Functional
 
-The sidebar MUST group and display pubs efficiently without impacting map performance.
+**Changes:**
+- ADD: Visit count calculations must not impact grouping performance
+- ADD: Visit lookups must be optimized for large pub lists
 
-**Acceptance Criteria:**
+**Updated Acceptance Criteria:**
 - Grouping logic completes in under 100ms for 100 pubs
 - Expanding/collapsing groups is instant (no lag)
 - Sidebar rendering does not block map interactions
 - Memory usage is minimal (no duplicate data structures)
+- **NEW:** Visit count calculation adds less than 10ms overhead per group
+- **NEW:** Visit status lookups use O(1) Set-based implementation
+- **NEW:** Changing filter state recalculates counts within 50ms
 
-#### Scenario: Fast Sidebar Rendering
-**Given** the pub data contains 15+ pubs across multiple countries  
-**When** the sidebar is opened for the first time  
-**Then** all groups are calculated and rendered within 100ms  
-**And** the map remains responsive during sidebar initialization  
-**And** subsequent opens/closes are instant
+#### Scenario: Fast Visit Count Calculation
+**Given** a country group contains 50 pubs across multiple counties  
+**And** the user is authenticated with visit data loaded  
+**When** the country group is expanded  
+**Then** visit counts for all county sub-groups are calculated  
+**And** the calculation completes within 10ms total  
+**And** the sidebar remains responsive
 
----
+#### Scenario: Efficient Filter State Changes
+**Given** the sidebar is displaying visit counts for all groups  
+**When** the user toggles "Show Closed Pubs" OFF  
+**Then** all visit counts recalculate to exclude closed pubs  
+**And** the recalculation completes within 50ms  
+**And** the UI updates smoothly without lag
 
 ### Requirement: Accessibility (REQ-PNS-007)
 **Priority:** MUST  
@@ -191,6 +202,43 @@ The sidebar MUST be accessible to users with disabilities.
 **And** pressing Enter/Space on a group expands/collapses it  
 **And** pressing Enter/Space on a pub selects it  
 **And** all focused elements have visible focus indicators
+
+---
+
+### Requirement: Visit Progress Indicators (REQ-PNS-008)
+**Priority:** MUST  
+**Category:** Functional
+
+The system MUST provide visual indicators for visit progress in addition to text counts.
+
+**Acceptance Criteria:**
+- Visit progress text appears in "Visited X/Y" format
+- Text uses muted color to avoid visual clutter
+- Checkmark icon (✓) appears before "Visited" text when at least one pub is visited
+- Progress is calculated dynamically based on current filter state
+- Progress updates immediately when visit data changes
+
+#### Scenario: Display Visited Checkmark for Groups with Visits
+**Given** the user is authenticated  
+**And** a county group has 3 visited pubs out of 10  
+**When** the sidebar displays the county  
+**Then** a checkmark icon appears before the visit count  
+**And** the text reads "✓ Visited 3/10"  
+**And** the text is styled with muted color
+
+#### Scenario: No Checkmark for Groups with No Visits
+**Given** the user is authenticated  
+**And** a county group has 0 visited pubs out of 10  
+**When** the sidebar displays the county  
+**Then** no checkmark icon is shown  
+**And** the text reads "Visited 0/10"
+
+#### Scenario: 100% Completion Indication
+**Given** the user has visited all pubs in a county (10/10)  
+**When** the sidebar displays the county  
+**Then** the visit count shows "✓ Visited 10/10"  
+**And** the text may use success color (green) to indicate completion  
+**And** the visual treatment celebrates the achievement
 
 ---
 

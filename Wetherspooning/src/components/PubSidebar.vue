@@ -75,7 +75,7 @@
             </svg>
             <span class="font-semibold">{{ countryName }}</span>
           </div>
-          <span class="text-sm text-muted-foreground">{{ getCountryTotal(counties) }}</span>
+          <span :class="['text-sm', isAuthenticated ? 'text-muted-foreground' : 'text-muted-foreground']">{{ getCountryTotal(counties) }}</span>
         </button>
 
         <!-- Counties within Country -->
@@ -103,7 +103,7 @@
                 </svg>
                 <span class="text-sm font-medium">{{ countyName }}</span>
               </div>
-              <span class="text-xs text-muted-foreground">{{ getCountyTotal(pubs) }}</span>
+              <span :class="['text-xs', isAuthenticated ? 'text-muted-foreground' : 'text-muted-foreground']">{{ getCountyTotal(pubs) }}</span>
             </button>
 
             <!-- Pubs within County -->
@@ -119,6 +119,12 @@
               >
                 <div :class="['text-sm', isPubClosed(pub) ? 'text-muted-foreground' : '']">{{ pub.name }}</div>
                 <div class="text-xs text-muted-foreground">{{ pub.townCity }}</div>
+                <div 
+                  v-if="isAuthenticated && isVisited(pub.id)" 
+                  class="text-xs text-green-600 mt-0.5"
+                >
+                  Visited {{ formatVisitDate(getVisitDate(pub.id)) }}
+                </div>
               </button>
             </div>
           </div>
@@ -129,8 +135,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useAuth } from '@/composables/useAuth'
+import { useVisits } from '@/composables/useVisits'
 import LoginDialog from '@/components/LoginDialog.vue'
 import UserMenu from '@/components/UserMenu.vue'
 
@@ -162,8 +169,20 @@ defineEmits<{
   toggleClosedPubs: []
 }>()
 
-const { isAuthenticated } = useAuth()
+const { user, isAuthenticated } = useAuth()
+const { getGroupCounts, loadVisits, clearVisits, isVisited, getVisitDate } = useVisits()
 const showLoginDialog = ref(false)
+
+// Watch authentication state to load/clear visit data
+watch(isAuthenticated, async (authenticated) => {
+  if (authenticated && user.value) {
+    // Load visits when user logs in (using userId 1 for test user)
+    await loadVisits(1)
+  } else {
+    // Clear visits when user logs out
+    clearVisits()
+  }
+})
 
 const expandedCountries = ref(new Set<string>())
 const expandedCounties = ref(new Set<string>())
@@ -259,36 +278,86 @@ const toggleCounty = (country: string, county: string) => {
 }
 
 /**
- * Calculates display count for a country based on toggle state.
- * - Toggle ON: "X (Y closed)" or "X" if all open
- * - Toggle OFF: "X" (open count only, from filtered list)
+ * Calculates display count for a country based on toggle state and authentication.
+ * - Authenticated: "✓ Visited X/Y (Z closed)" or "✓ Visited X/Y" or "Visited 0/Y"
+ * - Not authenticated: "Y pubs" or "Y (Z closed)"
  */
 const getCountryTotal = (counties: Record<string, Pub[]>) => {
   const allPubs = Object.values(counties).flat()
-  const total = allPubs.length
-  const closedCount = allPubs.filter(isPubClosed).length
-
-  if (props.showClosedPubs) {
-    // Toggle ON: show total with closed count if any closed pubs exist
-    return closedCount > 0 ? `${total} (${closedCount} closed)` : `${total}`
+  
+  if (isAuthenticated.value) {
+    // Show visit progress for authenticated users
+    const { visited, total } = getGroupCounts(allPubs)
+    const visitText = visited > 0 ? `✓ Visited ${visited}/${total}` : `Visited ${visited}/${total}`
+    
+    // Add closed count if showing closed pubs
+    if (props.showClosedPubs) {
+      const closedCount = allPubs.filter(isPubClosed).length
+      return closedCount > 0 ? `${visitText} (${closedCount} closed)` : visitText
+    }
+    
+    return visitText
   } else {
-    // Toggle OFF: show count from filtered list (already filtered to open only)
-    return `${total}`
+    // Show total counts for unauthenticated users
+    const total = allPubs.length
+    const closedCount = allPubs.filter(isPubClosed).length
+    
+    if (props.showClosedPubs) {
+      return closedCount > 0 ? `${total} (${closedCount} closed)` : `${total}`
+    } else {
+      return `${total}`
+    }
   }
 }
 
 /**
- * Calculates display count for a county based on toggle state.
+ * Calculates display count for a county based on toggle state and authentication.
+ * - Authenticated: "✓ Visited X/Y (Z closed)" or "✓ Visited X/Y" or "Visited 0/Y"
+ * - Not authenticated: "Y pubs" or "Y (Z closed)"
  */
 const getCountyTotal = (pubs: Pub[]) => {
-  const total = pubs.length
-  const closedCount = pubs.filter(isPubClosed).length
-
-  if (props.showClosedPubs) {
-    return closedCount > 0 ? `${total} (${closedCount} closed)` : `${total}`
+  if (isAuthenticated.value) {
+    // Show visit progress for authenticated users
+    const { visited, total } = getGroupCounts(pubs)
+    const visitText = visited > 0 ? `✓ Visited ${visited}/${total}` : `Visited ${visited}/${total}`
+    
+    // Add closed count if showing closed pubs
+    if (props.showClosedPubs) {
+      const closedCount = pubs.filter(isPubClosed).length
+      return closedCount > 0 ? `${visitText} (${closedCount} closed)` : visitText
+    }
+    
+    return visitText
   } else {
-    // Toggle OFF: show count from filtered list (already filtered to open only)
-    return `${total}`
+    // Show total counts for unauthenticated users
+    const total = pubs.length
+    const closedCount = pubs.filter(isPubClosed).length
+    
+    if (props.showClosedPubs) {
+      return closedCount > 0 ? `${total} (${closedCount} closed)` : `${total}`
+    } else {
+      return `${total}`
+    }
+  }
+}
+
+/**
+ * Format a visit date for display.
+ * Converts ISO date string to human-readable format.
+ */
+const formatVisitDate = (isoDate: string | null): string | null => {
+  if (!isoDate) return null
+  
+  try {
+    const date = new Date(isoDate)
+    return date.toLocaleDateString('en-GB', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    })
+  } catch (error) {
+    console.error('Error formatting date:', error)
+    return null
   }
 }
 </script>
