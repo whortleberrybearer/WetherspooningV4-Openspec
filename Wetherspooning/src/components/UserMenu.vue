@@ -45,37 +45,6 @@
           <p v-if="user?.email" class="text-xs text-muted-foreground">{{ user.email }}</p>
         </div>
 
-        <!-- Future Features (Disabled) -->
-        <div class="py-1">
-          <button
-            disabled
-            class="w-full text-left px-3 py-2 text-sm text-muted-foreground cursor-not-allowed flex items-center justify-between"
-            role="menuitem"
-          >
-            <span>Preferences</span>
-            <span class="text-xs">Coming Soon</span>
-          </button>
-          <button
-            disabled
-            class="w-full text-left px-3 py-2 text-sm text-muted-foreground cursor-not-allowed flex items-center justify-between"
-            role="menuitem"
-          >
-            <span>Change Password</span>
-            <span class="text-xs">Coming Soon</span>
-          </button>
-          <button
-            disabled
-            class="w-full text-left px-3 py-2 text-sm text-muted-foreground cursor-not-allowed flex items-center justify-between"
-            role="menuitem"
-          >
-            <span>Profile</span>
-            <span class="text-xs">Coming Soon</span>
-          </button>
-        </div>
-
-        <!-- Divider -->
-        <div class="border-t border-border my-1"></div>
-
         <!-- Logout -->
         <button
           @click="handleLogout"
