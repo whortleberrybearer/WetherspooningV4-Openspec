@@ -3,33 +3,33 @@
 ## Phase 1: Visit Data Management (Foundation)
 
 ### 1.1 Create Visit Data Types
-- [ ] Define `Visit` interface in types file or composable
-- [ ] Include required fields: `id`, `userId`, `pubId`
-- [ ] Include optional fields: `visitedAt`, `rating`, `notes`
-- [ ] Export interface for use in composables and components
+- [x] Define `Visit` interface in types file or composable
+- [x] Include required fields: `id`, `userId`, `pubId`
+- [x] Include optional fields: `visitedAt`, `rating`, `notes`
+- [x] Export interface for use in composables and components
 
 ### 1.2 Implement useVisits Composable
-- [ ] Create `src/composables/useVisits.ts`
-- [ ] Define reactive state: `visitedPubIds` (Set), `isLoading`, `error`
-- [ ] Implement `loadVisits(userId: number)` method
+- [x] Create `src/composables/useVisits.ts`
+- [x] Define reactive state: `visitedPubIds` (Set), `isLoading`, `error`
+- [x] Implement `loadVisits(userId: number)` method
   - Fetch from `/data/visits-sample.json`
   - Filter to matching userId
   - Populate Set with pub IDs
   - Handle errors gracefully
-- [ ] Implement `isVisited(pubId: number)` method (O(1) Set lookup)
-- [ ] Implement `getGroupCounts(pubs: Pub[])` method
+- [x] Implement `isVisited(pubId: number)` method (O(1) Set lookup)
+- [x] Implement `getGroupCounts(pubs: Pub[])` method
   - Count visited pubs in array
   - Return `{ visited: number, total: number }`
-- [ ] Implement `clearVisits()` method for logout
-- [ ] Add JSDoc comments for all exported methods
+- [x] Implement `clearVisits()` method for logout
+- [x] Add JSDoc comments for all exported methods
 
 ### 1.3 Create Test Visit Data
-- [ ] Create `Wetherspooning/public/data/visits-sample.json`
-- [ ] Add 10-15 sample visits for test user (userId: 1)
-- [ ] Include mix of open and closed pubs
-- [ ] Include visits across different counties/countries
-- [ ] Include some with `visitedAt`, `rating`, `notes` fields
-- [ ] Validate JSON structure
+- [x] Create `Wetherspooning/public/data/visits-sample.json`
+- [x] Add 10-15 sample visits for test user (userId: 1)
+- [x] Include mix of open and closed pubs
+- [x] Include visits across different counties/countries
+- [x] Include some with `visitedAt`, `rating`, `notes` fields
+- [x] Validate JSON structure
 
 ### 1.4 Unit Test useVisits Composable
 - [ ] Test `loadVisits()` successfully fetches and parses data
@@ -45,29 +45,29 @@
 ## Phase 2: Map Visual Differentiation
 
 ### 2.1 Integrate Visit Data in Map Component
-- [ ] Import `useVisits` in `PubLocationsMap.vue`
-- [ ] Import `useAuth` to get authentication state
-- [ ] Call `useVisits()` to get composable instance
-- [ ] Watch `isAuthenticated` from useAuth
-- [ ] When authenticated, call `loadVisits(user.id)`
-- [ ] When logout, call `clearVisits()` or watch for state change
+- [x] Import `useVisits` in `PubLocationsMap.vue`
+- [x] Import `useAuth` to get authentication state
+- [x] Call `useVisits()` to get composable instance
+- [x] Watch `isAuthenticated` from useAuth
+- [x] When authenticated, call `loadVisits(user.id)`
+- [x] When logout, call `clearVisits()` or watch for state change
 
 ### 2.2 Update Marker Creation Logic
-- [ ] Modify `createMarkers()` function
-- [ ] For each pub, check both `pub.openState` and `isVisited(pub.id)`
-- [ ] Implement 4 marker styles:
+- [x] Modify `createMarkers()` function
+- [x] For each pub, check both `pub.openState` and `isVisited(pub.id)`
+- [x] Implement 4 marker styles:
   - Unvisited + Open: `backgroundColor: '#ea4335'`, `opacity: '1'`
   - Unvisited + Closed: `backgroundColor: '#9ca3af'`, `opacity: '0.6'`
   - Visited + Open: `backgroundColor: '#34a853'`, `opacity: '1'`
   - Visited + Closed: `backgroundColor: '#4285f4'`, `opacity: '0.6'`
-- [ ] Keep existing white border and shadow styles
-- [ ] Ensure all markers remain clickable and hoverable
+- [x] Keep existing white border and shadow styles
+- [x] Ensure all markers remain clickable and hoverable
 
 ### 2.3 Handle Visit Data Changes
-- [ ] Watch for changes to `visitedPubIds` or authentication state
-- [ ] Recreate markers when visit data loads
-- [ ] Recreate markers when visit data clears (logout)
-- [ ] Ensure smooth transitions without breaking existing watches
+- [x] Watch for changes to `visitedPubIds` or authentication state
+- [x] Recreate markers when visit data loads
+- [x] Recreate markers when visit data clears (logout)
+- [x] Ensure smooth transitions without breaking existing watches
 
 ### 2.4 Component Test Map Markers
 - [ ] Test unauthenticated user sees 2 marker states (red, gray)
@@ -79,30 +79,30 @@
 ## Phase 3: Sidebar Visit Progress
 
 ### 3.1 Integrate Visit Data in Sidebar
-- [ ] Import `useVisits` in `PubSidebar.vue`
-- [ ] Call `useVisits()` to get composable instance
-- [ ] Use existing `isAuthenticated` from useAuth
-- [ ] Watch authentication state to trigger visit data load
-- [ ] Get `getGroupCounts` method from useVisits
+- [x] Import `useVisits` in `PubSidebar.vue`
+- [x] Call `useVisits()` to get composable instance
+- [x] Use existing `isAuthenticated` from useAuth
+- [x] Watch authentication state to trigger visit data load
+- [x] Get `getGroupCounts` method from useVisits
 
 ### 3.2 Update Group Display Logic
-- [ ] Modify country group rendering to show visit counts
-- [ ] Modify county group rendering to show visit counts
-- [ ] When authenticated, display "✓ Visited X/Y" format
-- [ ] When not authenticated, display "(Y pubs)" format
-- [ ] Use `getGroupCounts(pubsInGroup)` to calculate counts
-- [ ] Apply muted text color for visit counts
+- [x] Modify country group rendering to show visit counts
+- [x] Modify county group rendering to show visit counts
+- [x] When authenticated, display "✓ Visited X/Y" format
+- [x] When not authenticated, display "(Y pubs)" format
+- [x] Use `getGroupCounts(pubsInGroup)` to calculate counts
+- [x] Apply muted text color for visit counts
 
 ### 3.3 Respect Closed Pubs Filter
-- [ ] Ensure visit counts use filtered pub lists (already filtered by `filteredPubs`)
-- [ ] Verify counts update when "Show Closed Pubs" toggle changes
-- [ ] Test that hidden closed pubs don't affect visit counts
+- [x] Ensure visit counts use filtered pub lists (already filtered by `filteredPubs`)
+- [x] Verify counts update when "Show Closed Pubs" toggle changes
+- [x] Test that hidden closed pubs don't affect visit counts
 
 ### 3.4 Add Visual Indicators
-- [ ] Add checkmark icon (✓) before "Visited" text
-- [ ] Only show checkmark when `visited > 0`
+- [x] Add checkmark icon (✓) before "Visited" text
+- [x] Only show checkmark when `visited > 0`
 - [ ] Consider success color for 100% completion (optional enhancement)
-- [ ] Ensure consistent spacing and alignment
+- [x] Ensure consistent spacing and alignment
 
 ### 3.5 Component Test Sidebar Counts
 - [ ] Test unauthenticated user sees only total counts
@@ -115,9 +115,9 @@
 ## Phase 4: Integration & Polish
 
 ### 4.1 Test Authentication Flow
-- [ ] Test complete flow: load page → login → visit data loads → UI updates
-- [ ] Test logout clears visit state in both map and sidebar
-- [ ] Verify no errors in console during auth state changes
+- [x] Test complete flow: load page → login → visit data loads → UI updates
+- [x] Test logout clears visit state in both map and sidebar
+- [x] Verify no errors in console during auth state changes
 - [ ] Test rapid login/logout doesn't cause race conditions
 
 ### 4.2 Error Handling
@@ -128,18 +128,18 @@
 - [ ] Test network error during visit data fetch
 
 ### 4.3 Performance Testing
-- [ ] Verify visit lookups are performant with Set implementation
-- [ ] Test sidebar renders quickly with visit counts (< 100ms)
-- [ ] Test marker recreation is smooth (< 200ms)
+- [x] Verify visit lookups are performant with Set implementation
+- [x] Test sidebar renders quickly with visit counts (< 100ms)
+- [x] Test marker recreation is smooth (< 200ms)
 - [ ] Profile visit count calculations for large groups
 - [ ] Ensure no memory leaks from watch/computed properties
 
 ### 4.4 Visual QA
-- [ ] Verify all 4 marker colors are distinct and accessible
+- [x] Verify all 4 marker colors are distinct and accessible
 - [ ] Test marker visibility with different zoom levels
 - [ ] Verify sidebar visit counts are readable and well-aligned
 - [ ] Test responsive behavior on mobile
-- [ ] Check dark theme compatibility (already using theme colors)
+- [x] Check dark theme compatibility (already using theme colors)
 
 ## Phase 5: Documentation & Testing
 
