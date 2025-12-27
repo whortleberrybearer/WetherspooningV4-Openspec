@@ -1,6 +1,34 @@
 <template>
   <div class="fixed inset-0 w-full h-screen">
-    <div v-if="error" class="absolute top-5 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground px-6 py-3 rounded-md z-[1000] shadow-lg">
+    <!-- Burger Menu Button -->
+    <button
+      @click="toggleSidebar"
+      class="fixed top-4 left-4 z-60 p-3 bg-background border border-border rounded-md shadow-lg hover:bg-accent transition-colors"
+      aria-label="Toggle sidebar"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+
+    <!-- Sidebar -->
+    <PubSidebar
+      :pubs="pubs"
+      :is-open="sidebarOpen"
+      @close="toggleSidebar"
+      @selectPub="handlePubSelect"
+    />
+
+    <!-- Overlay for mobile -->
+    <div
+      v-if="sidebarOpen"
+      @click="toggleSidebar"
+      class="fixed inset-0 bg-black/50 z-40 md:hidden"
+    ></div>
+
+    <div v-if="error" class="absolute top-5 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground px-6 py-3 rounded-md z-1000 shadow-lg">
       {{ error }}
     </div>
     <div ref="mapContainer" class="w-full h-full"></div>
@@ -10,6 +38,7 @@
 <script setup lang="ts">
 import { ref, onMounted, shallowRef } from 'vue'
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
+import PubSidebar from '@/components/PubSidebar.vue'
 
 interface Pub {
   id: number
@@ -32,6 +61,7 @@ const markers = ref<google.maps.marker.AdvancedMarkerElement[]>([])
 const pubs = ref<Pub[]>([])
 const infoWindow = ref<google.maps.InfoWindow | null>(null)
 const error = ref<string>('')
+const sidebarOpen = ref(false)
 
 const initMap = () => {
   if (!mapContainer.value) {
@@ -106,6 +136,24 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
 
   infoWindow.value.setContent(content)
   infoWindow.value.open(map.value!, marker)
+}
+
+const toggleSidebar = () => {
+  sidebarOpen.value = !sidebarOpen.value
+}
+
+const handlePubSelect = (pub: Pub) => {
+  // Find the marker for the selected pub
+  const marker = markers.value.find((m, index) => pubs.value[index]?.id === pub.id)
+  
+  if (marker && map.value) {
+    // Pan map to pub location
+    map.value.panTo({ lat: pub.lat, lng: pub.lng })
+    map.value.setZoom(15)
+    
+    // Show info window
+    showPubInfo(pub, marker)
+  }
 }
 
 onMounted(async () => {
