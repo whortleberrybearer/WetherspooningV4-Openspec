@@ -1,8 +1,7 @@
 <template>
   <div class="fixed inset-0 w-full h-screen">
     <!-- Burger Menu Button -->
-    <button
-      @click="toggleSidebar"
+    <button      v-if="!sidebarOpen"      @click="toggleSidebar"
       class="fixed top-4 left-4 z-60 p-3 bg-background border border-border rounded-md shadow-lg hover:bg-accent transition-colors"
       aria-label="Toggle sidebar"
     >
