@@ -4,7 +4,7 @@
 
 ### Phase 1: Authentication Service Layer
 
-- [ ] **Create authentication composable**
+- [x] **Create authentication composable**
   - Create `src/composables/useAuth.ts`
   - Define `User` interface (username, email)
   - Define `AuthState` interface (user, isAuthenticated, error)
@@ -15,7 +15,7 @@
   - Export composable with readonly state refs
   - Add JSDoc comments for public API
 
-- [ ] **Add test credentials**
+- [x] **Add test credentials**
   - Define test username: "test"
   - Define test password: "password123"
   - Define test email: "test@example.com"
@@ -23,7 +23,7 @@
 
 ### Phase 2: Login UI Components
 
-- [ ] **Create LoginDialog component**
+- [x] **Create LoginDialog component**
   - Create `src/components/LoginDialog.vue`
   - Use shadcn/vue Dialog component
   - Add username input field with label
@@ -38,7 +38,7 @@
   - Add loading state during authentication
   - Focus username field when dialog opens
 
-- [ ] **Add Login button to sidebar**
+- [x] **Add Login button to sidebar**
   - Modify `src/components/PubSidebar.vue`
   - Import `useAuth` composable
   - Import `LoginDialog` component
@@ -49,7 +49,7 @@
 
 ### Phase 3: User Menu Components
 
-- [ ] **Create UserMenu component**
+- [x] **Create UserMenu component**
   - Create `src/components/UserMenu.vue`
   - Use shadcn/vue DropdownMenu component
   - Display username in menu trigger
@@ -64,7 +64,7 @@
   - Implement keyboard navigation
   - Add appropriate ARIA attributes
 
-- [ ] **Integrate UserMenu into sidebar**
+- [x] **Integrate UserMenu into sidebar**
   - Modify `src/components/PubSidebar.vue`
   - Import `UserMenu` component
   - Add UserMenu to sidebar header (show when authenticated)
@@ -74,7 +74,7 @@
 
 ### Phase 4: Error Handling & Polish
 
-- [ ] **Implement error display**
+- [x] **Implement error display**
   - Style error messages in LoginDialog
   - Use error/danger color scheme
   - Position error message clearly (above or below form)
@@ -82,7 +82,7 @@
   - Test error message display for invalid credentials
   - Test error clearing on dialog close
 
-- [ ] **Add form validation**
+- [x] **Add form validation**
   - Disable submit button when fields are empty
   - Validate fields are not just whitespace
   - Show appropriate error messages:
@@ -90,7 +90,7 @@
     - Prevent submission if fields empty (via disabled button)
   - Clear password field after failed login attempt
 
-- [ ] **Implement keyboard accessibility**
+- [x] **Implement keyboard accessibility**
   - Test Tab navigation through form fields
   - Test Enter key submits form
   - Test Escape key closes dialog
