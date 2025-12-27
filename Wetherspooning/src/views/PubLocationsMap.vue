@@ -16,8 +16,10 @@
     <PubSidebar
       :pubs="pubs"
       :is-open="sidebarOpen"
+      :show-closed-pubs="showClosedPubs"
       @close="toggleSidebar"
       @selectPub="handlePubSelect"
+      @toggleClosedPubs="showClosedPubs = !showClosedPubs"
     />
 
     <!-- Overlay for mobile -->
@@ -35,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, shallowRef } from 'vue'
+import { ref, onMounted, shallowRef, computed, watch } from 'vue'
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 import PubSidebar from '@/components/PubSidebar.vue'
 
@@ -61,6 +63,19 @@ const pubs = ref<Pub[]>([])
 const infoWindow = ref<google.maps.InfoWindow | null>(null)
 const error = ref<string>('')
 const sidebarOpen = ref(false)
+const showClosedPubs = ref(false)
+
+// Filter pubs for map markers only
+const filteredPubsForMap = computed(() => {
+  if (showClosedPubs.value) {
+    return pubs.value
+  }
+  return pubs.value.filter(pub => {
+    // Treat missing openState as "Open" (fail-safe)
+    const state = pub.openState || 'Open'
+    return !state.toLowerCase().includes('closed')
+  })
+})
 
 const initMap = () => {
   if (!mapContainer.value) {
@@ -98,10 +113,23 @@ const loadPubs = async () => {
   }
 }
 
+// Watch for toggle changes to recreate markers
+watch(showClosedPubs, () => {
+  createMarkers()
+  // Close info window if it's for a pub that's now hidden
+  if (infoWindow.value) {
+    infoWindow.value.close()
+  }
+})
+
 const createMarkers = () => {
   if (!map.value) return
 
-  pubs.value.forEach((pub) => {
+  // Clear existing markers
+  markers.value.forEach(marker => marker.map = null)
+  markers.value = []
+
+  filteredPubsForMap.value.forEach((pub) => {
     if (!pub.lat || !pub.lng) {
       console.warn(`Pub ${pub.name} is missing coordinates`)
       return

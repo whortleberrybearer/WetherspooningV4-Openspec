@@ -67,7 +67,7 @@
     "lng": -2.5879,
     "url": "https://www.jdwetherspoon.com/pubs/all-pubs/england/bristol/the-company-inn-bristol",
     "imageUrl": "",
-    "openState": "Open"
+    "openState": "Temporary closed"
   },
   {
     "id": 6,
@@ -95,7 +95,7 @@
     "lng": -1.1581,
     "url": "https://www.jdwetherspoon.com/pubs/all-pubs/england/nottinghamshire/the-welkin-nottingham",
     "imageUrl": "",
-    "openState": "Open"
+    "openState": "Opening soon"
   },
   {
     "id": 8,
@@ -123,7 +123,7 @@
     "lng": -3.1791,
     "url": "https://www.jdwetherspoon.com/pubs/all-pubs/wales/cardiff/the-velvet-coaster-cardiff",
     "imageUrl": "",
-    "openState": "Open"
+    "openState": "Closed"
   },
   {
     "id": 10,
@@ -207,6 +207,6 @@
     "lng": -4.2694,
     "url": "https://www.jdwetherspoon.com/pubs/all-pubs/scotland/glasgow/the-sir-john-stirling-maxwell-glasgow",
     "imageUrl": "",
-    "openState": "Open"
+    "openState": "Closed"
   }
 ]
