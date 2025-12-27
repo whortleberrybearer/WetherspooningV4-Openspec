@@ -4,8 +4,7 @@
 Wetherspooning is a website that displays the locations of Wetherspoons pubs and allows users to track visits to them.
 
 ## Tech Stack
-[Explain your testing approach and requirements]
-- **Frontend:** Vue, Typescript, [shadcn/vue](https://www.shadcn-vue.com/)
+- **Frontend:** Vue 3.5, TypeScript 5.9, Vite 7.2, [shadcn/vue](https://www.shadcn-vue.com/), Tailwind CSS 4.0
 - **Backend:**
 
 ## Project Conventions
@@ -41,4 +40,6 @@ Wetherspooning is a website that displays the locations of Wetherspoons pubs and
 [List any technical, business, or regulatory constraints]
 
 ## External Dependencies
-[Document key external services, APIs, or systems]
+- **Google Maps JavaScript API:** Requires API key and Map ID (configured via environment variables)
+  - Maps JavaScript API for map rendering
+  - Advanced Marker API for pub location markers
