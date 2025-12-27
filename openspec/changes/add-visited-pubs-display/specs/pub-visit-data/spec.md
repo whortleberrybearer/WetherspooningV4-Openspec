@@ -175,3 +175,39 @@ The system MUST only load and display visit data when a user is authenticated.
 **Then** the method returns `false`  
 **And** when `getGroupCounts(pubs)` is called  
 **Then** `visited` is always 0
+
+---
+
+### Requirement: Visit Date Retrieval (REQ-PVD-006)
+**Priority:** MUST  
+**Category:** Functional
+
+The system MUST provide a method to retrieve the visit date for a specific pub.
+
+**Acceptance Criteria:**
+- `getVisitDate(pubId: number)` method returns visit date as string or null
+- Returns ISO date string (visitedAt field) if pub is visited
+- Returns `null` if pub is not visited
+- Returns `null` if visit has no visitedAt field
+- Works correctly when no visit data is loaded
+
+#### Scenario: Get Visit Date for Visited Pub
+**Given** the authenticated user has visited pub 5 on "2025-11-15T14:30:00Z"  
+**When** `getVisitDate(5)` is called  
+**Then** the method returns "2025-11-15T14:30:00Z"
+
+#### Scenario: Get Visit Date for Unvisited Pub
+**Given** the authenticated user has not visited pub 8  
+**When** `getVisitDate(8)` is called  
+**Then** the method returns `null`
+
+#### Scenario: Get Visit Date for Visit Without Date
+**Given** the authenticated user has visited pub 10  
+**And** the visit record has no `visitedAt` field  
+**When** `getVisitDate(10)` is called  
+**Then** the method returns `null`
+
+#### Scenario: Get Visit Date When Not Authenticated
+**Given** the user is not authenticated  
+**When** `getVisitDate(5)` is called  
+**Then** the method returns `null`

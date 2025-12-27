@@ -62,6 +62,53 @@
 
 ---
 
+## ADDED Requirements
+
+### Requirement: Visit Date in Info Window (REQ-PLM-008)
+**Priority:** MUST  
+**Category:** Functional
+
+The system MUST display the visit date in the pub info window when the user is authenticated and the pub has been visited.
+
+**Acceptance Criteria:**
+- Info window shows visit date for visited pubs when user is authenticated
+- Visit date is displayed in human-readable format (e.g., "Visited on Nov 15, 2025")
+- Visit date appears after the pub details (address, etc.)
+- If visit has no date, no date text is shown
+- Visit date uses appropriate styling to stand out
+- Date is not shown when user is not authenticated
+
+#### Scenario: Display Visit Date in Info Window for Visited Pub
+**Given** the user is authenticated  
+**And** pub "The Moon Under Water" was visited on "2025-11-15T14:30:00Z"  
+**When** the user clicks on the pub's marker  
+**Then** the info window opens  
+**And** displays "Visited on Nov 15, 2025" after the pub details  
+**And** the date text is styled distinctively
+
+#### Scenario: No Visit Date for Unvisited Pub
+**Given** the user is authenticated  
+**And** pub "The Regal" has not been visited  
+**When** the user clicks on the pub's marker  
+**Then** the info window opens  
+**And** no visit date text is shown
+
+#### Scenario: No Visit Date When Not Authenticated
+**Given** the user is not authenticated  
+**When** the user clicks on any pub marker  
+**Then** the info window opens with standard pub details  
+**And** no visit date text is shown
+
+#### Scenario: No Visit Date When Visit Lacks Date Field
+**Given** the user is authenticated  
+**And** pub "The Company Inn" has been visited  
+**And** the visit record has no `visitedAt` field  
+**When** the user clicks on the pub's marker  
+**Then** the info window opens  
+**And** no visit date text is shown
+
+---
+
 ## MODIFIED Requirements
 
 ### Requirement: Visual Differentiation (REQ-PLM-007)

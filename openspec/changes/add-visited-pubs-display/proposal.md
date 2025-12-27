@@ -19,13 +19,15 @@ Users want to track their Wetherspoon pub visits and see their progress. Visual 
   - Unvisited + Closed
   - Visited + Open
   - Visited + Closed
-- Showing visit count and progress per group in sidebar (e.g., "Visited 3/10 Greater Manchester pubs")
+- Showing visit count and progress per group in sidebar (e.g., "Visited 3/10 (2 closed)")
+- Displaying visit date on individual pub items in sidebar
+- Showing visit date in map info window for visited pubs
 - Test data with sample visited pubs for authenticated test user
 
 ### Out of Scope
 - Marking pubs as visited (manual user action)
 - Persisting visit changes (localStorage, backend)
-- Visit timestamps, ratings, or notes
+- Visit ratings or notes display
 - Visit statistics or analytics pages
 - Backend integration for visit data
 
@@ -43,6 +45,7 @@ New capability to manage pub visit data for authenticated users.
 - REQ-PVD-003: Visit Lookup - Provide method to check if pub is visited
 - REQ-PVD-004: Visit Counts - Calculate visited/total counts per group
 - REQ-PVD-005: Authentication Integration - Only load visits for authenticated users
+- REQ-PVD-006: Visit Date Retrieval - Provide method to get visit date for a pub
 
 ### Modified Capability: pub-locations-map
 **Type:** modify  
@@ -51,6 +54,7 @@ New capability to manage pub visit data for authenticated users.
 Update map to show 4 visual states based on visit status and open state.
 
 **Modified Requirements:**
+- REQ-PLM-004: Pub Information Display - Show visit date in info window for visited pubs
 - REQ-PLM-002: Pub Markers - Add visual differentiation for visited pubs (4 states)
 - REQ-PLM-007: Visual Differentiation - Update to support visit-based styling alongside open/closed state
 
@@ -60,8 +64,9 @@ Update map to show 4 visual states based on visit status and open state.
 
 Add visit progress tracking to sidebar groups.
 
-**Modified Requirements:**
-- REQ-PNS-001: Sidebar Display - Add visit count display per group
+**Modified Requirements:** with closed count
+- REQ-PNS-004: Pub Selection - Display visit date on individual pub items
+- REQ-PNS-006: Group Count Display - Include visited/total format with closed count and
 - REQ-PNS-006: Group Count Display - Include visited/total format with progress indicator
 
 ## Dependencies

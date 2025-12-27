@@ -18,18 +18,20 @@
 - Counties within each country are sorted alphabetically
 - Pubs within each county are sorted alphabetically by town/city
 - Each grouping level shows the count of pubs it contains
-- **NEW:** When user is authenticated, each group shows visit progress in format "Visited X/Y"
-- **NEW:** When user is not authenticated, groups show only total count "(Y pubs)"
+- **NEW:** When user is authenticated, each group shows visit progress in format "✓ Visited X/Y"
+- **NEW:** When user is authenticated and "Show Closed Pubs" is ON, format includes closed count: "✓ Visited X/Y (Z closed)"
+- **NEW:** When user is not authenticated, groups show only total count "(Y pubs)" or "Y (Z closed)"
 - **NEW:** Visit counts respect the "Show Closed Pubs" filter (only count visible pubs)
 
 #### Scenario: View Sidebar with Visit Progress When Authenticated
 **Given** the user is authenticated  
-**And** has visited 3 out of 10 Greater Manchester pubs  
-**And** has visited 1 out of 5 London pubs  
+**And** has visited 3 out of 10 Greater Manchester pubs (2 of which are now closed)  
+**And** has visited 1 out of 5 London pubs (all open)  
+**And** "Show Closed Pubs" toggle is ON  
 **When** the sidebar is displayed  
-**Then** the Greater Manchester group shows "Visited 3/10"  
-**And** the London group shows "Visited 1/5"  
-**And** the England country group shows "Visited 4/15"
+**Then** the Greater Manchester group shows "✓ Visited 3/10 (2 closed)"  
+**And** the London group shows "✓ Visited 1/5"  
+**And** the England country group shows "✓ Visited 4/15 (2 closed)"
 
 #### Scenario: View Sidebar Without Visit Progress When Not Authenticated
 **Given** the user is not authenticated  
@@ -64,6 +66,49 @@
 **When** the toggle is turned ON  
 **Then** the county group shows "Visited 3/10"  
 **And** the closed visited pub is included in the count
+
+---
+
+## ADDED Requirements
+
+### Requirement: Visit Date Display on Pub Items (REQ-PNS-009)
+**Priority:** MUST  
+**Category:** Functional
+
+The system MUST display the visit date on individual pub items in the sidebar for authenticated users.
+
+**Acceptance Criteria:**
+- Individual pub items show visit date when user is authenticated and pub is visited
+- Visit date is displayed in human-readable format (e.g., "Visited Nov 15, 2025")
+- Visit date appears below the pub name and town/city
+- If visit has no date, no date text is shown
+- Visit date uses muted color to avoid visual clutter
+- Date updates when visit data changes
+
+#### Scenario: Display Visit Date on Visited Pub
+**Given** the user is authenticated  
+**And** pub "The Moon Under Water" was visited on "2025-11-15T14:30:00Z"  
+**When** the sidebar displays the pub item  
+**Then** the visit date "Visited Nov 15, 2025" appears below the town/city  
+**And** the date text is styled with muted color
+
+#### Scenario: No Visit Date for Unvisited Pub
+**Given** the user is authenticated  
+**And** pub "The Regal" has not been visited  
+**When** the sidebar displays the pub item  
+**Then** no visit date text is shown
+
+#### Scenario: No Visit Date When Visit Lacks Date Field
+**Given** the user is authenticated  
+**And** pub "The Company Inn" has been visited  
+**And** the visit record has no `visitedAt` field  
+**When** the sidebar displays the pub item  
+**Then** no visit date text is shown
+
+#### Scenario: No Visit Date When Not Authenticated
+**Given** the user is not authenticated  
+**When** the sidebar displays pub items  
+**Then** no visit date text is shown on any pub items
 
 ---
 
