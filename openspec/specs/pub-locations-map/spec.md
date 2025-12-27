@@ -7,21 +7,27 @@ TBD - created by archiving change add-pub-locations-map. Update Purpose after ar
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST display an interactive Google Map centered on the UK showing Wetherspoons pub locations as markers.
+**Modifications:**
+- Map container must accommodate sidebar overlay on desktop
+- Map controls must remain accessible when sidebar is open
+- Map must remain interactive when sidebar is displayed
 
-**Acceptance Criteria:**
+**Updated Acceptance Criteria:**
 - Map initializes with center coordinates (54.0, -2.0) at zoom level 6
 - Map displays standard roadmap view
 - Map includes zoom controls and fullscreen option
 - Map is responsive and fills available viewport
 - Map is displayed as the home page at route `/`
+- **NEW:** Map remains fully interactive when sidebar is overlaid
+- **NEW:** Map controls are not obscured by sidebar
 
-#### Scenario: User Accesses Home Page
-**Given** the user navigates to the home page  
-**When** the page loads  
-**Then** an interactive Google Map is displayed  
-**And** the map is centered on the UK  
-**And** zoom controls are visible and functional
+#### Scenario: Map with Sidebar Open
+**Given** the pub locations map is displayed  
+**And** the sidebar is open  
+**When** the user interacts with the map  
+**Then** the map remains fully functional (pan, zoom, marker clicks)  
+**And** map controls remain accessible  
+**And** sidebar does not interfere with map interactions
 
 ---
 
@@ -90,30 +96,27 @@ The system MUST load pub location data from a static JSON file.
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST display detailed pub information when a user clicks on a map marker.
+**Modifications:**
+- Info windows can be triggered from sidebar pub selection
+- Info windows display correctly when triggered via sidebar
 
-**Acceptance Criteria:**
+**Updated Acceptance Criteria:**
 - Clicking a marker opens an info window
 - Info window displays: pub name, address, town/city, county
 - If available, info window includes link to pub details page
 - Only one info window is open at a time
 - Info window can be closed by clicking the X or clicking another marker
+- **NEW:** Selecting a pub from sidebar opens its info window
+- **NEW:** Map pans to center selected pub before opening info window
 
-#### Scenario: View Pub Details
-**Given** the map displays pub markers  
-**When** the user clicks on a specific marker  
-**Then** an info window opens above that marker  
-**And** the info window displays the pub name as heading  
-**And** the info window shows the full address  
-**And** the info window shows town/city and county  
-**And** if a URL exists, a "View Details" link is shown
-
-#### Scenario: Switch Between Pubs
-**Given** an info window is currently open for Pub A  
-**When** the user clicks on a marker for Pub B  
-**Then** the info window for Pub A closes  
-**And** a new info window opens for Pub B  
-**And** the new info window displays Pub B's information
+#### Scenario: Select Pub from Sidebar
+**Given** the sidebar is open  
+**And** the map is displayed  
+**When** the user clicks a pub in the sidebar list  
+**Then** the map pans to center on that pub's location  
+**And** the pub's info window opens  
+**And** any previously open info window is closed  
+**And** the info window displays the same information as marker clicks
 
 ---
 
