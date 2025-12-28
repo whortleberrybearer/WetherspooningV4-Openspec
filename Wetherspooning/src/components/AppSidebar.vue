@@ -20,51 +20,6 @@
     </SidebarHeader>
 
     <SidebarContent>
-      <!-- Login/User Section -->
-      <SidebarGroup>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            <SidebarMenuItem v-if="!isAuthenticated">
-              <SidebarMenuButton @click="showLoginDialog = true">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                  <polyline points="10 17 15 12 10 7"></polyline>
-                  <line x1="15" x2="3" y1="12" y2="12"></line>
-                </svg>
-                <span>Login</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem v-else>
-              <DropdownMenu>
-                <DropdownMenuTrigger as-child>
-                  <SidebarMenuButton>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                    <span>{{ user?.username }}</span>
-                  </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="right" align="start" class="w-56">
-                  <DropdownMenuItem disabled>
-                    <div class="flex flex-col gap-1">
-                      <p class="text-sm font-medium">{{ user?.username }}</p>
-                      <p v-if="user?.email" class="text-xs text-muted-foreground">{{ user.email }}</p>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem @click="handleLogout" class="text-destructive">
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-
-      <SidebarSeparator />
-
       <!-- Filter Options -->
       <SidebarGroup>
         <SidebarGroupLabel>Options</SidebarGroupLabel>
@@ -165,6 +120,53 @@
       </SidebarGroup>
     </SidebarContent>
 
+    <SidebarFooter>
+      <SidebarMenu>
+        <SidebarMenuItem v-if="!isAuthenticated">
+          <SidebarMenuButton @click="showLoginDialog = true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+              <polyline points="10 17 15 12 10 7"></polyline>
+              <line x1="15" x2="3" y1="12" y2="12"></line>
+            </svg>
+            <span>Login</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem v-else>
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <SidebarMenuButton size="lg" class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+                <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </div>
+                <div class="grid flex-1 text-left text-sm leading-tight">
+                  <span class="truncate font-semibold">{{ user?.username }}</span>
+                  <span v-if="user?.email" class="truncate text-xs">{{ user.email }}</span>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-auto size-4">
+                  <path d="m7 15 5 5 5-5"/>
+                  <path d="m7 9 5-5 5 5"/>
+                </svg>
+              </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="end" class="w-[--reka-popper-anchor-width]">
+              <DropdownMenuItem @click="handleLogout" class="text-destructive">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" x2="9" y1="12" y2="12"></line>
+                </svg>
+                <span>Logout</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </SidebarFooter>
+
     <SidebarRail />
 
     <!-- Login Dialog -->
@@ -177,6 +179,7 @@ import { computed, ref, watch } from 'vue'
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
