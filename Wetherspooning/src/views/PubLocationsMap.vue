@@ -108,9 +108,9 @@ const initMap = () => {
     center: { lat: 54.0, lng: -2.0 },
     zoom: 6,
     mapTypeId: 'roadmap',
-    mapTypeControl: true,
+    mapTypeControl: false,
     streetViewControl: false,
-    fullscreenControl: true,
+    fullscreenControl: false,
     mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID,
   }
 
