@@ -1,5 +1,5 @@
 <template>
-  <Sidebar collapsible="offcanvas" class="overflow-hidden [&>div]:w-[400px]">
+  <Sidebar collapsible="offcanvas" class="overflow-hidden [&>div]:w-[480px]">
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
