@@ -26,15 +26,15 @@
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <div class="flex items-center gap-2 px-2 py-1.5">
-                <Checkbox 
+              <div class="flex items-center justify-between gap-2 px-2 py-1.5">
+                <label for="show-closed" class="text-sm cursor-pointer flex-1">
+                  Show Closed Pubs
+                </label>
+                <Switch 
                   :checked="showClosedPubs" 
                   @update:modelValue="$emit('toggleClosedPubs')"
                   id="show-closed"
                 />
-                <label for="show-closed" class="text-sm cursor-pointer flex-1">
-                  Show Closed Pubs
-                </label>
               </div>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -202,7 +202,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
 import LoginDialog from '@/components/LoginDialog.vue'
