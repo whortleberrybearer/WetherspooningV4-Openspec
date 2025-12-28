@@ -10,18 +10,15 @@
 
     <!-- Main Content -->
     <SidebarInset class="flex-1 relative">
-      <header class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b">
-        <div class="flex items-center gap-2 px-4">
-          <SidebarTrigger class="-ml-1" />
-          <h1 class="text-lg font-semibold">Pub Locations</h1>
-        </div>
-      </header>
+      <div class="absolute top-4 left-4 z-10">
+        <SidebarTrigger />
+      </div>
 
       <div v-if="error" class="absolute top-20 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground px-6 py-3 rounded-md z-1000 shadow-lg">
         {{ error }}
       </div>
 
-      <div ref="mapContainer" class="w-full h-[calc(100vh-4rem)]"></div>
+      <div ref="mapContainer" class="w-full h-full"></div>
     </SidebarInset>
   </div>
 </template>
