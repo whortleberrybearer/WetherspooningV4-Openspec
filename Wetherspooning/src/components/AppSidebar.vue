@@ -29,7 +29,7 @@
               <div class="flex items-center gap-2 px-2 py-1.5">
                 <Checkbox 
                   :checked="showClosedPubs" 
-                  @update:checked="$emit('toggleClosedPubs')"
+                  @update:modelValue="$emit('toggleClosedPubs')"
                   id="show-closed"
                 />
                 <label for="show-closed" class="text-sm cursor-pointer flex-1">
