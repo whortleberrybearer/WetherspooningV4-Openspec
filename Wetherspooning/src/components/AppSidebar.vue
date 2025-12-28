@@ -1,5 +1,5 @@
 <template>
-  <Sidebar collapsible="offcanvas" class="overflow-hidden">
+  <Sidebar collapsible="offcanvas" class="overflow-hidden [&>div]:w-[400px]">
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
@@ -96,17 +96,23 @@
                           @click="$emit('selectPub', pub)"
                           :class="[isPubClosed(pub) ? 'opacity-50' : '', 'h-auto py-2']"
                         >
-                          <div class="flex flex-col gap-0.5 flex-1 min-w-0">
-                            <span :class="['text-sm break-words', isPubClosed(pub) ? 'text-muted-foreground' : '']">
-                              {{ pub.name }}
-                            </span>
-                            <span class="text-xs text-muted-foreground">{{ pub.townCity }}</span>
-                            <span 
+                          <div class="flex items-start justify-between gap-2 flex-1 min-w-0">
+                            <div class="flex flex-col gap-0.5 flex-1 min-w-0">
+                              <span :class="['text-sm break-words', isPubClosed(pub) ? 'text-muted-foreground' : '']">
+                                {{ pub.name }}
+                              </span>
+                              <span class="text-xs text-muted-foreground">{{ pub.townCity }}</span>
+                            </div>
+                            <div 
                               v-if="isAuthenticated && isVisited(pub.id)" 
-                              class="text-xs text-green-600 font-medium"
+                              class="flex items-center gap-1 text-sm text-green-600 font-medium whitespace-nowrap shrink-0"
                             >
-                              Visited {{ formatVisitDate(getVisitDate(pub.id)) }}
-                            </span>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                              </svg>
+                              <span>{{ formatVisitDate(getVisitDate(pub.id)) }}</span>
+                            </div>
                           </div>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -353,11 +359,10 @@ const formatVisitDate = (isoDate: string | null): string | null => {
   
   try {
     const date = new Date(isoDate)
-    return date.toLocaleDateString('en-GB', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    })
+    const day = String(date.getDate()).padStart(2, '0')
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const year = String(date.getFullYear()).slice(-2)
+    return `${day}/${month}/${year}`
   } catch (error) {
     console.error('Error formatting date:', error)
     return null
