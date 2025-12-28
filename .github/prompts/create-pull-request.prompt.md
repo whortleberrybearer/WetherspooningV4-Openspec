@@ -1,10 +1,14 @@
 ---
 agent: 'agent'
 description: 'Create GitHub Pull Request for the current branch.'
-tools: ['search/codebase', 'search', 'github/*', 'github/create_pull_request', 'github/update_pull_request']
+tools: ['search/codebase', 'execute/runInTerminal', 'execute/getTerminalOutput', 'search', 'github/*', 'github/create_pull_request', 'github/update_pull_request']
 ---
 
 Create a pull request for this changes.  Use conventional commits for the title and the template defined in `.github\PULL_REQUEST_TEMPLATE\pull_request_template.md` for the body.
+
+If there are uncomitted changes, confirm with the user whether to include them in the pull request.
+
+You may need to push changes to the remote repository before creating the pull request.
 
 ## Conventional Commit Prefixes
 
