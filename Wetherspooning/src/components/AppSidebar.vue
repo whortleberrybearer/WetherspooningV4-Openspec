@@ -63,7 +63,11 @@
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
               <span class="flex-1 text-left">{{ countryName }}</span>
-              <span class="text-xs text-muted-foreground">{{ getCountryTotal(counties) }}</span>
+              <div v-if="isAuthenticated" class="flex items-center gap-2 min-w-[100px]">
+                <Progress :model-value="getCountryProgress(counties)" class="h-2 flex-1" />
+                <span class="text-xs text-muted-foreground whitespace-nowrap">{{ getCountryProgressText(counties) }}</span>
+              </div>
+              <span v-else class="text-xs text-muted-foreground">{{ getCountryTotal(counties) }}</span>
             </CollapsibleTrigger>
           </SidebarGroupLabel>
           <CollapsibleContent>
@@ -87,7 +91,11 @@
                       <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
                     <span class="flex-1 text-left font-medium">{{ countyName }}</span>
-                    <span class="text-xs text-muted-foreground">{{ getCountyTotal(pubList) }}</span>
+                    <div v-if="isAuthenticated" class="flex items-center gap-2 min-w-[100px]">
+                      <Progress :model-value="getCountyProgress(pubList)" class="h-2 flex-1" />
+                      <span class="text-xs text-muted-foreground whitespace-nowrap">{{ getCountyProgressText(pubList) }}</span>
+                    </div>
+                    <span v-else class="text-xs text-muted-foreground">{{ getCountyTotal(pubList) }}</span>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <SidebarMenu class="ml-4">
@@ -209,6 +217,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Switch } from '@/components/ui/switch'
+import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
 import LoginDialog from '@/components/LoginDialog.vue'
@@ -367,5 +376,27 @@ const formatVisitDate = (isoDate: string | null): string | null => {
     console.error('Error formatting date:', error)
     return null
   }
+}
+
+const getCountryProgress = (counties: Record<string, Pub[]>) => {
+  const allPubs = Object.values(counties).flat()
+  const { visited, total } = getGroupCounts(allPubs)
+  return total > 0 ? (visited / total) * 100 : 0
+}
+
+const getCountryProgressText = (counties: Record<string, Pub[]>) => {
+  const allPubs = Object.values(counties).flat()
+  const { visited, total } = getGroupCounts(allPubs)
+  return `${visited}/${total}`
+}
+
+const getCountyProgress = (pubs: Pub[]) => {
+  const { visited, total } = getGroupCounts(pubs)
+  return total > 0 ? (visited / total) * 100 : 0
+}
+
+const getCountyProgressText = (pubs: Pub[]) => {
+  const { visited, total } = getGroupCounts(pubs)
+  return `${visited}/${total}`
 }
 </script>
