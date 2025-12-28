@@ -1,45 +1,36 @@
 <template>
-  <div class="fixed inset-0 w-full h-screen">
-    <!-- Burger Menu Button -->
-    <button      v-if="!sidebarOpen"      @click="toggleSidebar"
-      class="fixed top-4 left-4 z-60 p-3 bg-background border border-border rounded-md shadow-lg hover:bg-accent transition-colors"
-      aria-label="Toggle sidebar"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="3" y1="12" x2="21" y2="12"></line>
-        <line x1="3" y1="6" x2="21" y2="6"></line>
-        <line x1="3" y1="18" x2="21" y2="18"></line>
-      </svg>
-    </button>
-
+  <div class="flex h-screen w-full overflow-hidden">
     <!-- Sidebar -->
-    <PubSidebar
+    <AppSidebar
       :pubs="pubs"
-      :is-open="sidebarOpen"
       :show-closed-pubs="showClosedPubs"
-      @close="toggleSidebar"
       @selectPub="handlePubSelect"
       @toggleClosedPubs="showClosedPubs = !showClosedPubs"
     />
 
-    <!-- Overlay for mobile -->
-    <div
-      v-if="sidebarOpen"
-      @click="toggleSidebar"
-      class="fixed inset-0 bg-black/50 z-40 md:hidden"
-    ></div>
+    <!-- Main Content -->
+    <SidebarInset class="flex-1 relative">
+      <header class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b">
+        <div class="flex items-center gap-2 px-4">
+          <SidebarTrigger class="-ml-1" />
+          <h1 class="text-lg font-semibold">Pub Locations</h1>
+        </div>
+      </header>
 
-    <div v-if="error" class="absolute top-5 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground px-6 py-3 rounded-md z-1000 shadow-lg">
-      {{ error }}
-    </div>
-    <div ref="mapContainer" class="w-full h-full"></div>
+      <div v-if="error" class="absolute top-20 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground px-6 py-3 rounded-md z-1000 shadow-lg">
+        {{ error }}
+      </div>
+
+      <div ref="mapContainer" class="w-full h-[calc(100vh-4rem)]"></div>
+    </SidebarInset>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, shallowRef, computed, watch } from 'vue'
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
-import PubSidebar from '@/components/PubSidebar.vue'
+import AppSidebar from '@/components/AppSidebar.vue'
+import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
 
@@ -64,7 +55,6 @@ const markers = ref<google.maps.marker.AdvancedMarkerElement[]>([])
 const pubs = ref<Pub[]>([])
 const infoWindow = ref<google.maps.InfoWindow | null>(null)
 const error = ref<string>('')
-const sidebarOpen = ref(false)
 const showClosedPubs = ref(false)
 
 // Authentication and visit tracking
@@ -274,10 +264,6 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
 
   infoWindow.value.setContent(content)
   infoWindow.value.open(map.value!, marker)
-}
-
-const toggleSidebar = () => {
-  sidebarOpen.value = !sidebarOpen.value
 }
 
 const handlePubSelect = (pub: Pub) => {

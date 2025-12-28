@@ -1,7 +1,11 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { SidebarProvider } from '@/components/ui/sidebar'
+</script>
 
 <template>
-  <RouterView />
+  <SidebarProvider>
+    <RouterView />
+  </SidebarProvider>
 </template>
 
 <style scoped></style>
