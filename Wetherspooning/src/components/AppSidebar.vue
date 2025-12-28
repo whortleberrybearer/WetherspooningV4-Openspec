@@ -94,16 +94,16 @@
                       <SidebarMenuItem v-for="pub in pubList" :key="pub.id">
                         <SidebarMenuButton
                           @click="$emit('selectPub', pub)"
-                          :class="[isPubClosed(pub) ? 'opacity-50' : '']"
+                          :class="[isPubClosed(pub) ? 'opacity-50' : '', 'h-auto py-2']"
                         >
-                          <div class="flex flex-col gap-0.5 flex-1">
-                            <span :class="['text-sm', isPubClosed(pub) ? 'text-muted-foreground' : '']">
+                          <div class="flex flex-col gap-0.5 flex-1 min-w-0">
+                            <span :class="['text-sm break-words', isPubClosed(pub) ? 'text-muted-foreground' : '']">
                               {{ pub.name }}
                             </span>
                             <span class="text-xs text-muted-foreground">{{ pub.townCity }}</span>
                             <span 
                               v-if="isAuthenticated && isVisited(pub.id)" 
-                              class="text-xs text-green-600"
+                              class="text-xs text-green-600 font-medium"
                             >
                               Visited {{ formatVisitDate(getVisitDate(pub.id)) }}
                             </span>
