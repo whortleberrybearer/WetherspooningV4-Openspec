@@ -1,5 +1,5 @@
 <template>
-  <Sidebar collapsible="icon" class="overflow-hidden">
+  <Sidebar collapsible="offcanvas" class="overflow-hidden">
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
@@ -12,7 +12,7 @@
             </div>
             <div class="grid flex-1 text-left text-sm leading-tight">
               <span class="truncate font-semibold">Wetherspooning</span>
-              <span class="truncate text-xs">Pub Finder</span>
+              <span class="truncate text-xs">Pub Tracker</span>
             </div>
           </SidebarMenuButton>
         </SidebarMenuItem>
