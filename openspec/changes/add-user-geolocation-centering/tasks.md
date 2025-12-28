@@ -3,30 +3,30 @@
 ## Phase 1: Implementation
 
 ### 1.1 Add Geolocation Helper Function
-- [ ] Create `centerOnUserLocation()` function in PubLocationsMap.vue
-- [ ] Check for geolocation support using `'geolocation' in navigator`
-- [ ] Call `navigator.geolocation.getCurrentPosition()` with success/error callbacks
-- [ ] Set geolocation options:
+- [x] Create `centerOnUserLocation()` function in PubLocationsMap.vue
+- [x] Check for geolocation support using `'geolocation' in navigator`
+- [x] Call `navigator.geolocation.getCurrentPosition()` with success/error callbacks
+- [x] Set geolocation options:
   - `enableHighAccuracy: false` (faster response, sufficient accuracy)
   - `timeout: 5000` (5 second timeout)
   - `maximumAge: 300000` (accept cached position up to 5 minutes old)
-- [ ] On success: call `map.setCenter()` with user coordinates
-- [ ] On success: call `map.setZoom(12)` for neighborhood-level view
-- [ ] On success: log to console for debugging
-- [ ] On error: log warning to console
-- [ ] On error: do nothing (map stays at default center)
-- [ ] On no support: log warning to console
+- [x] On success: call `map.setCenter()` with user coordinates
+- [x] On success: call `map.setZoom(12)` for neighborhood-level view
+- [x] On success: log to console for debugging
+- [x] On error: log warning to console
+- [x] On error: do nothing (map stays at default center)
+- [x] On no support: log warning to console
 
 ### 1.2 Integrate with Map Initialization
-- [ ] Call `centerOnUserLocation()` after map creation in `initMap()`
-- [ ] Ensure function is called after `map.value` is set
-- [ ] Verify no await/blocking behavior (keep async)
+- [x] Call `centerOnUserLocation()` after map creation in `initMap()`
+- [x] Ensure function is called after `map.value` is set
+- [x] Verify no await/blocking behavior (keep async)
 
 ### 1.3 Code Quality
-- [ ] Add JSDoc comment explaining function behavior
-- [ ] Add inline comment about fallback behavior
-- [ ] Ensure TypeScript types are correct
-- [ ] No console.error() - use console.warn() for permission denials
+- [x] Add JSDoc comment explaining function behavior
+- [x] Add inline comment about fallback behavior
+- [x] Ensure TypeScript types are correct
+- [x] No console.error() - use console.warn() for permission denials
 
 ## Phase 2: Testing
 

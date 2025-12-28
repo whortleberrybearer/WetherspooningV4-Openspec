@@ -116,6 +116,43 @@ const initMap = () => {
 
   map.value = new google.maps.Map(mapContainer.value, mapOptions)
   infoWindow.value = new google.maps.InfoWindow()
+  
+  // Request user's current location to center map
+  centerOnUserLocation()
+}
+
+/**
+ * Attempts to center the map on the user's current location using the Geolocation API.
+ * Falls back to default center (54.0, -2.0) if geolocation is unavailable or denied.
+ * Non-blocking - map is immediately usable with default center while geolocation request is pending.
+ */
+const centerOnUserLocation = () => {
+  if (!map.value) return
+  
+  if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        }
+        map.value!.setCenter(userLocation)
+        map.value!.setZoom(12)
+        console.log('Map centered on user location:', userLocation)
+      },
+      (error) => {
+        console.warn('Geolocation failed:', error.message)
+        // Stay at default center - no action needed
+      },
+      {
+        enableHighAccuracy: false,  // Faster response, sufficient accuracy for pub finding
+        timeout: 5000,              // 5 second timeout prevents indefinite waiting
+        maximumAge: 300000          // Accept cached positions up to 5 minutes old
+      }
+    )
+  } else {
+    console.warn('Geolocation not supported by browser')
+  }
 }
 
 const loadPubs = async () => {
