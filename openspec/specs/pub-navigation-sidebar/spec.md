@@ -71,27 +71,38 @@ The system MUST allow users to expand and collapse country and county groups ind
 The system MUST provide a way to open and close the sidebar.
 
 **Acceptance Criteria:**
-- A burger menu button is visible when sidebar is closed
-- Clicking burger menu opens the sidebar
-- Sidebar includes a close button
-- Clicking close button hides the sidebar
+- A toggle button is visible when sidebar is collapsed or expanded
+- Toggle button is positioned floating over the map at top-left
+- Clicking toggle button opens the sidebar when closed
+- Clicking toggle button closes the sidebar when open
+- Sidebar fully hides when collapsed (no icon-only state)
 - Sidebar state persists during user session
 - Opening/closing is animated smoothly
+- Sidebar has fixed width (approximately 352px on desktop)
+- Toggle button remains accessible when sidebar is expanded
 
-#### Scenario: Open Sidebar via Burger Menu
-**Given** the sidebar is closed  
+#### Scenario: Open Sidebar via Toggle Button
+**Given** the sidebar is collapsed (fully hidden)  
 **And** the map is displayed  
-**When** the user clicks the burger menu button  
+**And** a toggle button is visible at the top-left corner  
+**When** the user clicks the toggle button  
 **Then** the sidebar slides into view from the left  
 **And** the sidebar displays the pub list  
-**And** the burger menu button remains visible
+**And** the toggle button remains visible and functional
 
-#### Scenario: Close Sidebar via Close Button
+#### Scenario: Close Sidebar via Toggle Button
 **Given** the sidebar is open  
-**When** the user clicks the close button in the sidebar header  
+**When** the user clicks the toggle button  
 **Then** the sidebar slides out of view to the left  
-**And** the burger menu button remains visible  
+**And** the sidebar fully disappears from view  
+**And** the toggle button remains visible  
 **And** the map remains fully functional
+
+#### Scenario: Persistent Sidebar Width
+**Given** the sidebar is displayed on desktop  
+**When** the sidebar opens  
+**Then** the sidebar has a fixed width of approximately 352 pixels  
+**And** the width is consistent across interactions
 
 ---
 
@@ -209,36 +220,61 @@ The sidebar MUST be accessible to users with disabilities.
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST provide visual indicators for visit progress in addition to text counts.
+The system MUST provide visual progress indicators showing visit completion for country and county groups when user is authenticated.
 
 **Acceptance Criteria:**
-- Visit progress text appears in "Visited X/Y" format
-- Text uses muted color to avoid visual clutter
-- Checkmark icon (✓) appears before "Visited" text when at least one pub is visited
+- Visit progress is displayed as a horizontal progress bar when user is authenticated
+- Progress bar shows percentage: (visited / total) * 100
+- Progress bar appears next to group name with fraction text ("X/Y")
+- Progress bar has minimum width (approximately 100px) to ensure visibility
+- Progress bar is styled subtly (approximately 2px height)
 - Progress is calculated dynamically based on current filter state
 - Progress updates immediately when visit data changes
+- When user is not authenticated, simple pub count is shown instead
 
-#### Scenario: Display Visited Checkmark for Groups with Visits
+#### Scenario: Display Progress Bar for Country with Visits
 **Given** the user is authenticated  
-**And** a county group has 3 visited pubs out of 10  
-**When** the sidebar displays the county  
-**Then** a checkmark icon appears before the visit count  
-**And** the text reads "✓ Visited 3/10"  
-**And** the text is styled with muted color
+**And** England has 15 visited pubs out of 50 total  
+**When** the country group is displayed in the sidebar  
+**Then** a progress bar appears showing 30% completion  
+**And** the progress bar is filled with green color  
+**And** the text "15/50" appears next to the progress bar  
+**And** the progress bar is approximately 100px wide
 
-#### Scenario: No Checkmark for Groups with No Visits
+#### Scenario: Display Progress Bar for County
 **Given** the user is authenticated  
-**And** a county group has 0 visited pubs out of 10  
-**When** the sidebar displays the county  
-**Then** no checkmark icon is shown  
-**And** the text reads "Visited 0/10"
+**And** Greater Manchester has 8 visited pubs out of 12 total  
+**When** the county group is displayed  
+**Then** a progress bar shows 67% completion  
+**And** the text "8/12" appears next to the progress bar
 
-#### Scenario: 100% Completion Indication
-**Given** the user has visited all pubs in a county (10/10)  
-**When** the sidebar displays the county  
-**Then** the visit count shows "✓ Visited 10/10"  
-**And** the text may use success color (green) to indicate completion  
-**And** the visual treatment celebrates the achievement
+#### Scenario: 0% Progress Display
+**Given** the user is authenticated  
+**And** a county has 0 visited pubs out of 10  
+**When** the county is displayed  
+**Then** a progress bar shows 0% (empty, no fill)  
+**And** the text "0/10" appears next to it
+
+#### Scenario: 100% Completion Display
+**Given** the user has visited all pubs in a county (12/12)  
+**When** the county is displayed  
+**Then** the progress bar shows 100% completion (fully filled)  
+**And** the text "12/12" appears
+
+#### Scenario: No Progress Bar When Not Authenticated
+**Given** the user is not authenticated  
+**When** country or county groups are displayed  
+**Then** no progress bars are shown  
+**And** only simple pub counts are displayed (e.g., "50")
+
+#### Scenario: Progress Updates When Filter Changes
+**Given** the user is authenticated  
+**And** a county shows "8/12" with 67% progress bar  
+**And** 2 of the 12 pubs are closed  
+**When** the user toggles "Show Closed Pubs" OFF  
+**Then** the progress recalculates to exclude closed pubs  
+**And** the progress bar updates within 50ms  
+**And** the new fraction reflects only open pubs (e.g., "8/10")
 
 ---
 

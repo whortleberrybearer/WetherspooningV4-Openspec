@@ -7,41 +7,74 @@ TBD - created by archiving change add-user-authentication. Update Purpose after 
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST provide a login form that accepts username and password credentials.
+The system MUST provide a login form that accepts email and password credentials.
 
 **Acceptance Criteria:**
 - Login form is accessible via a "Login" button
-- Form contains username input field
+- Form contains email input field
+- Email field uses placeholder "m@example.com"
 - Form contains password input field
 - Password field masks input characters
-- Form has a submit button labeled "Login" or "Sign In"
+- Password label includes "Forgot your password?" link aligned to the right
+- Form has a submit button labeled "Login"
+- Form includes visual divider with "Or continue with" text below submit button
+- Form includes "Login with Google" button with Google logo icon
+- Form includes "Don't have an account? Sign up" footer text with clickable link
 - Form can be dismissed/closed without submitting
-- Form clears password field when closed
+- Form clears both email and password fields when closed
 - Form is accessible via keyboard navigation
-- Submit button is disabled when fields are empty
+- Submit button is disabled when either field is empty
+- Form displays as modal dialog
+- Dialog shows title "Login to your account"
+- Dialog shows description "Enter your email below to login to your account"
 
 #### Scenario: Open Login Form
 **Given** the user is not authenticated  
 **And** the application is displayed  
 **When** the user clicks the "Login" button  
 **Then** the login form dialog opens  
-**And** the username field is focused  
+**And** the dialog title reads "Login to your account"  
+**And** the dialog description reads "Enter your email below to login to your account"  
+**And** the email field is focused  
 **And** both input fields are empty
 
 #### Scenario: Submit Login Form
 **Given** the login form is open  
-**And** the username field contains "test"  
+**And** the email field contains "test@example.com"  
 **And** the password field contains "password123"  
 **When** the user clicks the "Login" button  
 **Then** the authentication process is initiated  
-**And** the form displays a loading state
+**And** the form displays a loading state  
+**And** the button text changes to "Logging in..."
 
 #### Scenario: Close Login Form
 **Given** the login form is open  
 **When** the user clicks outside the dialog or presses Escape  
 **Then** the login form closes  
+**And** the email field is cleared  
 **And** the password field is cleared  
 **And** any error messages are cleared
+
+#### Scenario: Forgot Password Link Display
+**Given** the login form is open  
+**When** the password field is displayed  
+**Then** a "Forgot your password?" link appears aligned to the right of the Password label  
+**And** the link is underlined and styled as clickable
+
+#### Scenario: Google Sign In Button Display
+**Given** the login form is open  
+**When** the form is rendered  
+**Then** a horizontal divider with "Or continue with" text appears after the Login button  
+**And** a "Login with Google" button appears below the divider  
+**And** the button displays the official Google logo with multiple colors  
+**And** the button has outline styling (border, no fill)
+
+#### Scenario: Sign Up Link Display
+**Given** the login form is open  
+**When** the form is rendered  
+**Then** text "Don't have an account?" appears at the bottom  
+**And** a "Sign up" link appears after the text  
+**And** the link is underlined and clickable
 
 ---
 
@@ -49,22 +82,26 @@ The system MUST provide a login form that accepts username and password credenti
 **Priority:** MUST  
 **Category:** Functional
 
+**Changes:**
+- UPDATE: Test credential uses email "test@example.com" instead of username "test"
+- UPDATE: Validation compares email field against test email
+
 The system MUST validate user credentials against test credentials and update authentication state accordingly.
 
-**Acceptance Criteria:**
-- Test username is "test"
+**Updated Acceptance Criteria:**
+- **CHANGED:** Test email is "test@example.com" (not username "test")
 - Test password is "password123"
-- Validation is case-sensitive for both username and password
+- Validation is case-sensitive for both email and password
 - Successful login sets authenticated state to true
 - Successful login stores user information (username, email)
 - Failed login sets error state
 - Failed login keeps authenticated state as false
-- Empty username or password shows validation error
+- Empty email or password shows validation error
 - Validation happens on form submit only, not on field change
 
 #### Scenario: Successful Login
 **Given** the login form is open  
-**And** the user enters username "test"  
+**And** the user enters email "test@example.com"  
 **And** the user enters password "password123"  
 **When** the user submits the form  
 **Then** the user is authenticated  
@@ -75,17 +112,17 @@ The system MUST validate user credentials against test credentials and update au
 
 #### Scenario: Invalid Credentials
 **Given** the login form is open  
-**And** the user enters username "wrong"  
+**And** the user enters email "wrong@example.com"  
 **And** the user enters password "incorrect"  
 **When** the user submits the form  
-**Then** an error message displays "Invalid username or password"  
+**Then** an error message displays "Invalid email or password"  
 **And** the user is not authenticated  
 **And** the login form remains open  
 **And** the password field is cleared
 
 #### Scenario: Empty Fields
 **Given** the login form is open  
-**And** the username field is empty  
+**And** the email field is empty  
 **Or** the password field is empty  
 **When** the user attempts to submit the form  
 **Then** the submit button remains disabled  
@@ -93,10 +130,10 @@ The system MUST validate user credentials against test credentials and update au
 
 #### Scenario: Case Sensitivity
 **Given** the login form is open  
-**And** the user enters username "Test" (capital T)  
+**And** the user enters email "Test@example.com" (capital T)  
 **And** the user enters password "password123"  
 **When** the user submits the form  
-**Then** an error message displays "Invalid username or password"  
+**Then** an error message displays "Invalid email or password"  
 **And** the user is not authenticated
 
 ---
