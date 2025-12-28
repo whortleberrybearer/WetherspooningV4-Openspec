@@ -14,9 +14,13 @@
         <SidebarTrigger />
       </div>
 
-      <div v-if="error" class="absolute top-20 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground px-6 py-3 rounded-md z-1000 shadow-lg">
-        {{ error }}
-      </div>
+      <Alert v-if="error" variant="destructive" class="absolute top-20 left-1/2 -translate-x-1/2 max-w-md z-[1000]">
+        <AlertCircle class="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          {{ error }}
+        </AlertDescription>
+      </Alert>
 
       <div ref="mapContainer" class="w-full h-full"></div>
     </SidebarInset>
@@ -28,6 +32,8 @@ import { ref, onMounted, shallowRef, computed, watch } from 'vue'
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 import AppSidebar from '@/components/AppSidebar.vue'
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-vue-next'
 import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
 
