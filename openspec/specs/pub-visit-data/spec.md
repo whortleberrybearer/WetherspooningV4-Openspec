@@ -7,31 +7,49 @@ TBD - created by archiving change add-visited-pubs-display. Update Purpose after
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST load visit data from a static JSON file when a user authenticates.
+**Changes:**
+- REMOVE: Load from static JSON file `/data/visits-sample.json`
+- ADD: Load visit data from Firestore `visits` collection via Firebase service
 
-**Acceptance Criteria:**
-- Visit data is loaded from `/data/visits-sample.json`
-- JSON file contains array of Visit objects
+The system MUST load visit data from Firestore when a user authenticates.
+
+**Updated Acceptance Criteria:**
+- Visit data is loaded from Firestore `visits` collection
+- Loading is triggered by calling `firebaseDataService.getUserVisits(userId)`
+- Service returns array of Visit objects
 - Each Visit object includes: `id`, `userId`, `pubId`
 - Optional fields: `visitedAt` (ISO date string), `rating` (1-5), `notes` (string)
 - Loading errors are caught and logged
 - Failed loads don't prevent application from functioning
-- Empty or invalid JSON is handled gracefully
+- Empty results (no visits) are handled gracefully
+- Network timeouts return empty state after 10 seconds
 
 #### Scenario: Load Visit Data for Authenticated User
-**Given** a user is authenticated with userId 1  
-**When** the visit data is loaded  
-**Then** the system fetches `/data/visits-sample.json`  
-**And** parses the JSON into Visit objects  
-**And** filters visits to only those with userId matching the authenticated user  
-**And** stores the visited pub IDs for quick lookup
+**MODIFIED:**
+**Given** a user is authenticated with Firebase UID "uid-123"  
+**And** the Firestore `visits` collection contains 5 visits for "uid-123"  
+**When** `loadVisits("uid-123")` is called  
+**Then** the system calls `firebaseDataService.getUserVisits("uid-123")`  
+**And** receives an array of 5 Visit objects  
+**And** stores the visited pub IDs in a Set for quick lookup  
+**And** updates reactive state with visit data
 
 #### Scenario: Handle Visit Data Load Failure
-**Given** the `/data/visits-sample.json` file is missing or returns an error  
+**MODIFIED:**
+**Given** the Firestore service throws a network error  
 **When** the system attempts to load visit data  
-**Then** an error is caught and logged to console  
+**Then** the error is caught and logged to console  
 **And** the visit state remains empty (all pubs appear unvisited)  
 **And** the map and sidebar continue to function normally
+
+#### Scenario: Handle Firebase Emulator Not Running
+**ADDED:**
+**Given** the Firebase emulator is not running in development mode  
+**When** `loadVisits(userId)` is called  
+**Then** Firestore connection fails  
+**And** a warning is logged: "Failed to load visits from Firestore"  
+**And** visit state is set to empty  
+**And** the application continues to function (zero visits shown)
 
 ---
 
@@ -141,38 +159,43 @@ The system MUST calculate the number of visited pubs within a given group of pub
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST only load and display visit data when a user is authenticated.
+**Changes:**
+- UPDATE: Use Firebase UID (string) instead of numeric userId
 
-**Acceptance Criteria:**
-- Visit data loading is triggered when user authenticates
-- Visit data is cleared when user logs out
-- `isVisited()` returns `false` for all pubs when not authenticated
-- Visit counts show 0 visited when not authenticated
-- Components watch authentication state to load/clear visit data
+The system MUST only load visit data for authenticated users using their Firebase UID.
 
-#### Scenario: Load Visits on Authentication
-**Given** the user is not authenticated  
-**And** no visit data is loaded  
-**When** the user successfully logs in  
-**Then** the visit data loading is triggered automatically  
-**And** visited pubs are identified from the data file  
-**And** map markers and sidebar counts update to show visit status
+**Updated Acceptance Criteria:**
+- Visit loading requires Firebase Authentication user object
+- `loadVisits()` is called with `auth.currentUser.uid` (string)
+- **CHANGED:** userId parameter type is `string` (was `number`)
+- Visits are filtered by matching userId field in Firestore
+- Unauthenticated state shows zero visits (no load attempt)
+- Re-authentication triggers visit reload with new UID
+- Logout clears all visit state
+
+#### Scenario: Load Visits After Authentication
+**MODIFIED:**
+**Given** a user signs in with email/password  
+**And** Firebase Auth returns user with UID "abc123xyz"  
+**When** the application detects auth state change  
+**Then** `loadVisits("abc123xyz")` is called  
+**And** visits for UID "abc123xyz" are loaded from Firestore  
+**And** the map and sidebar update to show visited pubs
 
 #### Scenario: Clear Visits on Logout
-**Given** the user is authenticated  
-**And** visit data is loaded with visited pub IDs [5, 12, 23]  
-**When** the user logs out  
-**Then** the visited pub IDs are cleared  
-**And** `isVisited()` returns `false` for all pubs  
-**And** map markers revert to unvisited states  
-**And** sidebar counts show 0 visited for all groups
+**Given** a user is logged in with visits loaded  
+**When** the user signs out  
+**Then** the visit state is cleared  
+**And** visitedPubIds Set is emptied  
+**And** all pubs appear as unvisited on the map
 
-#### Scenario: Access Visit Data When Not Authenticated
-**Given** the user is not authenticated  
-**When** `isVisited(5)` is called  
-**Then** the method returns `false`  
-**And** when `getGroupCounts(pubs)` is called  
-**Then** `visited` is always 0
+#### Scenario: Switch Users
+**ADDED:**
+**Given** user A is logged in with 10 visits loaded  
+**When** user A signs out and user B signs in  
+**Then** user A's visits are cleared  
+**And** user B's visits are loaded from Firestore  
+**And** the map updates to show only user B's visited pubs
 
 ---
 
