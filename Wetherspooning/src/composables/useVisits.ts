@@ -183,11 +183,15 @@ export function useVisits() {
           }
         }
       } else {
-        // Create new visit with default date if not provided
+        // Create new visit
         const visitData: Omit<Visit, 'id'> = {
           userId,
-          pubId,
-          visitedAt: options.visitedAt !== undefined ? options.visitedAt : new Date().toISOString()
+          pubId
+        }
+        
+        // Only add visitedAt if provided
+        if (options.visitedAt !== undefined) {
+          visitData.visitedAt = options.visitedAt
         }
         
         // Only add notes if provided
