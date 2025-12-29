@@ -47,18 +47,25 @@
       <SidebarGroup v-if="isAuthenticated">
         <SidebarGroupLabel>Your Progress</SidebarGroupLabel>
         <SidebarGroupContent>
-          <div class="px-2 py-1.5 space-y-2">
-            <div class="flex justify-between text-sm">
-              <span class="text-muted-foreground">Visited:</span>
-              <span class="font-medium">{{ overallStats.visited }}</span>
+          <div class="grid grid-cols-2 gap-2 px-2">
+            <!-- Visited Card -->
+            <div class="rounded-lg border bg-card p-3 shadow-sm">
+              <div class="flex flex-col gap-1">
+                <span class="text-xs text-muted-foreground">Visited</span>
+                <div class="flex items-baseline gap-1">
+                  <span class="text-2xl font-bold">{{ overallStats.visited }}</span>
+                </div>
+              </div>
             </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-muted-foreground">Remaining:</span>
-              <span class="font-medium">{{ overallStats.remaining }}</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-muted-foreground">Progress:</span>
-              <span class="font-medium">{{ overallStats.progress }}%</span>
+            
+            <!-- Remaining Card -->
+            <div class="rounded-lg border bg-card p-3 shadow-sm">
+              <div class="flex flex-col gap-1">
+                <span class="text-xs text-muted-foreground">Remaining</span>
+                <div class="flex items-baseline gap-1">
+                  <span class="text-2xl font-bold">{{ overallStats.remaining }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </SidebarGroupContent>
