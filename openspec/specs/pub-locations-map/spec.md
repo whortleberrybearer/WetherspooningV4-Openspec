@@ -304,15 +304,19 @@ The map view MUST load and become interactive within 3 seconds on a standard con
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST display the visit date in the pub info window when the user is authenticated and the pub has been visited.
+The system MUST display visit status and tracking controls in the pub info window when the user is authenticated.
 
 **Acceptance Criteria:**
-- Info window shows visit date for visited pubs when user is authenticated
-- Visit date is displayed in human-readable format (e.g., "Visited on Nov 15, 2025")
-- Visit date appears after the pub details (address, etc.)
-- If visit has no date, no date text is shown
-- Visit date uses appropriate styling to stand out
-- Date is not shown when user is not authenticated
+- Info window shows visit badge for visited pubs when user is authenticated
+- Visit badge displays "✓ Visited" with green background and white text
+- If visit has a date, badge shows "✓ Visited DD/MM/YY" in UK date format
+- **NEW:** If visit has no date, badge shows "✓ Visited" without date portion
+- Visit badge uses rounded corners, padding, and semibold font
+- Visit badge is not shown when user is not authenticated
+- **NEW:** Info window includes full-width button for visit tracking
+- **NEW:** Button text is "Visit" for unvisited pubs
+- **NEW:** Button text is "Update Visit" for visited pubs
+- **NEW:** Button opens visit tracking dialog when clicked
 
 #### Scenario: Display Visit Date in Info Window for Visited Pub
 **Given** the user is authenticated  
@@ -335,13 +339,41 @@ The system MUST display the visit date in the pub info window when the user is a
 **Then** the info window opens with standard pub details  
 **And** no visit date text is shown
 
-#### Scenario: No Visit Date When Visit Lacks Date Field
+#### Scenario: Visit Badge Without Date When Visit Lacks Date Field
 **Given** the user is authenticated  
 **And** pub "The Company Inn" has been visited  
 **And** the visit record has no `visitedAt` field  
 **When** the user clicks on the pub's marker  
 **Then** the info window opens  
-**And** no visit date text is shown
+**And** visit badge shows "✓ Visited" without a date  
+**And** badge uses green background with white text
+
+#### Scenario: Visit Tracking Button for Unvisited Pub
+**Given** the user is authenticated  
+**And** pub "The Regal" has not been visited  
+**When** the user clicks on the pub's marker  
+**Then** the info window opens  
+**And** a full-width button labeled "Visit" is displayed  
+**When** the user clicks the "Visit" button  
+**Then** the visit tracking dialog opens for pub "The Regal"
+
+#### Scenario: Update Visit Button for Visited Pub
+**Given** the user is authenticated  
+**And** pub "The Moon Under Water" was visited on "2025-11-15"  
+**When** the user clicks on the pub's marker  
+**Then** the info window opens  
+**And** a full-width button labeled "Update Visit" is displayed  
+**When** the user clicks the "Update Visit" button  
+**Then** the visit tracking dialog opens pre-filled with visit data for pub "The Moon Under Water"
+
+#### Scenario: Info Window Updates After Visit Date Change
+**Given** the user is authenticated  
+**And** pub "The Regal" was visited on "2025-11-15"  
+**And** the info window is open showing visit badge "✓ Visited 15/11/25"  
+**When** the user updates the visit date to "2025-12-01" via the tracking dialog  
+**Then** the info window automatically updates  
+**And** the visit badge shows "✓ Visited 01/12/25"  
+**And** the button text remains "Update Visit"
 
 ### Requirement: Geolocation-Based Centering (REQ-PLM-009)
 **Priority:** MUST  

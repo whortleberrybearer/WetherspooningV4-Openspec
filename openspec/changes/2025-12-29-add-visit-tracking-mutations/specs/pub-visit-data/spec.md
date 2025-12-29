@@ -154,7 +154,7 @@ The system MUST allow authenticated users to delete their visit records.
 **Priority:** MUST
 **Category:** Functional
 
-The system MUST update local reactive state immediately after successful visit mutations.
+The system MUST update local reactive state immediately after successful visit mutations and expose reactive state to components.
 
 **Acceptance Criteria:**
 - After `addVisit()` succeeds, `visitedPubIds` Set includes the new pub ID
@@ -162,8 +162,11 @@ The system MUST update local reactive state immediately after successful visit m
 - After `updateVisit()` succeeds, the visit in `visits` array reflects changes
 - After `removeVisit()` succeeds, pub ID is removed from `visitedPubIds` Set
 - After `removeVisit()` succeeds, visit is removed from `visits` array
+- **NEW:** `useVisits()` composable exposes readonly `visits` array for components to watch
+- **NEW:** Components can watch `visits` array with deep watching to detect updates to individual visits
 - UI components that depend on visit state re-render automatically
 - Map markers update colors to reflect visit status changes
+- Map info windows update content when visit data changes (create, update, or remove)
 
 #### Scenario: UI Updates After Adding Visit
 **Given** the map is displaying pub 42 with an unvisited marker
@@ -176,6 +179,15 @@ The system MUST update local reactive state immediately after successful visit m
 **When** `removeVisit(42)` completes successfully
 **Then** the map marker for pub 42 changes color to indicate unvisited status
 **And** the sidebar shows pub 42 as not visited
+
+#### Scenario: UI Updates After Updating Visit Date
+**Given** the map info window is open for pub 42
+**And** pub 42 was visited on "2025-11-15"
+**And** the info window shows visit badge with "15/11/25"
+**When** `updateVisit(42, { visitedAt: '2025-12-01T00:00:00Z' })` completes successfully
+**Then** the info window visit badge updates to show "01/12/25"
+**And** the update happens automatically via reactive watch on `visits` array
+**And** the map marker color remains the same (still visited)
 
 ---
 
