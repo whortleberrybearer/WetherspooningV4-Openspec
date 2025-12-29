@@ -46,42 +46,62 @@ The system MUST provide a login form that accepts email and password credentials
 **Category:** Functional
 
 **Changes:**
-- UPDATE: Test credential uses email "test@example.com" instead of username "test"
-- UPDATE: Validation compares email field against test email
+- REMOVE: Test credentials validation (test@example.com / password123)
+- ADD: Firebase Authentication integration for credential validation
+- UPDATE: Use Firebase Auth SDK for login validation
+- UPDATE: Error messages map Firebase error codes to user-friendly text
 
-The system MUST validate user credentials against test credentials and update authentication state accordingly.
+The system MUST validate user credentials using Firebase Authentication and update authentication state accordingly.
 
 **Updated Acceptance Criteria:**
-- **CHANGED:** Test email is "test@example.com" (not username "test")
-- Test password is "password123"
-- Validation is case-sensitive for both email and password
+- **REMOVED:** Test email is "test@example.com"
+- **REMOVED:** Test password is "password123"
+- **REMOVED:** Validation is case-sensitive for both email and password
+- **ADDED:** Credentials are validated against Firebase Authentication
+- **ADDED:** Firebase Auth errors are mapped to user-friendly messages
 - Successful login sets authenticated state to true
-- Successful login stores user information (username, email)
+- Successful login stores user information (username, email, uid)
 - Failed login sets error state
 - Failed login keeps authenticated state as false
 - Empty email or password shows validation error
 - Validation happens on form submit only, not on field change
 
-#### Scenario: Successful Login
+#### Scenario: Successful Login with Firebase
+**MODIFIED:**
 **Given** the login form is open  
-**And** the user enters email "test@example.com"  
-**And** the user enters password "password123"  
+**And** a user account exists in Firebase Auth with email "user@example.com"  
+**And** the user enters email "user@example.com"  
+**And** the user enters the correct password  
 **When** the user submits the form  
-**Then** the user is authenticated  
-**And** the user state contains username "test"  
-**And** the user state contains email "test@example.com"  
+**Then** Firebase Authentication validates the credentials  
+**And** the user is authenticated  
+**And** the user state contains email "user@example.com"  
+**And** the user state contains uid from Firebase  
 **And** the login form closes  
 **And** the authenticated state is true
 
-#### Scenario: Invalid Credentials
+#### Scenario: Invalid Credentials with Firebase
+**MODIFIED:**
 **Given** the login form is open  
-**And** the user enters email "wrong@example.com"  
-**And** the user enters password "incorrect"  
+**And** the user enters email "user@example.com"  
+**And** the user enters an incorrect password  
 **When** the user submits the form  
-**Then** an error message displays "Invalid email or password"  
+**Then** Firebase Authentication rejects the credentials  
+**And** an error message displays "Invalid email or password"  
 **And** the user is not authenticated  
 **And** the login form remains open  
 **And** the password field is cleared
+
+#### Scenario: Non-existent User
+**ADDED:**
+**Given** the login form is open  
+**And** no user account exists with email "nonexistent@example.com"  
+**And** the user enters email "nonexistent@example.com"  
+**And** the user enters any password  
+**When** the user submits the form  
+**Then** Firebase Authentication rejects the credentials  
+**And** an error message displays "Invalid email or password"  
+**And** the user is not authenticated
 
 #### Scenario: Empty Fields
 **Given** the login form is open  
@@ -92,12 +112,7 @@ The system MUST validate user credentials against test credentials and update au
 **And** no validation occurs
 
 #### Scenario: Case Sensitivity
-**Given** the login form is open  
-**And** the user enters email "Test@example.com" (capital T)  
-**And** the user enters password "password123"  
-**When** the user submits the form  
-**Then** an error message displays "Invalid email or password"  
-**And** the user is not authenticated
+**REMOVED** (Firebase Auth handles email normalization)
 
 ---
 
@@ -105,19 +120,28 @@ The system MUST validate user credentials against test credentials and update au
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST provide logout functionality that clears authentication state.
+**Changes:**
+- UPDATE: Use Firebase signOut method
+- ADD: Clear Firebase session on logout
 
-**Acceptance Criteria:**
+The system MUST provide logout functionality that clears authentication state and Firebase session.
+
+**Updated Acceptance Criteria:**
 - Logout action is accessible to authenticated users
+- **ADDED:** Logout calls Firebase Auth signOut method
 - Logout clears user state
 - Logout sets authenticated state to false
 - Logout action is immediate (no confirmation required)
 - After logout, UI returns to unauthenticated state
+- **ADDED:** Firebase session is terminated on logout
 
 #### Scenario: Logout
-**Given** the user is authenticated  
+**MODIFIED:**
+**Given** the user is authenticated via Firebase  
 **When** the user clicks the "Logout" button  
-**Then** the authentication state is cleared  
+**Then** Firebase signOut is called  
+**And** the Firebase session is terminated  
+**And** the authentication state is cleared  
 **And** the user state is set to null  
 **And** the authenticated state is false  
 **And** the UI displays the "Login" button again  
@@ -129,15 +153,23 @@ The system MUST provide logout functionality that clears authentication state.
 **Priority:** MUST  
 **Category:** Technical
 
-The system MUST manage authentication state reactively using Vue composables.
+**Changes:**
+- ADD: Firebase Auth state observer (onAuthStateChanged)
+- UPDATE: Session persists across page refreshes
+- ADD: User object includes uid from Firebase
 
-**Acceptance Criteria:**
+The system MUST manage authentication state reactively using Vue composables with Firebase Auth state synchronization.
+
+**Updated Acceptance Criteria:**
 - Authentication state is managed in a composable (e.g., `useAuth`)
 - State includes: user object, isAuthenticated boolean, error string
+- **ADDED:** User object includes uid from Firebase User
 - State is reactive and updates all consuming components
 - State is accessible from any component
 - User object is read-only outside the composable
-- State does not persist across page refreshes (session-only)
+- **REMOVED:** State does not persist across page refreshes
+- **ADDED:** State persists across page refreshes via Firebase Auth session
+- **ADDED:** Auth state is synchronized with Firebase via onAuthStateChanged observer
 
 #### Scenario: Reactive State Updates
 **Given** multiple components use the auth state  
@@ -145,11 +177,22 @@ The system MUST manage authentication state reactively using Vue composables.
 **Then** all components reactively receive the updated auth state  
 **And** all components display the authenticated view
 
-#### Scenario: Session-Only State
-**Given** the user is authenticated  
+#### Scenario: Session Persistence
+**MODIFIED:**
+**Given** the user is authenticated via Firebase  
 **When** the user refreshes the page  
-**Then** the authentication state is reset  
-**And** the user must log in again
+**Then** Firebase Auth session is restored automatically  
+**And** the authentication state is rehydrated  
+**And** the user remains logged in  
+**And** the user does not need to log in again
+
+#### Scenario: Auth State Observer
+**ADDED:**
+**Given** Firebase Auth is initialized  
+**When** the auth state changes (login, logout, session restore)  
+**Then** the onAuthStateChanged observer fires  
+**And** the Vue reactive auth state is updated  
+**And** all consuming components re-render
 
 ---
 
@@ -157,22 +200,34 @@ The system MUST manage authentication state reactively using Vue composables.
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST display clear error messages for authentication failures.
+**Changes:**
+- ADD: Map Firebase error codes to user-friendly messages
+- UPDATE: Error messages cover Firebase-specific scenarios
 
-**Acceptance Criteria:**
+The system MUST display clear error messages for authentication failures using Firebase error codes.
+
+**Updated Acceptance Criteria:**
 - Error messages are displayed inline in the login form
 - Error messages are user-friendly (no technical details)
 - Error messages are styled to be clearly visible
-- Error message for invalid credentials: "Invalid username or password"
+- **REMOVED:** Error message for invalid credentials: "Invalid username or password"
+- **ADDED:** Error messages map Firebase error codes:
+  - auth/invalid-credential → "Invalid email or password"
+  - auth/user-not-found → "Invalid email or password"
+  - auth/wrong-password → "Invalid email or password"
+  - auth/invalid-email → "Invalid email address format."
+  - auth/too-many-requests → "Too many failed attempts. Please try again later."
+  - Default → "An error occurred. Please try again."
 - Error messages clear when form is closed
 - Error messages clear when user starts typing (optional)
 - Errors are displayed in an accessible way (aria-live region)
 
-#### Scenario: Display Error Message
+#### Scenario: Display Firebase Error Message
+**MODIFIED:**
 **Given** the login form is open  
 **And** the user submits invalid credentials  
-**When** validation fails  
-**Then** an error message appears above or below the form fields  
+**When** Firebase Authentication rejects with error code "auth/invalid-credential"  
+**Then** an error message appears: "Invalid email or password"  
 **And** the error message is styled with error/danger color  
 **And** the error message is announced to screen readers
 
@@ -215,4 +270,78 @@ The system MUST support keyboard navigation for all authentication interactions.
 **When** the user presses Escape  
 **Then** the dialog closes  
 **And** the password field is cleared
+
+### Requirement: Firebase Auth SDK Integration (REQ-UA-007)
+**Priority:** MUST  
+**Category:** Technical
+
+The system MUST initialize Firebase Authentication SDK and provide it to the useAuth composable.
+
+**Acceptance Criteria:**
+- Firebase Auth is initialized in firebase.ts
+- Auth instance is created using getAuth(app)
+- Auth instance is exported for use in composables
+- In development mode, Auth connects to Firebase Auth emulator on localhost:9099
+- Initialization logs emulator connection in development
+- Auth initialization does not block application rendering
+
+#### Scenario: Firebase Auth Initialization
+**Given** the application starts  
+**And** Firebase app is initialized  
+**When** the auth module is imported  
+**Then** Firebase Auth instance is created  
+**And** the auth instance is available for import
+
+#### Scenario: Auth Emulator Connection in Development
+**Given** the application is running in development mode (import.meta.env.DEV)  
+**When** Firebase Auth is initialized  
+**Then** the Auth SDK connects to emulator at localhost:9099  
+**And** a console message logs "🔥 Connected to Auth Emulator"  
+**And** all auth operations use the emulator instead of production
+
+#### Scenario: Production Auth Configuration
+**Given** the application is running in production mode  
+**When** Firebase Auth is initialized  
+**Then** the Auth SDK connects to production Firebase project  
+**And** no emulator connection is attempted
+
+---
+
+### Requirement: Auth State Observer (REQ-UA-008)
+**Priority:** MUST  
+**Category:** Technical
+
+The system MUST use Firebase onAuthStateChanged observer to synchronize auth state with Firebase session.
+
+**Acceptance Criteria:**
+- onAuthStateChanged listener is set up in useAuth composable
+- Listener fires on initial app load to restore session
+- Listener fires when user logs in
+- Listener fires when user logs out
+- Listener updates Vue reactive state when Firebase auth state changes
+- User object is extracted from Firebase User object
+- Username is derived from email (prefix before @)
+
+#### Scenario: Auth State Observer Setup
+**Given** the useAuth composable is initialized  
+**When** the application starts  
+**Then** onAuthStateChanged listener is registered  
+**And** the listener checks for existing Firebase session
+
+#### Scenario: Session Restoration
+**Given** the user previously logged in  
+**And** a valid Firebase session exists  
+**When** the page loads  
+**Then** onAuthStateChanged fires with Firebase User object  
+**And** authState.user is populated with email and uid  
+**And** authState.isAuthenticated is set to true  
+**And** the user sees authenticated UI immediately
+
+#### Scenario: No Session Available
+**Given** no Firebase session exists  
+**When** the page loads  
+**Then** onAuthStateChanged fires with null user  
+**And** authState.user remains null  
+**And** authState.isAuthenticated remains false  
+**And** the user sees unauthenticated UI
 
