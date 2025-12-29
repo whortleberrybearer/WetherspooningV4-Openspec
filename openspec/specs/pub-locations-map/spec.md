@@ -149,30 +149,56 @@ TBD - created by archiving change add-pub-locations-map. Update Purpose after ar
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST load pub location data from a static JSON file.
+**Changes:**
+- REMOVE: Static JSON file data source
+- ADD: Firestore database data source
+- UPDATE: Loading mechanism and error handling for Firestore
 
-**Acceptance Criteria:**
-- Data is loaded from `/data/pubs-sample.json`
-- JSON file contains array of pub objects
-- Each pub object includes: id, name, lat, lng
+**Updated Description:**
+The system MUST load pub location data from Firebase Firestore database.
+
+**Updated Acceptance Criteria:**
+- Data is loaded from Firestore `pubs` collection via `getAllPubs()` method
+- Loading uses `firebase-data-integration` service layer
+- Each pub document includes: id, name, lat, lng
 - Optional fields: address, townCity, county, region, country, url, imageUrl, openState
 - Loading errors are caught and logged
-- Empty or invalid JSON is handled gracefully
+- Empty collection is handled gracefully (no error, empty map)
+- Network errors display user-friendly error message
+- Loading state is shown during data fetch
+- Firestore query completes within 10 seconds or times out
 
-#### Scenario: Load Sample Pub Data
-**Given** the `/data/pubs-sample.json` file exists  
-**And** contains valid JSON with pub array  
+#### Scenario: Load Pub Data from Firestore
+**Given** the Firestore `pubs` collection contains 20 valid pub documents  
 **When** the map component initializes  
-**Then** the JSON file is fetched successfully  
-**And** pub data is parsed into JavaScript objects  
-**And** the data is used to create map markers
+**Then** the `getAllPubs()` method is called  
+**And** pub data is fetched from Firestore  
+**And** the data is parsed into Pub objects  
+**And** the data is used to create map markers  
+**And** the operation completes within 2 seconds
 
-#### Scenario: Handle Data Load Failure
-**Given** the `/data/pubs-sample.json` file is missing or invalid  
+#### Scenario: Handle Firestore Data Load Failure
+**Given** the Firestore service returns a network error  
 **When** the map component attempts to load data  
-**Then** an error is caught and logged  
-**And** a user-friendly error message is displayed  
-**And** the map still initializes without markers
+**Then** the error is caught and logged to console  
+**And** a user-friendly error message is displayed: "Failed to load pub data. Please check your connection."  
+**And** the map still initializes without markers  
+**And** the user can retry by refreshing the page
+
+#### Scenario: Handle Empty Firestore Collection
+**Given** the Firestore `pubs` collection contains no documents  
+**When** the map component loads data  
+**Then** `getAllPubs()` returns an empty array  
+**And** no error is displayed  
+**And** the map initializes with no markers  
+**And** a console warning is logged: "No pubs found in Firestore"
+
+#### Scenario: Handle Firestore Timeout
+**Given** the Firestore query takes longer than 10 seconds  
+**When** the timeout is reached  
+**Then** the query is cancelled  
+**And** an error is displayed: "Request timed out. Please try again."  
+**And** the error is logged with operation details
 
 ---
 
