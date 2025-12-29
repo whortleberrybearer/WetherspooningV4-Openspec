@@ -2,13 +2,13 @@
 
 ## Implementation Tasks
 
-1. **Add Firebase Auth SDK initialization**
+1. **[x] Add Firebase Auth SDK initialization**
    - Import getAuth from firebase/auth in firebase.ts
    - Initialize and export auth instance
    - Connect to Auth emulator in development mode
    - Verify Firebase Auth config variables are documented in .env.example
 
-2. **Update useAuth composable for Firebase integration**
+2. **[x] Update useAuth composable for Firebase integration**
    - Import Firebase Auth methods (signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged)
    - Remove TEST_ACCOUNTS array and related code
    - Replace login() implementation with signInWithEmailAndPassword
@@ -18,7 +18,7 @@
    - Update error handling to map Firebase Auth error codes to user-friendly messages
    - Ensure user state includes uid from Firebase User object
 
-3. **Test authentication flows**
+3. **[x] Test authentication flows**
    - Verify new user registration creates Firebase Auth user
    - Verify login with registered credentials succeeds
    - Verify login with invalid credentials shows proper error
@@ -26,7 +26,7 @@
    - Verify session persists across page refresh
    - Verify Firebase Auth emulator connection in development
 
-4. **Update error messages**
+4. **[x] Update error messages**
    - Map Firebase error codes to user-friendly messages:
      - auth/email-already-in-use → "Email already registered. Please log in."
      - auth/invalid-email → "Invalid email address format."
@@ -35,7 +35,7 @@
      - auth/wrong-password → "Invalid email or password"
      - auth/invalid-credential → "Invalid email or password"
 
-5. **Documentation**
+5. **[x] Documentation**
    - Update code comments in useAuth.ts to reflect Firebase Auth usage
    - Verify .env.example includes Firebase Auth variables
    - Remove references to test credentials in comments
@@ -50,7 +50,7 @@
    - Test logout functionality
    - Test session persistence (refresh page while logged in)
 
-2. **Code validation**
+2. **[x] Code validation**
    - Run `npx openspec validate 2025-12-29-integrate-firebase-authentication --strict`
    - Ensure no TypeScript errors
    - Verify no console errors during auth operations
