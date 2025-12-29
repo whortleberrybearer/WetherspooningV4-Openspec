@@ -5,8 +5,8 @@ import { getUserVisits, createVisit, updateVisit as updateVisitService, deleteVi
  * Visit information for a pub
  */
 export interface Visit {
-  id: number
-  userId: string  // Changed from number to string for Firebase UID
+  id: string  // Firestore auto-generated ID
+  userId: string  // Firebase UID
   pubId: number
   visitedAt?: string  // ISO date string
   rating?: number     // 1-5
@@ -187,8 +187,12 @@ export function useVisits() {
         const visitData: Omit<Visit, 'id'> = {
           userId,
           pubId,
-          visitedAt: options.visitedAt !== undefined ? options.visitedAt : new Date().toISOString(),
-          notes: options.notes
+          visitedAt: options.visitedAt !== undefined ? options.visitedAt : new Date().toISOString()
+        }
+        
+        // Only add notes if provided
+        if (options.notes) {
+          visitData.notes = options.notes
         }
         
         const newVisit = await createVisit(visitData)

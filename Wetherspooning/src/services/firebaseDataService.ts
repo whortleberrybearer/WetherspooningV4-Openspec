@@ -23,8 +23,8 @@ export interface Pub {
  * Stored in Firestore `visits` collection.
  */
 export interface Visit {
-  /** Unique numeric identifier for the visit */
-  id: number
+  /** Unique identifier for the visit (Firestore auto-generated) */
+  id: string
   /** Firebase UID of the user who made the visit */
   userId: string
   /** Numeric ID of the pub that was visited */
@@ -345,43 +345,29 @@ function validateVisitMutation(data: any, isUpdate: boolean = false): void {
 export async function createVisit(visit: Omit<Visit, 'id'>): Promise<Visit> {
   validateVisitMutation(visit, false)
   
-  const maxRetries = 3
-  let attempt = 0
-  
-  while (attempt < maxRetries) {
-    try {
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Firestore operation timed out: createVisit')), 10000)
-      })
-      
-      const createPromise = async () => {
-        const nextId = await generateNextVisitId()
-        const newVisit: Visit = {
-          ...visit,
-          id: nextId
-        }
-        
-        const docRef = doc(db, 'visits', nextId.toString())
-        await setDoc(docRef, newVisit)
-        
-        return newVisit
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Firestore operation timed out: createVisit')), 10000)
+    })
+    
+    const createPromise = async () => {
+      // Use Firestore auto-generated ID
+      const docRef = doc(collection(db, 'visits'))
+      const newVisit: Visit = {
+        ...visit,
+        id: docRef.id
       }
       
-      return await Promise.race([createPromise(), timeoutPromise])
-    } catch (error: any) {
-      attempt++
+      await setDoc(docRef, newVisit)
       
-      // If document already exists, retry with next ID
-      if (error.code === 'already-exists' && attempt < maxRetries) {
-        continue
-      }
-      
-      console.error('Failed to create visit:', error)
-      throw error
+      return newVisit
     }
+    
+    return await Promise.race([createPromise(), timeoutPromise])
+  } catch (error: any) {
+    console.error('Failed to create visit:', error)
+    throw error
   }
-  
-  throw new Error('Failed to generate unique visit ID after maximum retries')
 }
 
 /**
@@ -394,7 +380,7 @@ export async function createVisit(visit: Omit<Visit, 'id'>): Promise<Visit> {
  * @param updates - Partial visit data to update
  * @throws Error if validation fails or network fails
  */
-export async function updateVisit(visitId: number, updates: Partial<Visit>): Promise<void> {
+export async function updateVisit(visitId: string, updates: Partial<Visit>): Promise<void> {
   validateVisitMutation(updates, true)
   
   try {
@@ -403,7 +389,7 @@ export async function updateVisit(visitId: number, updates: Partial<Visit>): Pro
     })
     
     const updatePromise = async () => {
-      const docRef = doc(db, 'visits', visitId.toString())
+      const docRef = doc(db, 'visits', visitId)
       
       // Remove undefined values and convert null to deleteField equivalent
       const cleanUpdates: any = {}
@@ -435,14 +421,14 @@ export async function updateVisit(visitId: number, updates: Partial<Visit>): Pro
  * @param visitId - The numeric ID of the visit to delete
  * @throws Error if network fails
  */
-export async function deleteVisit(visitId: number): Promise<void> {
+export async function deleteVisit(visitId: string): Promise<void> {
   try {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Firestore operation timed out: deleteVisit')), 10000)
     })
     
     const deletePromise = async () => {
-      const docRef = doc(db, 'visits', visitId.toString())
+      const docRef = doc(db, 'visits', visitId)
       await deleteDoc(docRef)
     }
     
