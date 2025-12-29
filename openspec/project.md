@@ -5,7 +5,7 @@ Wetherspooning is a website that displays the locations of Wetherspoons pubs and
 
 ## Tech Stack
 - **Frontend:** Vue 3.5, TypeScript 5.9, Vite 7.2, [shadcn/vue](https://www.shadcn-vue.com/), Tailwind CSS 4.0
-- **Backend:**
+- **Backend:** Firebase Firestore
 
 ## Project Conventions
 

@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pubs: Publicly readable, admin-only write
+    match /pubs/{pubId} {
+      // Allow anyone to read pub data
+      allow read: if true;
+      
+      // Only allow writes from server/admin (via Admin SDK)
+      // Client SDK writes are denied
+      allow write: if false;
+    }
+  }
+}

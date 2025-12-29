@@ -1,0 +1,11 @@
+# Firebase
+service-account-key.json
+.firebaserc
+*-debug.log
+.firebase/
+
+# Dependencies
+node_modules/
+
+# Environment
+.env
