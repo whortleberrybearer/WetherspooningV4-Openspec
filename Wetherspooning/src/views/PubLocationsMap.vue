@@ -218,8 +218,6 @@ const createMarkers = () => {
     })
 
     marker.addListener('click', () => {
-      selectedPub.value = pub
-      showPubDetail.value = true
       showPubInfo(pub, marker)
     })
 
@@ -269,20 +267,29 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
       <div class="p-4 pt-0">
         <p class="text-sm text-muted-foreground mb-1">${pub.address}</p>
         <p class="text-sm text-muted-foreground mb-3">${pub.townCity}, ${pub.county}</p>
-        ${pub.url ? `<a href="${pub.url}" target="_blank" rel="noopener" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3">View Details</a>` : ''}
+        <button id="track-visit-btn-${pub.id}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4">
+          Track Visit
+        </button>
       </div>
     </div>
   `
 
   infoWindow.value.setContent(content)
   infoWindow.value.open(map.value!, marker)
+  
+  // Add click listener to Track Visit button after DOM update
+  setTimeout(() => {
+    const trackButton = document.getElementById(`track-visit-btn-${pub.id}`)
+    if (trackButton) {
+      trackButton.addEventListener('click', () => {
+        selectedPub.value = pub
+        showPubDetail.value = true
+      })
+    }
+  }, 0)
 }
 
 const handlePubSelect = (pub: Pub) => {
-  // Set selected pub and show detail sheet
-  selectedPub.value = pub
-  showPubDetail.value = true
-  
   // Find the marker for the selected pub based on position
   const marker = markers.value.find(m => {
     const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
