@@ -2,7 +2,7 @@
 
 ## Task List
 
-1. **Add overall visit statistics computed property to PubSidebar.vue**
+- [x] **Add overall visit statistics computed property to PubSidebar.vue**
    - Create `overallStats` computed property that calculates:
      - Total visited count from `filteredPubs`
      - Total remaining count (total - visited)
@@ -11,7 +11,7 @@
    - Ensure calculation respects `filteredPubs` (honors closed pubs filter)
    - **Validation:** Stats update correctly when filter changes
 
-2. **Add statistics display section to sidebar header in PubSidebar.vue**
+- [x] **Add statistics display section to sidebar header in PubSidebar.vue**
    - Position below user menu section and above closed pubs toggle
    - Display when `isAuthenticated` is true
    - Show three lines or compact layout:
@@ -22,28 +22,28 @@
    - Use muted-foreground text color for consistency
    - **Validation:** Section appears only for authenticated users
 
-3. **Style statistics section for visual consistency**
+- [x] **Style statistics section for visual consistency**
    - Add spacing/padding consistent with other sidebar header sections
    - Ensure text size and color match existing UI patterns
    - Keep layout compact to minimize space usage
    - Ensure mobile responsiveness (fits in sidebar on small screens)
    - **Validation:** Visual appearance matches existing sidebar styling
 
-4. **Verify statistics update reactivity**
+- [x] **Verify statistics update reactivity**
    - Test that stats update when visit is added via `addVisit()`
    - Test that stats update when visit is removed via `removeVisit()`
    - Test that stats update when "Show Closed Pubs" is toggled
    - Test that stats appear after login and disappear after logout
    - **Validation:** All real-time updates work correctly within 50ms
 
-5. **Test edge cases**
+- [x] **Test edge cases**
    - Verify display with 0 visits (0/150, 0%)
    - Verify display with all visits complete (150/150, 100%)
    - Verify closed pub filtering affects counts correctly
    - Verify performance with large pub dataset (1000+ pubs)
    - **Validation:** All edge cases handled gracefully
 
-6. **Manual testing on different devices**
+- [x] **Manual testing on different devices**
    - Test on desktop browser
    - Test on mobile viewport
    - Verify layout doesn't break sidebar header

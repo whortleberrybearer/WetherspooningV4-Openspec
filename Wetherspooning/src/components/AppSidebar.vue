@@ -43,6 +43,29 @@
 
       <SidebarSeparator />
 
+      <!-- Visit Statistics -->
+      <SidebarGroup v-if="isAuthenticated">
+        <SidebarGroupLabel>Your Progress</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <div class="px-2 py-1.5 space-y-2">
+            <div class="flex justify-between text-sm">
+              <span class="text-muted-foreground">Visited:</span>
+              <span class="font-medium">{{ overallStats.visited }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-muted-foreground">Remaining:</span>
+              <span class="font-medium">{{ overallStats.remaining }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-muted-foreground">Progress:</span>
+              <span class="font-medium">{{ overallStats.progress }}%</span>
+            </div>
+          </div>
+        </SidebarGroupContent>
+      </SidebarGroup>
+
+      <SidebarSeparator />
+
       <!-- Pub Listings by Country/County -->
       <SidebarGroup v-for="(counties, countryName) in groupedPubs" :key="countryName" as-child>
         <Collapsible :default-open="false" class="group/country">
@@ -364,6 +387,18 @@ const groupedPubs = computed(() => {
     })
 
   return sortedCountries
+})
+
+const overallStats = computed(() => {
+  const { visited, total } = getGroupCounts(filteredPubs.value)
+  const remaining = total - visited
+  const progress = total > 0 ? Math.round((visited / total) * 100) : 0
+  
+  return {
+    visited,
+    remaining,
+    progress
+  }
 })
 
 const getCountryTotal = (counties: Record<string, Pub[]>) => {
