@@ -198,7 +198,7 @@ const handleOpenLogin = () => {
 
 // Watch authentication state to load/clear visit data
 watch(isAuthenticated, async (authenticated) => {
-  if (authenticated && user.value) {
+  if (authenticated && user.value?.uid) {
     // Load visits when user logs in using Firebase UID
     await loadVisits(user.value.uid)
   } else {

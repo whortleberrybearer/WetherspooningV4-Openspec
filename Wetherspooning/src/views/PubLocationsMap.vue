@@ -24,6 +24,13 @@
 
       <div ref="mapContainer" class="w-full h-full"></div>
     </SidebarInset>
+
+    <!-- Pub Detail Sheet -->
+    <PubDetailSheet 
+      :pub="selectedPub" 
+      :is-open="showPubDetail"
+      @update:is-open="showPubDetail = $event"
+    />
   </div>
 </template>
 
@@ -31,6 +38,7 @@
 import { ref, onMounted, shallowRef, computed, watch } from 'vue'
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 import AppSidebar from '@/components/AppSidebar.vue'
+import PubDetailSheet from '@/components/PubDetailSheet.vue'
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-vue-next'
@@ -45,6 +53,8 @@ const pubs = ref<Pub[]>([])
 const infoWindow = ref<google.maps.InfoWindow | null>(null)
 const error = ref<string>('')
 const showClosedPubs = ref(false)
+const selectedPub = ref<Pub | null>(null)
+const showPubDetail = ref(false)
 
 // Authentication and visit tracking
 const { user, isAuthenticated } = useAuth()
@@ -52,7 +62,7 @@ const { isVisited, getVisitDate, loadVisits, clearVisits } = useVisits()
 
 // Watch authentication state to load/clear visit data
 watch(isAuthenticated, async (authenticated) => {
-  if (authenticated && user.value) {
+  if (authenticated && user.value?.uid) {
     // Load visits when user logs in using Firebase UID
     await loadVisits(user.value.uid)
     // Recreate markers to show visit status AFTER visits are loaded
@@ -208,6 +218,8 @@ const createMarkers = () => {
     })
 
     marker.addListener('click', () => {
+      selectedPub.value = pub
+      showPubDetail.value = true
       showPubInfo(pub, marker)
     })
 
@@ -267,6 +279,10 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
 }
 
 const handlePubSelect = (pub: Pub) => {
+  // Set selected pub and show detail sheet
+  selectedPub.value = pub
+  showPubDetail.value = true
+  
   // Find the marker for the selected pub based on position
   const marker = markers.value.find(m => {
     const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral

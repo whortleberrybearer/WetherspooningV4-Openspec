@@ -1,5 +1,5 @@
 import { reactive, readonly, toRef } from 'vue'
-import { getUserVisits, type Visit as FirebaseVisit } from '@/services/firebaseDataService'
+import { getUserVisits, createVisit, updateVisit as updateVisitService, deleteVisit, type Visit as FirebaseVisit } from '@/services/firebaseDataService'
 
 /**
  * Visit information for a pub
@@ -142,17 +142,171 @@ export function useVisits() {
     visitState.isLoading = false
   }
 
+  /**
+   * Add a visit for a pub, or update if already visited.
+   * 
+   * Creates a new visit record in Firestore with optional date and notes.
+   * If the pub has already been visited, updates the existing visit instead.
+   * 
+   * @param pubId - The ID of the pub to mark as visited
+   * @param options - Optional visit details
+   * @param options.visitedAt - ISO date string (defaults to current date if not provided, can be undefined for unknown date)
+   * @param options.notes - Optional notes about the visit
+   * @param userId - Firebase UID of the authenticated user
+   * @returns Promise that resolves when visit is created/updated
+   * @throws Error if user is not authenticated or operation fails
+   */
+  const addVisit = async (
+    pubId: number, 
+    options: { visitedAt?: string, notes?: string } = {},
+    userId: string
+  ): Promise<void> => {
+    if (!userId) {
+      throw new Error('Must be authenticated to add a visit')
+    }
+
+    try {
+      // Check if visit already exists for this pub
+      const existingVisit = visitState.visits.find(v => v.pubId === pubId)
+      
+      if (existingVisit) {
+        // Update existing visit
+        await updateVisitService(existingVisit.id, options)
+        
+        // Update local state
+        const visitIndex = visitState.visits.findIndex(v => v.id === existingVisit.id)
+        if (visitIndex !== -1 && visitState.visits[visitIndex]) {
+          const currentVisit = visitState.visits[visitIndex]!
+          visitState.visits[visitIndex] = {
+            ...currentVisit,
+            ...options
+          }
+        }
+      } else {
+        // Create new visit with default date if not provided
+        const visitData: Omit<Visit, 'id'> = {
+          userId,
+          pubId,
+          visitedAt: options.visitedAt !== undefined ? options.visitedAt : new Date().toISOString(),
+          notes: options.notes
+        }
+        
+        const newVisit = await createVisit(visitData)
+        
+        // Update local state
+        visitState.visits.push(newVisit)
+        visitState.visitedPubIds.add(pubId)
+      }
+    } catch (error: any) {
+      console.error('Failed to add visit:', error)
+      throw new Error('Unable to save visit. Please try again.')
+    }
+  }
+
+  /**
+   * Update an existing visit's details.
+   * 
+   * @param pubId - The ID of the pub whose visit to update
+   * @param updates - Partial visit data to update (visitedAt, notes, rating)
+   * @returns Promise that resolves when visit is updated
+   * @throws Error if visit doesn't exist or operation fails
+   */
+  const updateVisit = async (
+    pubId: number,
+    updates: { visitedAt?: string | null, notes?: string, rating?: number }
+  ): Promise<void> => {
+    const visit = visitState.visits.find(v => v.pubId === pubId)
+    
+    if (!visit) {
+      throw new Error('Visit not found')
+    }
+
+    try {
+      // Convert null to undefined for optional fields
+      const cleanUpdates: any = {}
+      if ('visitedAt' in updates) {
+        cleanUpdates.visitedAt = updates.visitedAt === null ? undefined : updates.visitedAt
+      }
+      if ('notes' in updates) {
+        cleanUpdates.notes = updates.notes
+      }
+      if ('rating' in updates) {
+        cleanUpdates.rating = updates.rating
+      }
+      
+      await updateVisitService(visit.id, cleanUpdates)
+      
+      // Update local state
+      const visitIndex = visitState.visits.findIndex(v => v.id === visit.id)
+      if (visitIndex !== -1) {
+        visitState.visits[visitIndex] = {
+          ...visitState.visits[visitIndex],
+          ...cleanUpdates
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to update visit:', error)
+      throw new Error('Unable to update visit. Please try again.')
+    }
+  }
+
+  /**
+   * Remove a visit for a pub.
+   * 
+   * Deletes the visit record from Firestore and updates local state.
+   * Operation is idempotent - succeeds even if visit doesn't exist.
+   * 
+   * @param pubId - The ID of the pub whose visit to remove
+   * @returns Promise that resolves when visit is removed
+   * @throws Error if operation fails
+   */
+  const removeVisit = async (pubId: number): Promise<void> => {
+    const visit = visitState.visits.find(v => v.pubId === pubId)
+    
+    // If visit doesn't exist, operation succeeds (idempotent)
+    if (!visit) {
+      return
+    }
+
+    try {
+      await deleteVisit(visit.id)
+      
+      // Update local state
+      visitState.visits = visitState.visits.filter(v => v.id !== visit.id)
+      visitState.visitedPubIds.delete(pubId)
+    } catch (error: any) {
+      console.error('Failed to remove visit:', error)
+      throw new Error('Unable to remove visit. Please try again.')
+    }
+  }
+
+  /**
+   * Get full visit details for a specific pub.
+   * 
+   * @param pubId - The ID of the pub
+   * @returns Visit object if found, null otherwise
+   */
+  const getVisit = (pubId: number): Visit | null => {
+    return visitState.visits.find(v => v.pubId === pubId) || null
+  }
+
   return {
     // Readonly state to prevent direct mutations
     visitedPubIds: readonly(visitState.visitedPubIds),
     isLoading: toRef(visitState, 'isLoading'),
     error: toRef(visitState, 'error'),
     
-    // Methods
+    // Read methods
     loadVisits,
     isVisited,
     getGroupCounts,
     getVisitDate,
-    clearVisits
+    getVisit,
+    clearVisits,
+    
+    // Write methods
+    addVisit,
+    updateVisit,
+    removeVisit
   }
 }
