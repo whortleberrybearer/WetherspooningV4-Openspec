@@ -1,14 +1,14 @@
 <template>
-  <Sheet :open="isOpen" @update:open="(val) => $emit('update:isOpen', val)">
-    <SheetContent side="right" class="w-full sm:max-w-md overflow-y-auto">
-      <SheetHeader>
-        <SheetTitle>{{ pub?.name }}</SheetTitle>
-        <SheetDescription v-if="pub">
+  <Dialog :open="isOpen" @update:open="(val) => $emit('update:isOpen', val)">
+    <DialogContent class="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>{{ pub?.name }}</DialogTitle>
+        <DialogDescription v-if="pub">
           {{ pub.address }}, {{ pub.townCity }}, {{ pub.county }}
-        </SheetDescription>
-      </SheetHeader>
+        </DialogDescription>
+      </DialogHeader>
 
-      <div v-if="pub" class="mt-6 space-y-6">
+      <div v-if="pub" class="grid gap-4">
         <!-- Status Badge -->
         <div class="flex gap-2">
           <Badge v-if="isPubClosed" variant="destructive">Closed</Badge>
@@ -17,12 +17,9 @@
         </div>
 
         <!-- Visit Tracking Section (Only for Authenticated Users) -->
-        <div v-if="isAuthenticated" class="space-y-4">
-          <Separator />
-          
+        <div v-if="isAuthenticated">
           <!-- Not Visited State -->
-          <div v-if="!isVisited(pub.id)" class="space-y-3">
-            <h3 class="text-sm font-semibold">Track Your Visit</h3>
+          <div v-if="!isVisited(pub.id)" class="grid gap-3">
             <Button 
               @click="handleMarkVisited" 
               :disabled="isLoading"
@@ -34,11 +31,9 @@
           </div>
 
           <!-- Visited State -->
-          <div v-else class="space-y-4">
-            <h3 class="text-sm font-semibold">Visit Details</h3>
-            
+          <div v-else class="grid gap-4">
             <!-- Visit Date -->
-            <div class="space-y-2">
+            <div class="grid gap-2">
               <Label for="visit-date">Visit Date</Label>
               <Input
                 id="visit-date"
@@ -53,14 +48,14 @@
             </div>
 
             <!-- Visit Notes -->
-            <div class="space-y-2">
+            <div class="grid gap-2">
               <Label for="visit-notes">Notes (Optional)</Label>
               <textarea
                 id="visit-notes"
                 v-model="notesModel"
                 @blur="handleNotesUpdate"
                 :disabled="isUpdating"
-                class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                class="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 placeholder="Add notes about your visit..."
               />
             </div>
@@ -77,29 +72,23 @@
           </div>
 
           <!-- Error Message -->
-          <div v-if="errorMessage" class="text-sm text-destructive">
+          <div v-if="errorMessage" class="p-3 bg-destructive/10 border border-destructive rounded-md text-sm">
             {{ errorMessage }}
           </div>
         </div>
 
         <!-- Unauthenticated Message -->
-        <div v-else class="space-y-3">
-          <Separator />
-          <p class="text-sm text-muted-foreground">
-            Sign in to track your visits
-          </p>
+        <div v-else class="p-3 bg-muted rounded-md text-sm text-muted-foreground">
+          Sign in to track your visits
         </div>
 
         <!-- Pub Details -->
-        <div class="space-y-3">
-          <Separator />
-          <h3 class="text-sm font-semibold">Details</h3>
-          <div class="space-y-2 text-sm">
+        <div class="grid gap-3 pt-4 border-t">
+          <div class="grid gap-2 text-sm">
             <div>
-              <span class="text-muted-foreground">Address:</span>
-              <p>{{ pub.address }}</p>
-              <p>{{ pub.townCity }}, {{ pub.county }}</p>
-              <p>{{ pub.country }}</p>
+              <p class="font-medium">{{ pub.address }}</p>
+              <p class="text-muted-foreground">{{ pub.townCity }}, {{ pub.county }}</p>
+              <p class="text-muted-foreground">{{ pub.country }}</p>
             </div>
             <div v-if="pub.url">
               <a 
@@ -119,8 +108,8 @@
           </div>
         </div>
       </div>
-    </SheetContent>
-  </Sheet>
+    </DialogContent>
+  </Dialog>
 
   <!-- Remove Confirmation Dialog -->
   <Dialog :open="showRemoveDialog" @update:open="(val) => showRemoveDialog = val">
@@ -148,13 +137,11 @@
 import { ref, computed, watch } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
 
 interface Pub {
   id: number
