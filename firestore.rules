@@ -10,5 +10,20 @@ service cloud.firestore {
       // Client SDK writes are denied
       allow write: if false;
     }
+    
+    // Visits: Users can only read/write their own visits
+    match /visits/{visitId} {
+      // Allow read if user is authenticated and visit belongs to them
+      allow read: if request.auth != null 
+                  && resource.data.userId == request.auth.uid;
+      
+      // Allow create if user is authenticated and setting their own userId
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+      
+      // Allow update/delete if user is authenticated and visit belongs to them
+      allow update, delete: if request.auth != null 
+                            && resource.data.userId == request.auth.uid;
+    }
   }
 }

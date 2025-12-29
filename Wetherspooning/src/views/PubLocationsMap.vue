@@ -53,8 +53,8 @@ const { isVisited, getVisitDate, loadVisits, clearVisits } = useVisits()
 // Watch authentication state to load/clear visit data
 watch(isAuthenticated, async (authenticated) => {
   if (authenticated && user.value) {
-    // Load visits when user logs in (using userId 1 for test user)
-    await loadVisits(1)
+    // Load visits when user logs in using Firebase UID
+    await loadVisits(user.value.uid)
     // Recreate markers to show visit status
     createMarkers()
   } else {
