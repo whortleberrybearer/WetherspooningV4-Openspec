@@ -47,19 +47,6 @@
               </p>
             </div>
 
-            <!-- Visit Notes -->
-            <div class="grid gap-2">
-              <Label for="visit-notes">Notes (Optional)</Label>
-              <textarea
-                id="visit-notes"
-                v-model="notesModel"
-                @blur="handleNotesUpdate"
-                :disabled="isUpdating"
-                class="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Add notes about your visit..."
-              />
-            </div>
-
             <!-- Remove Visit Button -->
             <Button 
               @click="showRemoveDialog = true" 
@@ -80,32 +67,6 @@
         <!-- Unauthenticated Message -->
         <div v-else class="p-3 bg-muted rounded-md text-sm text-muted-foreground">
           Sign in to track your visits
-        </div>
-
-        <!-- Pub Details -->
-        <div class="grid gap-3 pt-4 border-t">
-          <div class="grid gap-2 text-sm">
-            <div>
-              <p class="font-medium">{{ pub.address }}</p>
-              <p class="text-muted-foreground">{{ pub.townCity }}, {{ pub.county }}</p>
-              <p class="text-muted-foreground">{{ pub.country }}</p>
-            </div>
-            <div v-if="pub.url">
-              <a 
-                :href="pub.url" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                class="text-primary hover:underline inline-flex items-center gap-1"
-              >
-                Visit Website
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                  <polyline points="15 3 21 3 21 9"></polyline>
-                  <line x1="10" y1="14" x2="21" y2="3"></line>
-                </svg>
-              </a>
-            </div>
-          </div>
         </div>
       </div>
     </DialogContent>
