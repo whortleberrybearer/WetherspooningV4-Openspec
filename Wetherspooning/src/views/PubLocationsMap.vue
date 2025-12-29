@@ -55,7 +55,7 @@ watch(isAuthenticated, async (authenticated) => {
   if (authenticated && user.value) {
     // Load visits when user logs in using Firebase UID
     await loadVisits(user.value.uid)
-    // Recreate markers to show visit status
+    // Recreate markers to show visit status AFTER visits are loaded
     createMarkers()
   } else {
     // Clear visits when user logs out
