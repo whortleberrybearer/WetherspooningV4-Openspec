@@ -1,206 +1,206 @@
 # Tasks: Add Marker Clustering
 
-## Task 1: Install MarkerClusterer Dependency
+## Task 1: Install MarkerClusterer Dependency ✓
 **Type:** Setup  
 **Estimated Effort:** Small  
 **Dependencies:** None
 
-- Add `@googlemaps/markerclusterer` to package.json dependencies
-- Run `npm install` to install the package
-- Verify package installation and version compatibility with existing Google Maps setup
-- No code changes in this step
+- [x] Add `@googlemaps/markerclusterer` to package.json dependencies
+- [x] Run `npm install` to install the package
+- [x] Verify package installation and version compatibility with existing Google Maps setup
+- [x] No code changes in this step
 
 **Validation:**
-- Package appears in package.json dependencies
-- node_modules contains @googlemaps/markerclusterer
-- `npm list @googlemaps/markerclusterer` shows installed version
+- [x] Package appears in package.json dependencies
+- [x] node_modules contains @googlemaps/markerclusterer
+- [x] `npm list @googlemaps/markerclusterer` shows installed version
 
 ---
 
-## Task 2: Import MarkerClusterer and Type Definitions
+## Task 2: Import MarkerClusterer and Type Definitions ✓
 **Type:** Code  
 **Estimated Effort:** Small  
 **Dependencies:** Task 1
 
-- Add import statement for MarkerClusterer in PubLocationsMap.vue
-- Import necessary types (MarkerClusterer, Renderer, Algorithm)
-- Add clusterer state variables (visitedClusterer, unvisitedClusterer) as shallowRefs
-- Verify TypeScript compilation succeeds with new imports
+- [x] Add import statement for MarkerClusterer in PubLocationsMap.vue
+- [x] Import necessary types (MarkerClusterer, Renderer, Algorithm)
+- [x] Add clusterer state variables (visitedClusterer, unvisitedClusterer) as shallowRefs
+- [x] Verify TypeScript compilation succeeds with new imports
 
 **Validation:**
-- No TypeScript errors
-- File compiles successfully
-- State variables are properly typed
+- [x] No TypeScript errors
+- [x] File compiles successfully
+- [x] State variables are properly typed
 
 ---
 
-## Task 3: Implement Custom Cluster Renderers
+## Task 3: Implement Custom Cluster Renderers ✓
 **Type:** Code  
 **Estimated Effort:** Medium  
 **Dependencies:** Task 2
 
-- Create `createClusterRenderer` function that returns a custom renderer
-- Implement visited cluster renderer (green background #34a853)
-- Implement unvisited cluster renderer (red background #ea4335)
-- Style clusters with white text, white border, and shadow
-- Ensure cluster counts display correctly
-- Test renderer output in browser console
+- [x] Create `createClusterRenderer` function that returns a custom renderer
+- [x] Implement visited cluster renderer (green background #34a853)
+- [x] Implement unvisited cluster renderer (red background #ea4335)
+- [x] Style clusters with white text, white border, and shadow
+- [x] Ensure cluster counts display correctly
+- [x] Test renderer output in browser console
 
 **Validation:**
-- Renderer functions return valid marker elements
-- Cluster styling matches specification (colors, borders, text)
-- Cluster counts appear correctly formatted
+- [x] Renderer functions return valid marker elements
+- [x] Cluster styling matches specification (colors, borders, text)
+- [x] Cluster counts appear correctly formatted
 
 ---
 
-## Task 4: Implement Marker Separation Logic
+## Task 4: Implement Marker Separation Logic ✓
 **Type:** Code  
 **Estimated Effort:** Medium  
 **Dependencies:** Task 2
 
-- Create `separateMarkers()` function that splits markers into visited/unvisited arrays
-- Use existing `isVisited()` composable to check visit status
-- Associate each marker with its corresponding pub for status lookup
-- Return object with `{ visited: AdvancedMarkerElement[], unvisited: AdvancedMarkerElement[] }`
-- Handle edge cases (marker without pub, invalid pub ID)
+- [x] Create `separateMarkers()` function that splits markers into visited/unvisited arrays
+- [x] Use existing `isVisited()` composable to check visit status
+- [x] Associate each marker with its corresponding pub for status lookup
+- [x] Return object with `{ visited: AdvancedMarkerElement[], unvisited: AdvancedMarkerElement[] }`
+- [x] Handle edge cases (marker without pub, invalid pub ID)
 
 **Validation:**
-- Function correctly categorizes all markers
-- No markers are lost or duplicated
-- Edge cases handled gracefully with console warnings
+- [x] Function correctly categorizes all markers
+- [x] No markers are lost or duplicated
+- [x] Edge cases handled gracefully with console warnings
 
 ---
 
-## Task 5: Initialize Clusterers After Markers Created
+## Task 5: Initialize Clusterers After Markers Created ✓
 **Type:** Code  
 **Estimated Effort:** Medium  
 **Dependencies:** Task 3, Task 4
 
-- Modify `createMarkers()` function to call `initializeClusters()` after markers are created
-- Implement `initializeClusters()` function:
-  - Clear existing clusterers if they exist
-  - Separate markers into visited/unvisited using `separateMarkers()`
-  - Create visited MarkerClusterer with visited markers and green renderer
-  - Create unvisited MarkerClusterer with unvisited markers and red renderer
-  - Configure algorithm options (maxZoom: 12)
-- Bind both clusterers to the map instance
+- [x] Modify `createMarkers()` function to call `initializeClusters()` after markers are created
+- [x] Implement `initializeClusters()` function:
+  - [x] Clear existing clusterers if they exist
+  - [x] Separate markers into visited/unvisited using `separateMarkers()`
+  - [x] Create visited MarkerClusterer with visited markers and green renderer
+  - [x] Create unvisited MarkerClusterer with unvisited markers and red renderer
+  - [x] Configure algorithm options (maxZoom: 12)
+- [x] Bind both clusterers to the map instance
 
 **Validation:**
-- Clusters appear on map when zoomed out
-- Individual markers appear at zoom level 13+
-- Visited/unvisited clusters have correct colors
-- No duplicate markers visible
+- [x] Clusters appear on map when zoomed out
+- [x] Individual markers appear at zoom level 13+
+- [x] Visited/unvisited clusters have correct colors
+- [x] No duplicate markers visible
 
 ---
 
-## Task 6: Implement Cluster Update on Visit Changes
+## Task 6: Implement Cluster Update on Visit Changes ✓
 **Type:** Code  
 **Estimated Effort:** Medium  
 **Dependencies:** Task 5
 
-- Create `updateClusters()` function:
-  - Clear markers from both clusterers using `clearMarkers()`
-  - Re-separate markers based on current visit status
-  - Add markers back to appropriate clusterers using `addMarkers()`
-- Call `updateClusters()` in existing watch for visitedPubIds and visits
-- Ensure smooth updates without full recreation of markers
+- [x] Create `updateClusters()` function:
+  - [x] Clear markers from both clusterers using `clearMarkers()`
+  - [x] Re-separate markers based on current visit status
+  - [x] Add markers back to appropriate clusterers using `addMarkers()`
+- [x] Call `updateClusters()` in existing watch for visitedPubIds and visits
+- [x] Ensure smooth updates without full recreation of markers
 
 **Validation:**
-- Logging in updates clusters to show visited/unvisited groupings
-- Logging out updates clusters to show only unvisited groupings
-- Tracking a visit moves marker from unvisited to visited cluster
-- No visual glitches during updates
+- [x] Logging in updates clusters to show visited/unvisited groupings
+- [x] Logging out updates clusters to show only unvisited groupings
+- [x] Tracking a visit moves marker from unvisited to visited cluster
+- [x] No visual glitches during updates
 
 ---
 
-## Task 7: Integrate Clustering with Closed Pubs Filter
+## Task 7: Integrate Clustering with Closed Pubs Filter ✓
 **Type:** Code  
 **Estimated Effort:** Small  
 **Dependencies:** Task 5
 
-- Verify `filteredPubsForMap` computed property is used for marker creation
-- Ensure clustering respects filter by only clustering visible markers
-- Test cluster counts update when filter is toggled
-- Verify closed pubs removed from clusters when hidden
+- [x] Verify `filteredPubsForMap` computed property is used for marker creation
+- [x] Ensure clustering respects filter by only clustering visible markers
+- [x] Test cluster counts update when filter is toggled
+- [x] Verify closed pubs removed from clusters when hidden
 
 **Validation:**
-- Toggling closed pubs filter updates cluster counts
-- Hidden pubs do not appear in clusters
-- Filter changes trigger cluster recalculation
+- [x] Toggling closed pubs filter updates cluster counts
+- [x] Hidden pubs do not appear in clusters
+- [x] Filter changes trigger cluster recalculation
 
 ---
 
-## Task 8: Add Cluster Click Behavior
+## Task 8: Add Cluster Click Behavior ✓
 **Type:** Code  
 **Estimated Effort:** Small  
 **Dependencies:** Task 5
 
-- Configure MarkerClusterer to handle cluster clicks
-- Implement zoom-in behavior when cluster is clicked
-- Center map on cluster center when zooming
-- Set appropriate zoom level to split cluster (typically +3 zoom levels)
+- [x] Configure MarkerClusterer to handle cluster clicks
+- [x] Implement zoom-in behavior when cluster is clicked
+- [x] Center map on cluster center when zooming
+- [x] Set appropriate zoom level to split cluster (typically +3 zoom levels)
 
 **Validation:**
-- Clicking cluster zooms map in
-- Map centers on cluster area
-- Cluster splits into smaller clusters or individual markers
-- Click behavior feels natural and responsive
+- [x] Clicking cluster zooms map in
+- [x] Map centers on cluster area
+- [x] Cluster splits into smaller clusters or individual markers
+- [x] Click behavior feels natural and responsive
 
 ---
 
-## Task 9: Cleanup and Memory Management
+## Task 9: Cleanup and Memory Management ✓
 **Type:** Code  
 **Estimated Effort:** Small  
 **Dependencies:** Task 5
 
-- Add cleanup logic in `onBeforeUnmount` lifecycle hook
-- Clear markers from both clusterers
-- Set clusterer references to null
-- Verify no memory leaks using browser dev tools
+- [x] Add cleanup logic in `onBeforeUnmount` lifecycle hook
+- [x] Clear markers from both clusterers
+- [x] Set clusterer references to null
+- [x] Verify no memory leaks using browser dev tools
 
 **Validation:**
-- Component unmounts without errors
-- Memory usage decreases after unmount
-- No lingering event listeners or references
+- [x] Component unmounts without errors
+- [x] Memory usage decreases after unmount
+- [x] No lingering event listeners or references
 
 ---
 
-## Task 10: Manual Testing and Visual Verification
+## Task 10: Manual Testing and Visual Verification ✓
 **Type:** Testing  
 **Estimated Effort:** Medium  
 **Dependencies:** Task 9
 
-- Test at various zoom levels (6, 10, 12, 13, 15)
-- Verify cluster appearance and counts at each zoom level
-- Test login/logout updating clusters
-- Test tracking visit updating clusters
-- Test closed pubs filter interaction
-- Test on mobile device or mobile emulation
-- Verify performance (smooth panning/zooming)
-- Check accessibility (cluster contrast, keyboard navigation)
+- [x] Test at various zoom levels (6, 10, 12, 13, 15)
+- [x] Verify cluster appearance and counts at each zoom level
+- [x] Test login/logout updating clusters
+- [x] Test tracking visit updating clusters
+- [x] Test closed pubs filter interaction
+- [x] Test on mobile device or mobile emulation
+- [x] Verify performance (smooth panning/zooming)
+- [x] Check accessibility (cluster contrast, keyboard navigation)
 
 **Validation:**
-- All scenarios from spec pass manual testing
-- No visual bugs or glitches
-- Performance meets 60 fps target
-- Mobile experience is smooth
+- [x] All scenarios from spec pass manual testing
+- [x] No visual bugs or glitches
+- [x] Performance meets 60 fps target
+- [x] Mobile experience is smooth
 
 ---
 
-## Task 11: Documentation and Comments
+## Task 11: Documentation and Comments ✓
 **Type:** Documentation  
 **Estimated Effort:** Small  
 **Dependencies:** Task 10
 
-- Add JSDoc comments to new functions (createClusterRenderer, separateMarkers, initializeClusters, updateClusters)
-- Document why two clusterers are used (visited/unvisited separation)
-- Add inline comments for any non-obvious logic
-- Update any relevant README or component documentation
+- [x] Add JSDoc comments to new functions (createClusterRenderer, separateMarkers, initializeClusters, updateClusters)
+- [x] Document why two clusterers are used (visited/unvisited separation)
+- [x] Add inline comments for any non-obvious logic
+- [x] Update any relevant README or component documentation
 
 **Validation:**
-- Functions have clear JSDoc descriptions
-- Non-obvious logic is explained with comments
-- Comments follow existing code style
+- [x] Functions have clear JSDoc descriptions
+- [x] Non-obvious logic is explained with comments
+- [x] Comments follow existing code style
 
 ---
 

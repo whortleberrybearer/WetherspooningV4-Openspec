@@ -35,8 +35,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, shallowRef, computed, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, shallowRef, computed, watch } from 'vue'
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
+import { MarkerClusterer } from '@googlemaps/markerclusterer'
 import AppSidebar from '@/components/AppSidebar.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
@@ -49,6 +50,8 @@ import { getAllPubs, type Pub } from '@/services/firebaseDataService'
 const mapContainer = ref<HTMLElement | null>(null)
 const map = shallowRef<google.maps.Map | null>(null)
 const markers = ref<google.maps.marker.AdvancedMarkerElement[]>([])
+const visitedClusterer = shallowRef<MarkerClusterer | null>(null)
+const unvisitedClusterer = shallowRef<MarkerClusterer | null>(null)
 const pubs = ref<Pub[]>([])
 const infoWindow = ref<google.maps.InfoWindow | null>(null)
 const error = ref<string>('')
@@ -65,20 +68,20 @@ watch(isAuthenticated, async (authenticated) => {
   if (authenticated && user.value?.uid) {
     // Load visits when user logs in using Firebase UID
     await loadVisits(user.value.uid)
-    // Recreate markers to show visit status AFTER visits are loaded
-    createMarkers()
+    // Update clusters to show visit status AFTER visits are loaded
+    updateClusters()
   } else {
     // Clear visits when user logs out
     clearVisits()
-    // Recreate markers to remove visit status
-    createMarkers()
+    // Update clusters to remove visit status
+    updateClusters()
   }
 })
 
-// Watch for changes in visit data to update markers and info window
+// Watch for changes in visit data to update clusters and info window
 watch([visitedPubIds, visits], () => {
-  // Recreate markers to reflect visit status changes
-  createMarkers()
+  // Update clusters to reflect visit status changes
+  updateClusters()
   
   // Update info window if there's a selected pub
   if (selectedPub.value && infoWindow.value) {
@@ -105,6 +108,49 @@ const filteredPubsForMap = computed(() => {
     return !state.toLowerCase().includes('closed')
   })
 })
+
+/**
+ * Creates a custom cluster renderer for styling clusters
+ * @param backgroundColor - Background color for the cluster marker
+ * @returns A renderer function for MarkerClusterer
+ */
+const createClusterRenderer = (backgroundColor: string) => {
+  return {
+    render: ({ count, position }: { count: number; position: google.maps.LatLng }) => {
+      const svg = `
+        <svg fill="${backgroundColor}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="50" height="50">
+          <circle cx="120" cy="120" opacity="1" r="70" />
+          <circle cx="120" cy="120" opacity="1" r="55" stroke="white" stroke-width="4" fill="${backgroundColor}" />
+        </svg>
+      `
+      
+      const clusterElement = document.createElement('div')
+      clusterElement.innerHTML = svg
+      clusterElement.style.position = 'relative'
+      clusterElement.style.cursor = 'pointer'
+      
+      const textElement = document.createElement('div')
+      textElement.textContent = String(count)
+      textElement.style.position = 'absolute'
+      textElement.style.top = '50%'
+      textElement.style.left = '50%'
+      textElement.style.transform = 'translate(-50%, -50%)'
+      textElement.style.color = 'white'
+      textElement.style.fontSize = '14px'
+      textElement.style.fontWeight = 'bold'
+      textElement.style.fontFamily = 'Arial, sans-serif'
+      textElement.style.pointerEvents = 'none'
+      
+      clusterElement.appendChild(textElement)
+      
+      return new google.maps.marker.AdvancedMarkerElement({
+        position,
+        content: clusterElement,
+        zIndex: 1000 + count,
+      })
+    }
+  }
+}
 
 const initMap = () => {
   if (!mapContainer.value) {
@@ -242,6 +288,108 @@ const createMarkers = () => {
 
     markers.value.push(marker)
   })
+  
+  // Initialize clusterers after markers are created
+  initializeClusters()
+}
+
+/**
+ * Separates markers into visited and unvisited groups for clustering
+ * @returns Object with visited and unvisited marker arrays
+ */
+const separateMarkers = (): { 
+  visited: google.maps.marker.AdvancedMarkerElement[], 
+  unvisited: google.maps.marker.AdvancedMarkerElement[] 
+} => {
+  const visited: google.maps.marker.AdvancedMarkerElement[] = []
+  const unvisited: google.maps.marker.AdvancedMarkerElement[] = []
+  
+  markers.value.forEach(marker => {
+    // Find the pub associated with this marker
+    const markerPos = marker.position as google.maps.LatLng | google.maps.LatLngLiteral
+    const lat = typeof markerPos.lat === 'function' ? markerPos.lat() : markerPos.lat
+    const lng = typeof markerPos.lng === 'function' ? markerPos.lng() : markerPos.lng
+    
+    const pub = filteredPubsForMap.value.find(p => p.lat === lat && p.lng === lng)
+    
+    if (pub) {
+      if (isVisited(pub.id)) {
+        visited.push(marker)
+      } else {
+        unvisited.push(marker)
+      }
+    } else {
+      // Default to unvisited if pub not found
+      console.warn('Marker without associated pub found')
+      unvisited.push(marker)
+    }
+  })
+  
+  return { visited, unvisited }
+}
+
+/**
+ * Initializes or updates the marker clusterers for visited and unvisited pubs
+ */
+const initializeClusters = () => {
+  if (!map.value) return
+  
+  // Clear existing clusterers
+  if (visitedClusterer.value) {
+    visitedClusterer.value.clearMarkers()
+  }
+  if (unvisitedClusterer.value) {
+    unvisitedClusterer.value.clearMarkers()
+  }
+  
+  // Separate markers based on visit status
+  const { visited, unvisited } = separateMarkers()
+  
+  // Create or update visited clusterer (green)
+  if (!visitedClusterer.value) {
+    visitedClusterer.value = new MarkerClusterer({
+      map: map.value,
+      markers: visited,
+      renderer: createClusterRenderer('#34a853'),
+      algorithmOptions: {
+        maxZoom: 12
+      }
+    })
+  } else {
+    visitedClusterer.value.addMarkers(visited)
+  }
+  
+  // Create or update unvisited clusterer (red)
+  if (!unvisitedClusterer.value) {
+    unvisitedClusterer.value = new MarkerClusterer({
+      map: map.value,
+      markers: unvisited,
+      renderer: createClusterRenderer('#ea4335'),
+      algorithmOptions: {
+        maxZoom: 12
+      }
+    })
+  } else {
+    unvisitedClusterer.value.addMarkers(unvisited)
+  }
+}
+
+/**
+ * Updates cluster groupings when visit status changes
+ */
+const updateClusters = () => {
+  if (!visitedClusterer.value || !unvisitedClusterer.value) return
+  
+  // Clear markers from both clusterers
+  visitedClusterer.value.clearMarkers()
+  unvisitedClusterer.value.clearMarkers()
+  
+  // Re-separate markers based on current visit status
+  const { visited, unvisited } = separateMarkers()
+  
+  // Add markers back to appropriate clusterers
+  visitedClusterer.value.addMarkers(visited)
+  unvisitedClusterer.value.addMarkers(unvisited)
 }
 
 const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement) => {
@@ -340,5 +488,21 @@ onMounted(async () => {
 
   initMap()
   await loadPubs()
+})
+
+onBeforeUnmount(() => {
+  // Clear markers from clusterers
+  if (visitedClusterer.value) {
+    visitedClusterer.value.clearMarkers()
+    visitedClusterer.value = null
+  }
+  if (unvisitedClusterer.value) {
+    unvisitedClusterer.value.clearMarkers()
+    unvisitedClusterer.value = null
+  }
+  
+  // Clear individual markers
+  markers.value.forEach(marker => marker.map = null)
+  markers.value = []
 })
 </script>
