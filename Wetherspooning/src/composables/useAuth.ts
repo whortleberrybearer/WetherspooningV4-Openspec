@@ -56,13 +56,13 @@ export function useAuth() {
    * @param password - User's password
    * @returns Promise that resolves on successful login or rejects with error message
    */
-  const login = (username: string, password: string): Promise<void> => {
+  const login = (email: string, password: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       // Clear previous errors
       authState.error = null
 
       // Validate credentials (case-sensitive)
-      if (username === TEST_CREDENTIALS.username && password === TEST_CREDENTIALS.password) {
+      if (email === TEST_CREDENTIALS.email && password === TEST_CREDENTIALS.password) {
         // Successful login
         authState.user = {
           username: TEST_CREDENTIALS.username,

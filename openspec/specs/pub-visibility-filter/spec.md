@@ -10,12 +10,14 @@ TBD - created by archiving change add-closed-pubs-toggle. Update Purpose after a
 The system MUST provide a toggle control labeled "Show Closed Pubs" that allows users to show or hide closed pubs from the map and sidebar.
 
 **Acceptance Criteria:**
-- Toggle control is visible in the sidebar header
+- Toggle control is visible in the sidebar "Options" section
 - Toggle label reads "Show Closed Pubs"
 - Toggle is OFF by default (closed pubs are hidden from both map and sidebar)
 - Toggle state is reactive and immediately updates the display
-- Toggle control uses standard checkbox or switch UI pattern
+- Toggle control uses switch UI pattern (slide toggle)
 - Toggle is accessible via keyboard (space/enter to toggle)
+- Toggle has proper ARIA attributes for accessibility
+- Label is associated with toggle for click activation
 
 #### Scenario: Toggle Closed Pubs Visibility
 **Given** the map is displayed with both open and closed pubs in the data  

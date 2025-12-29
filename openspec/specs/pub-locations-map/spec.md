@@ -400,3 +400,120 @@ The system MUST attempt to center the map on the user's current location using t
 **And** map can recenter while markers are being created  
 **And** no race conditions occur between operations
 
+---
+
+### Requirement: Card-Styled Info Windows (REQ-PLM-010)
+**Priority:** MUST  
+**Category:** UI/UX
+
+The system MUST display pub information in map info windows using card-style layout for consistent, polished presentation.
+
+**Acceptance Criteria:**
+- Info windows use card-style visual structure
+- Card includes header section with pub name and status badges
+- Card includes content section with address details
+- Card includes optional "View Details" button
+- Card has rounded corners, border, and subtle shadow
+- Info windows have min-width of 250px and max-width of 350px
+- Pub name is displayed prominently in header with larger font and bold weight
+- Status badges appear in header below the pub name
+
+#### Scenario: Display Info Window with Card Styling
+**Given** a pub marker is clicked  
+**When** the info window opens  
+**Then** the content uses a card-style layout  
+**And** the card has rounded corners, border, and shadow  
+**And** the header section is visually separated from content  
+**And** the pub name is displayed prominently  
+**And** the content section contains address details
+
+#### Scenario: Card Header with Status Badges
+**Given** a pub marker is clicked  
+**And** the pub has status information (open/closed, visited)  
+**When** the info window opens  
+**Then** the card header displays the pub name  
+**And** status badges appear below the name in a horizontal row  
+**And** badges are spaced appropriately
+
+---
+
+### Requirement: Status Badges in Info Windows (REQ-PLM-011)
+**Priority:** MUST  
+**Category:** UI/UX
+
+The system MUST display status badges in map info windows to indicate pub open state and visit status.
+
+**Acceptance Criteria:**
+- Open status badge: Green background, white text, displays "Open"
+- Closed status badge: Red/destructive color, white text, displays "Closed"
+- Visited status badge: Green background, white text, displays checkmark + date (dd/mm/yy format)
+- Visited badge only shown when user is authenticated and pub has been visited
+- Badges use small text size and compact padding
+- Badges have rounded corners and subtle border
+- Visit date formatted as dd/mm/yy (e.g., "28/12/25")
+- Badges are displayed in a horizontal row with spacing between them
+
+#### Scenario: Display Open Status Badge
+**Given** a pub has openState="Open"  
+**When** the info window opens  
+**Then** a green badge with text "Open" is displayed  
+**And** the badge has white text on green background  
+**And** the badge appears in the card header
+
+#### Scenario: Display Closed Status Badge
+**Given** a pub has openState="Closed"  
+**When** the info window opens  
+**Then** a red badge with text "Closed" is displayed  
+**And** the badge has white text on red background
+
+#### Scenario: Display Visited Badge
+**Given** the user is authenticated  
+**And** the pub was visited on "2025-12-28T14:30:00Z"  
+**When** the info window opens  
+**Then** a green badge with checkmark and date is displayed  
+**And** the badge text reads "✓ Visited 28/12/25"  
+**And** the badge has white text on green background  
+**And** the badge appears after the open/closed status badge
+
+#### Scenario: No Visited Badge When Not Authenticated
+**Given** the user is not authenticated  
+**And** the pub has been visited  
+**When** the info window opens  
+**Then** only the open/closed status badge is shown  
+**And** no visited badge is displayed
+
+---
+
+### Requirement: Alert-Style Error Display (REQ-PLM-012)
+**Priority:** MUST  
+**Category:** UI/UX
+
+The system MUST display error messages using alert-style presentation with proper error styling.
+
+**Acceptance Criteria:**
+- Error messages use alert-style component presentation
+- Alert displays with destructive/error color scheme (red/pink tones)
+- Alert includes circular warning icon on the left side
+- Alert shows "Error" as heading text
+- Alert shows error description message below heading
+- Alert is positioned near top-center of map view
+- Alert has reasonable max-width (approximately 28rem/450px)
+- Alert appears above map content with high z-index
+- Error message text is user-friendly (no technical details)
+
+#### Scenario: Display Error with Alert Styling
+**Given** pub data fails to load  
+**When** the error occurs  
+**Then** an alert appears near the top-center of the map  
+**And** the alert uses error/destructive color scheme  
+**And** a warning icon appears on the left side  
+**And** "Error" heading is displayed  
+**And** "Failed to load pub locations. Please try again later." is shown as description
+
+#### Scenario: Alert Accessibility
+**Given** an error alert is displayed  
+**When** rendered  
+**Then** the alert has proper ARIA role and attributes  
+**And** the error is announced to screen readers  
+**And** the alert is perceivable without relying on color alone
+

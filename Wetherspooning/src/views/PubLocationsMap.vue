@@ -1,45 +1,39 @@
 <template>
-  <div class="fixed inset-0 w-full h-screen">
-    <!-- Burger Menu Button -->
-    <button      v-if="!sidebarOpen"      @click="toggleSidebar"
-      class="fixed top-4 left-4 z-60 p-3 bg-background border border-border rounded-md shadow-lg hover:bg-accent transition-colors"
-      aria-label="Toggle sidebar"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="3" y1="12" x2="21" y2="12"></line>
-        <line x1="3" y1="6" x2="21" y2="6"></line>
-        <line x1="3" y1="18" x2="21" y2="18"></line>
-      </svg>
-    </button>
-
+  <div class="flex h-screen w-full overflow-hidden">
     <!-- Sidebar -->
-    <PubSidebar
+    <AppSidebar
       :pubs="pubs"
-      :is-open="sidebarOpen"
       :show-closed-pubs="showClosedPubs"
-      @close="toggleSidebar"
       @selectPub="handlePubSelect"
       @toggleClosedPubs="showClosedPubs = !showClosedPubs"
     />
 
-    <!-- Overlay for mobile -->
-    <div
-      v-if="sidebarOpen"
-      @click="toggleSidebar"
-      class="fixed inset-0 bg-black/50 z-40 md:hidden"
-    ></div>
+    <!-- Main Content -->
+    <SidebarInset class="flex-1 relative">
+      <div class="absolute top-4 left-4 z-10">
+        <SidebarTrigger />
+      </div>
 
-    <div v-if="error" class="absolute top-5 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground px-6 py-3 rounded-md z-1000 shadow-lg">
-      {{ error }}
-    </div>
-    <div ref="mapContainer" class="w-full h-full"></div>
+      <Alert v-if="error" variant="destructive" class="absolute top-20 left-1/2 -translate-x-1/2 max-w-md z-[1000]">
+        <AlertCircle class="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          {{ error }}
+        </AlertDescription>
+      </Alert>
+
+      <div ref="mapContainer" class="w-full h-full"></div>
+    </SidebarInset>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, shallowRef, computed, watch } from 'vue'
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
-import PubSidebar from '@/components/PubSidebar.vue'
+import AppSidebar from '@/components/AppSidebar.vue'
+import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-vue-next'
 import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
 
@@ -64,7 +58,6 @@ const markers = ref<google.maps.marker.AdvancedMarkerElement[]>([])
 const pubs = ref<Pub[]>([])
 const infoWindow = ref<google.maps.InfoWindow | null>(null)
 const error = ref<string>('')
-const sidebarOpen = ref(false)
 const showClosedPubs = ref(false)
 
 // Authentication and visit tracking
@@ -243,41 +236,52 @@ const createMarkers = () => {
 const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement) => {
   if (!infoWindow.value) return
 
+  const isClosed = pub.openState?.toLowerCase().includes('closed') || false
+  const visited = isVisited(pub.id)
+  
   // Format visit date if available
-  let visitDateText = ''
-  if (isAuthenticated.value && isVisited(pub.id)) {
+  let visitBadge = ''
+  if (isAuthenticated.value && visited) {
     const visitDate = getVisitDate(pub.id)
     if (visitDate) {
       try {
         const date = new Date(visitDate)
         const formattedDate = date.toLocaleDateString('en-GB', { 
-          year: 'numeric', 
-          month: 'short', 
-          day: 'numeric' 
+          day: '2-digit',
+          month: '2-digit',
+          year: '2-digit'
         })
-        visitDateText = `<p class="text-sm text-green-600 mb-2">Visited on ${formattedDate}</p>`
+        visitBadge = `<span class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-500 text-white hover:bg-green-500/80">✓ Visited ${formattedDate}</span>`
       } catch (error) {
         console.error('Error formatting visit date:', error)
       }
     }
   }
+  
+  // Status badge
+  const statusBadge = isClosed 
+    ? `<span class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80">Closed</span>`
+    : `<span class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-500 text-white hover:bg-green-500/80">Open</span>`
 
   const content = `
-    <div class="p-3 min-w-[200px]">
-      <h3 class="text-base font-semibold mb-2">${pub.name}</h3>
-      <p class="text-sm text-muted-foreground mb-1">${pub.address}</p>
-      <p class="text-sm text-muted-foreground mb-2">${pub.townCity}, ${pub.county}</p>
-      ${visitDateText}
-      ${pub.url ? `<a href="${pub.url}" target="_blank" rel="noopener" class="inline-block text-sm text-primary font-medium hover:underline">View Details</a>` : ''}
+    <div class="rounded-lg border bg-card text-card-foreground shadow-sm min-w-[250px] max-w-[350px]">
+      <div class="flex flex-col space-y-1.5 p-4 pb-3">
+        <h3 class="text-base font-semibold leading-none tracking-tight">${pub.name}</h3>
+        <div class="flex gap-2 mt-2">
+          ${statusBadge}
+          ${visitBadge}
+        </div>
+      </div>
+      <div class="p-4 pt-0">
+        <p class="text-sm text-muted-foreground mb-1">${pub.address}</p>
+        <p class="text-sm text-muted-foreground mb-3">${pub.townCity}, ${pub.county}</p>
+        ${pub.url ? `<a href="${pub.url}" target="_blank" rel="noopener" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3">View Details</a>` : ''}
+      </div>
     </div>
   `
 
   infoWindow.value.setContent(content)
   infoWindow.value.open(map.value!, marker)
-}
-
-const toggleSidebar = () => {
-  sidebarOpen.value = !sidebarOpen.value
 }
 
 const handlePubSelect = (pub: Pub) => {
