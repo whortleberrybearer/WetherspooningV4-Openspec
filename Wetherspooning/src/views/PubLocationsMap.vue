@@ -58,7 +58,7 @@ const showPubDetail = ref(false)
 
 // Authentication and visit tracking
 const { user, isAuthenticated } = useAuth()
-const { isVisited, getVisitDate, loadVisits, clearVisits } = useVisits()
+const { isVisited, getVisitDate, loadVisits, clearVisits, visitedPubIds } = useVisits()
 
 // Watch authentication state to load/clear visit data
 watch(isAuthenticated, async (authenticated) => {
@@ -72,6 +72,25 @@ watch(isAuthenticated, async (authenticated) => {
     clearVisits()
     // Recreate markers to remove visit status
     createMarkers()
+  }
+})
+
+// Watch for changes in visit data to update markers and info window
+watch(visitedPubIds, () => {
+  // Recreate markers to reflect visit status changes
+  createMarkers()
+  
+  // Update info window if there's a selected pub
+  if (selectedPub.value && infoWindow.value) {
+    const marker = markers.value.find(m => {
+      const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
+      const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat
+      const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng
+      return lat === selectedPub.value!.lat && lng === selectedPub.value!.lng
+    })
+    if (marker) {
+      showPubInfo(selectedPub.value, marker)
+    }
   }
 })
 
