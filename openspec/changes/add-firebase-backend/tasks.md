@@ -14,6 +14,18 @@
 - [ ] Create `src/services/firebaseDataService.ts` for pub data operations
 - [ ] Create TypeScript interfaces for Firestore pub documents
 
+## Local Development Setup
+- [ ] Install Firebase CLI globally: `npm install -g firebase-tools`
+- [ ] Login to Firebase: `firebase login`
+- [ ] Initialize Firebase Emulators: `firebase init emulators`
+- [ ] Select Firestore Emulator during initialization
+- [ ] Configure `firebase.json` with emulator ports (Firestore: 8080, UI: 4000)
+- [ ] Add emulator connection logic to `src/lib/firebase.ts` (detect DEV mode)
+- [ ] Create `scripts/seedEmulator.js` to populate emulator with test data
+- [ ] Add npm script for starting emulator: `"emulator": "firebase emulators:start"`
+- [ ] Test emulator can start and UI is accessible at localhost:4000
+- [ ] Document emulator workflow in README.md
+
 ## Data Migration
 - [ ] Create `scripts/migrateToFirestore.ts` migration script for pubs
 - [ ] Install `firebase-admin` package as dev dependency for migration
