@@ -20,6 +20,37 @@
     </SidebarHeader>
 
     <SidebarContent>
+      <!-- Visit Statistics -->
+      <SidebarGroup v-if="isAuthenticated">
+        <SidebarGroupContent>
+          <div class="grid grid-cols-2 gap-2 px-2">
+            <!-- Total Visited Card -->
+            <div class="rounded-lg border bg-card p-3 shadow-sm">
+              <div class="flex flex-col gap-1">
+                <span class="text-xs text-muted-foreground">Total Visited</span>
+                <div class="flex items-baseline gap-1">
+                  <span class="text-2xl font-bold">{{ allTimeStats.visited }}</span>
+                </div>
+                <span class="text-xs text-muted-foreground">{{ allTimeStats.closedVisited }} that are now closed</span>
+              </div>
+            </div>
+            
+            <!-- Not Visited Card -->
+            <div class="rounded-lg border bg-card p-3 shadow-sm">
+              <div class="flex flex-col gap-1">
+                <span class="text-xs text-muted-foreground">Not Visited</span>
+                <div class="flex items-baseline gap-1">
+                  <span class="text-2xl font-bold">{{ allTimeStats.notVisited }}</span>
+                </div>
+                <span class="text-xs text-muted-foreground">{{ allTimeStats.total }} Total Pubs</span>
+              </div>
+            </div>
+          </div>
+        </SidebarGroupContent>
+      </SidebarGroup>
+
+      <SidebarSeparator v-if="isAuthenticated" />
+
       <!-- Filter Options -->
       <SidebarGroup>
         <SidebarGroupLabel>Options</SidebarGroupLabel>
@@ -38,36 +69,6 @@
               </div>
             </SidebarMenuItem>
           </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-
-      <SidebarSeparator />
-
-      <!-- Visit Statistics -->
-      <SidebarGroup v-if="isAuthenticated">
-        <SidebarGroupLabel>Your Progress</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <div class="grid grid-cols-2 gap-2 px-2">
-            <!-- Visited Card -->
-            <div class="rounded-lg border bg-card p-3 shadow-sm">
-              <div class="flex flex-col gap-1">
-                <span class="text-xs text-muted-foreground">Visited</span>
-                <div class="flex items-baseline gap-1">
-                  <span class="text-2xl font-bold">{{ overallStats.visited }}</span>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Remaining Card -->
-            <div class="rounded-lg border bg-card p-3 shadow-sm">
-              <div class="flex flex-col gap-1">
-                <span class="text-xs text-muted-foreground">Remaining</span>
-                <div class="flex items-baseline gap-1">
-                  <span class="text-2xl font-bold">{{ overallStats.remaining }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </SidebarGroupContent>
       </SidebarGroup>
 
@@ -396,15 +397,28 @@ const groupedPubs = computed(() => {
   return sortedCountries
 })
 
-const overallStats = computed(() => {
-  const { visited, total } = getGroupCounts(filteredPubs.value)
-  const remaining = total - visited
-  const progress = total > 0 ? Math.round((visited / total) * 100) : 0
+const allTimeStats = computed(() => {
+  // Always use all pubs, not filtered
+  const { visited } = getGroupCounts(props.pubs)
+  
+  // Count how many visited pubs are now closed
+  const closedVisited = props.pubs.filter(pub => 
+    isVisited(pub.id) && isPubClosed(pub)
+  ).length
+  
+  // Not visited should only count open pubs that haven't been visited
+  const notVisited = props.pubs.filter(pub => 
+    !isVisited(pub.id) && !isPubClosed(pub)
+  ).length
+  
+  // Total should only count open pubs
+  const total = props.pubs.filter(pub => !isPubClosed(pub)).length
   
   return {
     visited,
-    remaining,
-    progress
+    notVisited,
+    total,
+    closedVisited
   }
 })
 
