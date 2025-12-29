@@ -23,11 +23,11 @@ Create `Wetherspooning/src/components/SignupDialog.vue` component based on shadc
 - Add auto-focus to username field on dialog open
 
 **Validation:**
-- [ ] Component renders without errors
-- [ ] All form fields display with correct labels and helper text
-- [ ] Visual layout matches design.md specifications
-- [ ] Dialog can open and close
-- [ ] Username field receives focus on open
+- [x] Component renders without errors
+- [x] All form fields display with correct labels and helper text
+- [x] Visual layout matches design.md specifications
+- [x] Dialog can open and close
+- [x] Username field receives focus on open
 
 ---
 
@@ -51,13 +51,13 @@ Add form validation logic to SignupDialog component.
 - Trigger validation on form submit only
 
 **Validation:**
-- [ ] Empty fields show "All fields are required" error
-- [ ] Short username shows "Username must be at least 3 characters" error
-- [ ] Short password shows "Password must be at least 8 characters" error
-- [ ] Mismatched passwords show "Passwords do not match" error
-- [ ] Invalid email triggers HTML5 validation
-- [ ] Submit button is disabled when form is incomplete
-- [ ] Errors clear when dialog closes
+- [x] Empty fields show "All fields are required" error
+- [x] Short username shows "Username must be at least 3 characters" error
+- [x] Short password shows "Password must be at least 8 characters" error
+- [x] Mismatched passwords show "Passwords do not match" error
+- [x] Invalid email triggers HTML5 validation
+- [x] Submit button is disabled when form is incomplete
+- [x] Errors clear when dialog closes
 
 ---
 
@@ -79,12 +79,12 @@ Add `register()` function to `Wetherspooning/src/composables/useAuth.ts`.
 - Update login function to work with TEST_ACCOUNTS array
 
 **Validation:**
-- [ ] TEST_ACCOUNTS array contains default test account
-- [ ] `register()` function accepts username, email, password parameters
-- [ ] Duplicate email returns "Email already registered" error
-- [ ] New account is added to TEST_ACCOUNTS
-- [ ] Existing login function still works with test account
-- [ ] New registered accounts can be used to log in
+- [x] TEST_ACCOUNTS array contains default test account
+- [x] `register()` function accepts username, email, password parameters
+- [x] Duplicate email returns "Email already registered" error
+- [x] New account is added to TEST_ACCOUNTS
+- [x] Existing login function still works with test account
+- [x] New registered accounts can be used to log in
 
 ---
 
@@ -105,11 +105,11 @@ Connect SignupDialog form submission to useAuth.register() function.
 - Clear form fields after successful registration
 
 **Validation:**
-- [ ] Valid form submission calls useAuth.register()
-- [ ] Success shows confirmation and opens login dialog
-- [ ] Duplicate email error displays correctly
-- [ ] Loading state shows during registration
-- [ ] Form clears after successful registration
+- [x] Valid form submission calls useAuth.register()
+- [x] Success shows confirmation and opens login dialog
+- [x] Duplicate email error displays correctly
+- [x] Loading state shows during registration
+- [x] Form clears after successful registration
 
 ---
 
@@ -129,11 +129,11 @@ Implement navigation between LoginDialog and SignupDialog.
 - Implement dialog state management in parent component (likely App.vue or UserMenu.vue)
 
 **Validation:**
-- [ ] Clicking "Sign up" in LoginDialog opens SignupDialog
-- [ ] Clicking "Sign in" in SignupDialog opens LoginDialog
-- [ ] Previous dialog closes when new dialog opens
-- [ ] Form fields clear when switching between dialogs
-- [ ] No console errors during navigation
+- [x] Clicking "Sign up" in LoginDialog opens SignupDialog
+- [x] Clicking "Sign in" in SignupDialog opens LoginDialog
+- [x] Previous dialog closes when new dialog opens
+- [x] Form fields clear when switching between dialogs
+- [x] No console errors during navigation
 
 ---
 
@@ -155,13 +155,13 @@ Ensure SignupDialog meets accessibility requirements.
 - Verify disabled button is visually distinct
 
 **Validation:**
-- [ ] All form fields have associated labels
-- [ ] Helper text is linked via aria-describedby
-- [ ] Error messages are announced to screen readers
-- [ ] Tab navigation follows logical order
-- [ ] Escape closes dialog
-- [ ] Enter submits form
-- [ ] Autocomplete attributes are set correctly
+- [x] All form fields have associated labels
+- [x] Helper text is linked via aria-describedby
+- [x] Error messages are announced to screen readers
+- [x] Tab navigation follows logical order
+- [x] Escape closes dialog
+- [x] Enter submits form
+- [x] Autocomplete attributes are set correctly
 
 ---
 
@@ -184,12 +184,12 @@ Manually test signup flow with sample data per user requirements.
 - Test mobile responsive layout
 
 **Validation:**
-- [ ] testuser@example.com successfully registers and can log in
-- [ ] Duplicate email test@example.com shows error
-- [ ] All validation errors display correctly
-- [ ] Dialog navigation works smoothly
-- [ ] Form is fully keyboard accessible
-- [ ] Mobile layout displays correctly
+- [x] testuser@example.com successfully registers and can log in
+- [x] Duplicate email test@example.com shows error
+- [x] All validation errors display correctly
+- [x] Dialog navigation works smoothly
+- [x] Form is fully keyboard accessible
+- [x] Mobile layout displays correctly
 
 ---
 
@@ -219,17 +219,17 @@ Task 6 (Accessibility) ───────────────────
 
 After completing all tasks, verify:
 
-- [ ] SignupDialog component exists and renders
-- [ ] All form fields present with correct labels and helper text
-- [ ] Client-side validation works for all error cases
-- [ ] useAuth.register() function exists and works
-- [ ] TEST_ACCOUNTS array contains default test account
-- [ ] New accounts can be registered and used to log in
-- [ ] Dialog navigation between signup and login works
-- [ ] Success flow: signup → confirmation → login → authentication
-- [ ] Error flow: validation errors and duplicate email error display
-- [ ] Accessibility: keyboard navigation, screen reader support, ARIA attributes
-- [ ] Visual consistency with LoginDialog
-- [ ] Mobile responsive layout
-- [ ] Sample scenario: testuser@example.com successfully registers
-- [ ] Sample scenario: test@example.com shows "already registered" error
+- [x] SignupDialog component exists and renders
+- [x] All form fields present with correct labels and helper text
+- [x] Client-side validation works for all error cases
+- [x] useAuth.register() function exists and works
+- [x] TEST_ACCOUNTS array contains default test account
+- [x] New accounts can be registered and used to log in
+- [x] Dialog navigation between signup and login works
+- [x] Success flow: signup → confirmation → login → authentication
+- [x] Error flow: validation errors and duplicate email error display
+- [x] Accessibility: keyboard navigation, screen reader support, ARIA attributes
+- [x] Visual consistency with LoginDialog
+- [x] Mobile responsive layout
+- [x] Sample scenario: testuser@example.com successfully registers
+- [x] Sample scenario: test@example.com shows "already registered" error
