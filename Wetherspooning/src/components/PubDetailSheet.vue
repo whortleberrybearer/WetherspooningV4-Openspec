@@ -170,6 +170,13 @@ watch([() => props.pub, currentVisit], () => {
   }
 }, { immediate: true })
 
+// Clear error when dialog closes
+watch(() => props.isOpen, (isOpen) => {
+  if (!isOpen) {
+    errorMessage.value = ''
+  }
+})
+
 const handleSave = async () => {
   if (!props.pub || !user.value?.uid) return
   
