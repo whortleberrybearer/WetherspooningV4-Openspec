@@ -1,4 +1,12 @@
 import { reactive, readonly, toRef } from 'vue'
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  type User as FirebaseUser
+} from 'firebase/auth'
+import { auth } from '@/lib/firebase'
 
 /**
  * User information
@@ -6,15 +14,7 @@ import { reactive, readonly, toRef } from 'vue'
 export interface User {
   username: string
   email?: string
-}
-
-/**
- * Test account information
- */
-interface TestAccount {
-  username: string
-  email: string
-  password: string
+  uid?: string
 }
 
 /**
@@ -26,15 +26,6 @@ interface AuthState {
   error: string | null
 }
 
-// Test accounts for initial implementation
-const TEST_ACCOUNTS: TestAccount[] = [
-  {
-    username: 'test',
-    email: 'test@example.com',
-    password: 'password123'
-  }
-]
-
 // Global authentication state
 const authState = reactive<AuthState>({
   user: null,
@@ -43,9 +34,46 @@ const authState = reactive<AuthState>({
 })
 
 /**
+ * Map Firebase Auth error codes to user-friendly messages
+ */
+function mapFirebaseError(code: string): string {
+  switch (code) {
+    case 'auth/email-already-in-use':
+      return 'Email already registered. Please log in.'
+    case 'auth/invalid-email':
+      return 'Invalid email address format.'
+    case 'auth/weak-password':
+      return 'Password must be at least 8 characters long.'
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'Invalid email or password'
+    case 'auth/too-many-requests':
+      return 'Too many failed attempts. Please try again later.'
+    default:
+      return 'An error occurred. Please try again.'
+  }
+}
+
+// Set up auth state observer to persist sessions
+onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+  if (firebaseUser) {
+    authState.user = {
+      username: firebaseUser.email?.split('@')[0] || 'user',
+      email: firebaseUser.email || undefined,
+      uid: firebaseUser.uid
+    }
+    authState.isAuthenticated = true
+  } else {
+    authState.user = null
+    authState.isAuthenticated = false
+  }
+})
+
+/**
  * Authentication composable for managing user login/logout/registration state.
  * 
- * Currently uses test accounts. Future versions will integrate with backend API.
+ * Uses Firebase Authentication for secure user management.
  * 
  * @example
  * ```ts
@@ -55,7 +83,7 @@ const authState = reactive<AuthState>({
  * await register('newuser', 'newuser@example.com', 'password123')
  * 
  * // Login
- * await login('test@example.com', 'password123')
+ * await login('user@example.com', 'password123')
  * 
  * // Logout
  * logout()
@@ -63,81 +91,62 @@ const authState = reactive<AuthState>({
  */
 export function useAuth() {
   /**
-   * Authenticate user with email and password.
-   * Currently validates against test accounts (case-sensitive).
+   * Authenticate user with email and password using Firebase Auth.
    * 
    * @param email - User's email
    * @param password - User's password
    * @returns Promise that resolves on successful login or rejects with error message
    */
-  const login = (email: string, password: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
+  const login = async (email: string, password: string): Promise<void> => {
+    try {
       // Clear previous errors
       authState.error = null
 
-      // Find account with matching email and password (case-sensitive)
-      const account = TEST_ACCOUNTS.find(
-        acc => acc.email === email && acc.password === password
-      )
-
-      if (account) {
-        // Successful login
-        authState.user = {
-          username: account.username,
-          email: account.email
-        }
-        authState.isAuthenticated = true
-        resolve()
-      } else {
-        // Failed login
-        authState.error = 'Invalid username or password'
-        authState.isAuthenticated = false
-        authState.user = null
-        reject(new Error(authState.error))
-      }
-    })
+      await signInWithEmailAndPassword(auth, email, password)
+      // Auth state will be updated by onAuthStateChanged observer
+    } catch (error: any) {
+      // Map Firebase error to user-friendly message
+      authState.error = mapFirebaseError(error.code)
+      throw new Error(authState.error)
+    }
   }
 
   /**
-   * Log out the current user and clear authentication state.
+   * Log out the current user using Firebase Auth.
    */
-  const logout = (): void => {
-    authState.user = null
-    authState.isAuthenticated = false
-    authState.error = null
+  const logout = async (): Promise<void> => {
+    try {
+      await signOut(auth)
+      // Auth state will be updated by onAuthStateChanged observer
+      authState.error = null
+    } catch (error: any) {
+      authState.error = 'Failed to log out. Please try again.'
+      throw new Error(authState.error)
+    }
   }
 
   /**
-   * Register a new user account.
-   * Currently adds to test accounts array (no persistent storage).
+   * Register a new user account using Firebase Auth.
+   * User is automatically logged in after successful registration.
    * 
-   * @param username - User's username
+   * @param username - User's username (currently not stored, derived from email)
    * @param email - User's email
    * @param password - User's password
    * @returns Promise that resolves on successful registration or rejects with error message
    */
-  const register = (username: string, email: string, password: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
+  const register = async (username: string, email: string, password: string): Promise<void> => {
+    try {
       // Clear previous errors
       authState.error = null
 
-      // Check if email already exists
-      const existingAccount = TEST_ACCOUNTS.find(acc => acc.email === email)
-      
-      if (existingAccount) {
-        // Email already registered
-        authState.error = 'Email already registered. Please log in.'
-        reject(new Error(authState.error))
-      } else {
-        // Add new account
-        TEST_ACCOUNTS.push({
-          username,
-          email,
-          password
-        })
-        resolve()
-      }
-    })
+      await createUserWithEmailAndPassword(auth, email, password)
+      // User is automatically logged in by Firebase
+      // Auth state will be updated by onAuthStateChanged observer
+    } catch (error: any) {
+      // Map Firebase error to user-friendly message
+      authState.error = mapFirebaseError(error.code)
+      throw new Error(authState.error)
+    }
   }
 
   /**

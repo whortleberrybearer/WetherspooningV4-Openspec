@@ -1,45 +1,6 @@
-# user-authentication Specification
+# user-authentication Specification Delta
 
-## Purpose
-TBD - created by archiving change add-user-authentication. Update Purpose after archive.
-## Requirements
-### Requirement: Login Form (REQ-UA-001)
-**Priority:** MUST  
-**Category:** Functional
-
-**Changes:**
-- ADD: "Sign up" link in footer must trigger signup dialog and close login dialog
-- UPDATE: Footer "Sign up" link behavior defined
-
-The system MUST provide a login form that accepts email and password credentials.
-
-**Updated Acceptance Criteria:**
-- Login form is accessible via a "Login" button
-- Form contains email input field
-- Email field uses placeholder "m@example.com"
-- Form contains password input field
-- Password field masks input characters
-- Password label includes "Forgot your password?" link aligned to the right
-- Form has a submit button labeled "Login"
-- Form includes visual divider with "Or continue with" text below submit button
-- Form includes "Login with Google" button with Google logo icon
-- Form includes "Don't have an account? Sign up" footer text with clickable link
-- **CHANGED:** "Sign up" link triggers signup dialog opening and login dialog closing
-- Form can be dismissed/closed without submitting
-- Form clears both email and password fields when closed
-- Form is accessible via keyboard navigation
-- Submit button is disabled when either field is empty
-- Form displays as modal dialog
-- Dialog shows title "Login to your account"
-- Dialog shows description "Enter your email below to login to your account"
-
-#### Scenario: Navigate to Signup from Login
-**ADDED:**
-**Given** the login form is open  
-**When** the user clicks the "Sign up" link  
-**Then** the login dialog closes  
-**And** the signup dialog opens  
-**And** the login form fields are cleared
+## MODIFIED Requirements
 
 ### Requirement: Authentication Validation (REQ-UA-002)
 **Priority:** MUST  
@@ -116,39 +77,6 @@ The system MUST validate user credentials using Firebase Authentication and upda
 
 ---
 
-### Requirement: Logout Functionality (REQ-UA-003)
-**Priority:** MUST  
-**Category:** Functional
-
-**Changes:**
-- UPDATE: Use Firebase signOut method
-- ADD: Clear Firebase session on logout
-
-The system MUST provide logout functionality that clears authentication state and Firebase session.
-
-**Updated Acceptance Criteria:**
-- Logout action is accessible to authenticated users
-- **ADDED:** Logout calls Firebase Auth signOut method
-- Logout clears user state
-- Logout sets authenticated state to false
-- Logout action is immediate (no confirmation required)
-- After logout, UI returns to unauthenticated state
-- **ADDED:** Firebase session is terminated on logout
-
-#### Scenario: Logout
-**MODIFIED:**
-**Given** the user is authenticated via Firebase  
-**When** the user clicks the "Logout" button  
-**Then** Firebase signOut is called  
-**And** the Firebase session is terminated  
-**And** the authentication state is cleared  
-**And** the user state is set to null  
-**And** the authenticated state is false  
-**And** the UI displays the "Login" button again  
-**And** the user menu is hidden
-
----
-
 ### Requirement: Authentication State Management (REQ-UA-004)
 **Priority:** MUST  
 **Category:** Technical
@@ -196,6 +124,39 @@ The system MUST manage authentication state reactively using Vue composables wit
 
 ---
 
+### Requirement: Logout Functionality (REQ-UA-003)
+**Priority:** MUST  
+**Category:** Functional
+
+**Changes:**
+- UPDATE: Use Firebase signOut method
+- ADD: Clear Firebase session on logout
+
+The system MUST provide logout functionality that clears authentication state and Firebase session.
+
+**Updated Acceptance Criteria:**
+- Logout action is accessible to authenticated users
+- **ADDED:** Logout calls Firebase Auth signOut method
+- Logout clears user state
+- Logout sets authenticated state to false
+- Logout action is immediate (no confirmation required)
+- After logout, UI returns to unauthenticated state
+- **ADDED:** Firebase session is terminated on logout
+
+#### Scenario: Logout
+**MODIFIED:**
+**Given** the user is authenticated via Firebase  
+**When** the user clicks the "Logout" button  
+**Then** Firebase signOut is called  
+**And** the Firebase session is terminated  
+**And** the authentication state is cleared  
+**And** the user state is set to null  
+**And** the authenticated state is false  
+**And** the UI displays the "Login" button again  
+**And** the user menu is hidden
+
+---
+
 ### Requirement: Error Display (REQ-UA-005)
 **Priority:** MUST  
 **Category:** Functional
@@ -239,37 +200,7 @@ The system MUST display clear error messages for authentication failures using F
 
 ---
 
-### Requirement: Keyboard Accessibility (REQ-UA-006)
-**Priority:** MUST  
-**Category:** Accessibility
-
-The system MUST support keyboard navigation for all authentication interactions.
-
-**Acceptance Criteria:**
-- Tab key moves focus through form fields
-- Enter key submits the form when focused on any field
-- Escape key closes the login dialog
-- Focus is trapped within dialog when open
-- First field receives focus when dialog opens
-- Focus returns to trigger element when dialog closes
-
-#### Scenario: Keyboard Navigation
-**Given** the login form is open  
-**When** the user presses Tab  
-**Then** focus moves from username to password to submit button  
-**And** pressing Tab from submit button cycles to username (focus trap)
-
-#### Scenario: Enter to Submit
-**Given** the login form is open  
-**And** the user has entered credentials  
-**When** the user presses Enter while focused on any field  
-**Then** the form is submitted
-
-#### Scenario: Escape to Close
-**Given** the login form is open  
-**When** the user presses Escape  
-**Then** the dialog closes  
-**And** the password field is cleared
+## ADDED Requirements
 
 ### Requirement: Firebase Auth SDK Integration (REQ-UA-007)
 **Priority:** MUST  
@@ -344,4 +275,3 @@ The system MUST use Firebase onAuthStateChanged observer to synchronize auth sta
 **And** authState.user remains null  
 **And** authState.isAuthenticated remains false  
 **And** the user sees unauthenticated UI
-
