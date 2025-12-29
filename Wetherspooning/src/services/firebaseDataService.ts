@@ -176,9 +176,9 @@ function validateVisit(docId: string, data: any): data is Visit {
     return false
   }
   
-  // Validate id is positive number
-  if (typeof data.id !== 'number' || data.id <= 0) {
-    console.warn(`Invalid visit document ${docId}: id must be a positive number`)
+  // Validate id is a non-empty string
+  if (typeof data.id !== 'string' || data.id.trim() === '') {
+    console.warn(`Invalid visit document ${docId}: id must be a non-empty string`)
     return false
   }
   
