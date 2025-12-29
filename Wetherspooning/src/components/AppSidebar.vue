@@ -184,7 +184,18 @@
     <SidebarRail />
 
     <!-- Login Dialog -->
-    <LoginDialog :is-open="showLoginDialog" @close="showLoginDialog = false" />
+    <LoginDialog 
+      :is-open="showLoginDialog" 
+      @close="showLoginDialog = false"
+      @open-signup="handleOpenSignup"
+    />
+    
+    <!-- Signup Dialog -->
+    <SignupDialog 
+      :is-open="showSignupDialog" 
+      @close="showSignupDialog = false"
+      @open-login="handleOpenLogin"
+    />
   </Sidebar>
 </template>
 
@@ -221,6 +232,7 @@ import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
 import LoginDialog from '@/components/LoginDialog.vue'
+import SignupDialog from '@/components/SignupDialog.vue'
 
 interface Pub {
   id: number
@@ -251,6 +263,17 @@ defineEmits<{
 const { user, isAuthenticated, logout } = useAuth()
 const { getGroupCounts, loadVisits, clearVisits, isVisited, getVisitDate } = useVisits()
 const showLoginDialog = ref(false)
+const showSignupDialog = ref(false)
+
+const handleOpenSignup = () => {
+  showLoginDialog.value = false
+  showSignupDialog.value = true
+}
+
+const handleOpenLogin = () => {
+  showSignupDialog.value = false
+  showLoginDialog.value = true
+}
 
 // Watch authentication state to load/clear visit data
 watch(isAuthenticated, async (authenticated) => {

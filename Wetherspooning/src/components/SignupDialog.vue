@@ -2,43 +2,73 @@
   <Dialog :open="isOpen" @update:open="(open) => !open && handleClose()">
     <DialogContent class="sm:max-w-[425px]">
       <DialogHeader>
-        <DialogTitle>Login to your account</DialogTitle>
+        <DialogTitle>Create an account</DialogTitle>
         <DialogDescription>
-          Enter your email below to login to your account
+          Enter your information below to create your account
         </DialogDescription>
       </DialogHeader>
 
       <!-- Form -->
       <form @submit.prevent="handleSubmit" class="grid gap-4">
+        <!-- Username Field -->
+        <div class="grid gap-2">
+          <Label for="username">Username</Label>
+          <Input
+            id="username"
+            ref="usernameInput"
+            v-model="username"
+            type="text"
+            required
+            autocomplete="username"
+          />
+        </div>
+
         <!-- Email Field -->
         <div class="grid gap-2">
           <Label for="email">Email</Label>
           <Input
             id="email"
-            ref="emailInput"
             v-model="email"
             type="email"
-            placeholder="m@example.com"
             required
             autocomplete="email"
+            aria-describedby="email-description"
           />
+          <p id="email-description" class="text-sm text-muted-foreground">
+            We'll use this to contact you. We will not share your email with anyone else.
+          </p>
         </div>
 
         <!-- Password Field -->
         <div class="grid gap-2">
-          <div class="flex items-center">
-            <Label for="password">Password</Label>
-            <a href="#" class="ml-auto inline-block text-sm underline-offset-4 hover:underline">
-              Forgot your password?
-            </a>
-          </div>
+          <Label for="password">Password</Label>
           <Input
             id="password"
             v-model="password"
             type="password"
             required
-            autocomplete="current-password"
+            autocomplete="new-password"
+            aria-describedby="password-description"
           />
+          <p id="password-description" class="text-sm text-muted-foreground">
+            Must be at least 8 characters long.
+          </p>
+        </div>
+
+        <!-- Confirm Password Field -->
+        <div class="grid gap-2">
+          <Label for="confirm-password">Confirm Password</Label>
+          <Input
+            id="confirm-password"
+            v-model="confirmPassword"
+            type="password"
+            required
+            autocomplete="new-password"
+            aria-describedby="confirm-password-description"
+          />
+          <p id="confirm-password-description" class="text-sm text-muted-foreground">
+            Please confirm your password.
+          </p>
         </div>
 
         <!-- Error Message -->
@@ -51,13 +81,23 @@
           <p class="text-sm text-destructive">{{ error }}</p>
         </div>
 
+        <!-- Success Message -->
+        <div
+          v-if="success"
+          class="p-3 bg-green-500/10 border border-green-500 rounded-md"
+          role="alert"
+          aria-live="polite"
+        >
+          <p class="text-sm text-green-600">{{ success }}</p>
+        </div>
+
         <!-- Submit Button -->
         <Button
           type="submit"
           :disabled="!canSubmit || isLoading"
           class="w-full"
         >
-          {{ isLoading ? 'Logging in...' : 'Login' }}
+          {{ isLoading ? 'Creating account...' : 'Create Account' }}
         </Button>
 
         <!-- Divider -->
@@ -67,17 +107,17 @@
           </div>
           <div class="relative flex justify-center text-xs uppercase">
             <span class="bg-background px-2 text-muted-foreground">
-              Or continue with
+              Or sign up with
             </span>
           </div>
         </div>
 
-        <!-- Google Sign In Button -->
+        <!-- Google Sign Up Button -->
         <Button
           type="button"
           variant="outline"
           class="w-full"
-          @click="handleGoogleSignIn"
+          disabled
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="mr-2 h-4 w-4">
             <path
@@ -97,14 +137,14 @@
               fill="#EA4335"
             />
           </svg>
-          Login with Google
+          Sign up with Google
         </Button>
       </form>
 
       <div class="mt-4 text-center text-sm">
-        Don't have an account?
-        <a href="#" class="underline" @click.prevent="handleNavigateToSignup">
-          Sign up
+        Already have an account?
+        <a href="#" class="underline" @click.prevent="handleNavigateToLogin">
+          Sign in
         </a>
       </div>
     </DialogContent>
@@ -132,64 +172,94 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{
   close: []
-  openSignup: []
+  openLogin: []
 }>()
 
-const { login, error: authError, clearError } = useAuth()
+const { register, error: authError, clearError } = useAuth()
 
+const username = ref('')
 const email = ref('')
 const password = ref('')
+const confirmPassword = ref('')
 const isLoading = ref(false)
-const emailInput = ref<HTMLInputElement | null>(null)
-
-const error = computed(() => authError.value)
+const error = ref<string | null>(null)
+const success = ref<string | null>(null)
+const usernameInput = ref<HTMLInputElement | null>(null)
 
 const canSubmit = computed(() => {
-  return email.value.trim() !== '' && password.value.trim() !== ''
+  return (
+    username.value.trim() !== '' &&
+    email.value.trim() !== '' &&
+    password.value.trim() !== '' &&
+    confirmPassword.value.trim() !== ''
+  )
 })
 
 const handleSubmit = async () => {
   if (!canSubmit.value || isLoading.value) return
 
+  // Clear previous errors and success messages
+  error.value = null
+  success.value = null
+  clearError()
+
+  // Validate username length
+  if (username.value.trim().length < 3) {
+    error.value = 'Username must be at least 3 characters'
+    return
+  }
+
+  // Validate password length
+  if (password.value.length < 8) {
+    error.value = 'Password must be at least 8 characters'
+    return
+  }
+
+  // Validate password confirmation
+  if (password.value !== confirmPassword.value) {
+    error.value = 'Passwords do not match'
+    return
+  }
+
   isLoading.value = true
-  
+
   try {
-    // Use email as username for login
-    await login(email.value, password.value)
-    // Success - close dialog and reset form
-    handleClose()
+    await register(username.value.trim(), email.value.trim(), password.value)
+    success.value = 'Account created successfully! Please log in.'
+    
+    // Wait a moment to show success message, then navigate to login
+    setTimeout(() => {
+      handleClose()
+      emit('openLogin')
+    }, 1500)
   } catch (err) {
-    // Error is already set in auth state
-    // Clear password field on failed login
-    password.value = ''
+    error.value = authError.value || 'An error occurred during registration'
   } finally {
     isLoading.value = false
   }
 }
 
 const handleClose = () => {
-  // Clear form
+  username.value = ''
   email.value = ''
   password.value = ''
+  confirmPassword.value = ''
+  error.value = null
+  success.value = null
   clearError()
   emit('close')
 }
 
-const handleGoogleSignIn = () => {
-  // TODO: Implement Google Sign In
-  console.log('Google Sign In clicked')
-}
-
-const handleNavigateToSignup = () => {
+const handleNavigateToLogin = () => {
   handleClose()
-  emit('openSignup')
+  emit('openLogin')
 }
 
-// Focus email input when dialog opens
-watch(() => props.isOpen, async (newValue) => {
-  if (newValue) {
+// Focus username field when dialog opens
+watch(() => props.isOpen, async (isOpen) => {
+  if (isOpen) {
     await nextTick()
-    emailInput.value?.focus()
+    usernameInput.value?.focus()
   }
 })
 </script>

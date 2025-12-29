@@ -9,6 +9,15 @@ export interface User {
 }
 
 /**
+ * Test account information
+ */
+interface TestAccount {
+  username: string
+  email: string
+  password: string
+}
+
+/**
  * Authentication state
  */
 interface AuthState {
@@ -17,12 +26,14 @@ interface AuthState {
   error: string | null
 }
 
-// Test credentials for initial implementation
-const TEST_CREDENTIALS = {
-  username: 'test',
-  password: 'password123',
-  email: 'test@example.com'
-}
+// Test accounts for initial implementation
+const TEST_ACCOUNTS: TestAccount[] = [
+  {
+    username: 'test',
+    email: 'test@example.com',
+    password: 'password123'
+  }
+]
 
 // Global authentication state
 const authState = reactive<AuthState>({
@@ -32,16 +43,19 @@ const authState = reactive<AuthState>({
 })
 
 /**
- * Authentication composable for managing user login/logout state.
+ * Authentication composable for managing user login/logout/registration state.
  * 
- * Currently uses test credentials. Future versions will integrate with backend API.
+ * Currently uses test accounts. Future versions will integrate with backend API.
  * 
  * @example
  * ```ts
- * const { user, isAuthenticated, error, login, logout } = useAuth()
+ * const { user, isAuthenticated, error, login, logout, register } = useAuth()
+ * 
+ * // Register
+ * await register('newuser', 'newuser@example.com', 'password123')
  * 
  * // Login
- * await login('test', 'password123')
+ * await login('test@example.com', 'password123')
  * 
  * // Logout
  * logout()
@@ -49,10 +63,10 @@ const authState = reactive<AuthState>({
  */
 export function useAuth() {
   /**
-   * Authenticate user with username and password.
-   * Currently validates against test credentials (case-sensitive).
+   * Authenticate user with email and password.
+   * Currently validates against test accounts (case-sensitive).
    * 
-   * @param username - User's username
+   * @param email - User's email
    * @param password - User's password
    * @returns Promise that resolves on successful login or rejects with error message
    */
@@ -61,12 +75,16 @@ export function useAuth() {
       // Clear previous errors
       authState.error = null
 
-      // Validate credentials (case-sensitive)
-      if (email === TEST_CREDENTIALS.email && password === TEST_CREDENTIALS.password) {
+      // Find account with matching email and password (case-sensitive)
+      const account = TEST_ACCOUNTS.find(
+        acc => acc.email === email && acc.password === password
+      )
+
+      if (account) {
         // Successful login
         authState.user = {
-          username: TEST_CREDENTIALS.username,
-          email: TEST_CREDENTIALS.email
+          username: account.username,
+          email: account.email
         }
         authState.isAuthenticated = true
         resolve()
@@ -90,6 +108,39 @@ export function useAuth() {
   }
 
   /**
+   * Register a new user account.
+   * Currently adds to test accounts array (no persistent storage).
+   * 
+   * @param username - User's username
+   * @param email - User's email
+   * @param password - User's password
+   * @returns Promise that resolves on successful registration or rejects with error message
+   */
+  const register = (username: string, email: string, password: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      // Clear previous errors
+      authState.error = null
+
+      // Check if email already exists
+      const existingAccount = TEST_ACCOUNTS.find(acc => acc.email === email)
+      
+      if (existingAccount) {
+        // Email already registered
+        authState.error = 'Email already registered. Please log in.'
+        reject(new Error(authState.error))
+      } else {
+        // Add new account
+        TEST_ACCOUNTS.push({
+          username,
+          email,
+          password
+        })
+        resolve()
+      }
+    })
+  }
+
+  /**
    * Clear any authentication errors.
    */
   const clearError = (): void => {
@@ -104,6 +155,7 @@ export function useAuth() {
     // Actions
     login,
     logout,
+    register,
     clearError
   }
 }
