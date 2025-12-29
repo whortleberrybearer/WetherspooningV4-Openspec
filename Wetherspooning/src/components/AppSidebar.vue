@@ -100,29 +100,41 @@
                   <CollapsibleContent>
                     <SidebarMenu class="ml-4">
                       <SidebarMenuItem v-for="pub in pubList" :key="pub.id">
-                        <SidebarMenuButton
-                          @click="$emit('selectPub', pub)"
-                          :class="[isPubClosed(pub) ? 'opacity-50' : '', 'h-auto py-2']"
-                        >
-                          <div class="flex items-start justify-between gap-2 flex-1 min-w-0">
+                        <div class="flex items-center gap-1 w-full">
+                          <SidebarMenuButton
+                            @click="$emit('selectPub', pub)"
+                            :class="[isPubClosed(pub) ? 'opacity-50' : '', 'h-auto py-2 flex-1']"
+                          >
                             <div class="flex flex-col gap-0.5 flex-1 min-w-0">
                               <span :class="['text-sm break-words', isPubClosed(pub) ? 'text-muted-foreground' : '']">
                                 {{ pub.name }}
                               </span>
                               <span class="text-xs text-muted-foreground">{{ pub.townCity }}</span>
                             </div>
-                            <div 
-                              v-if="isAuthenticated && isVisited(pub.id)" 
-                              class="flex items-center gap-1 text-sm text-green-600 font-medium whitespace-nowrap shrink-0"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                          </SidebarMenuButton>
+                          
+                          <!-- Visit tracking icon/date -->
+                          <button
+                            v-if="isAuthenticated"
+                            @click.stop="openPubTracking(pub)"
+                            class="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-accent transition-colors shrink-0"
+                            :title="isVisited(pub.id) ? 'Edit visit' : 'Track visit'"
+                          >
+                            <template v-if="isVisited(pub.id)">
+                              <span class="text-green-600 font-medium">{{ formatVisitDate(getVisitDate(pub.id)) }}</span>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                               </svg>
-                              <span>{{ formatVisitDate(getVisitDate(pub.id)) }}</span>
-                            </div>
-                          </div>
-                        </SidebarMenuButton>
+                            </template>
+                            <template v-else>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 8v8m-4-4h8"></path>
+                              </svg>
+                            </template>
+                          </button>
+                        </div>
                       </SidebarMenuItem>
                     </SidebarMenu>
                   </CollapsibleContent>
@@ -196,6 +208,14 @@
       @close="showSignupDialog = false"
       @open-login="handleOpenLogin"
     />
+    
+    <!-- Pub Detail Dialog for Visit Tracking -->
+    <PubDetailSheet
+      v-if="selectedPubForTracking"
+      :isOpen="showPubDetailDialog"
+      @update:isOpen="showPubDetailDialog = $event"
+      :pub="selectedPubForTracking"
+    />
   </Sidebar>
 </template>
 
@@ -233,6 +253,7 @@ import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
 import LoginDialog from '@/components/LoginDialog.vue'
 import SignupDialog from '@/components/SignupDialog.vue'
+import PubDetailSheet from '@/components/PubDetailSheet.vue'
 
 interface Pub {
   id: number
@@ -264,6 +285,8 @@ const { user, isAuthenticated, logout } = useAuth()
 const { getGroupCounts, loadVisits, clearVisits, isVisited, getVisitDate } = useVisits()
 const showLoginDialog = ref(false)
 const showSignupDialog = ref(false)
+const selectedPubForTracking = ref<Pub | null>(null)
+const showPubDetailDialog = ref(false)
 
 const handleOpenSignup = () => {
   showLoginDialog.value = false
@@ -277,7 +300,7 @@ const handleOpenLogin = () => {
 
 // Watch authentication state to load/clear visit data
 watch(isAuthenticated, async (authenticated) => {
-  if (authenticated && user.value) {
+  if (authenticated && user.value?.uid) {
     // Load visits when user logs in using Firebase UID
     await loadVisits(user.value.uid)
   } else {
@@ -423,5 +446,10 @@ const getCountyProgress = (pubs: Pub[]) => {
 const getCountyProgressText = (pubs: Pub[]) => {
   const { visited, total } = getGroupCounts(pubs)
   return `${visited}/${total}`
+}
+
+const openPubTracking = (pub: Pub) => {
+  selectedPubForTracking.value = pub
+  showPubDetailDialog.value = true
 }
 </script>

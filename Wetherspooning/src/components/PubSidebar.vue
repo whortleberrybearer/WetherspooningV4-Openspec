@@ -119,30 +119,73 @@
 
             <!-- Pubs within County -->
             <div v-if="expandedCounties.has(`${countryName}-${countyName}`)" class="ml-6 mt-1 space-y-1">
-              <button
+              <div
                 v-for="pub in pubs"
                 :key="pub.id"
-                @click="$emit('selectPub', pub)"
                 :class="[
-                  'w-full text-left p-2 hover:bg-accent rounded-md transition-colors',
+                  'w-full text-left p-2 hover:bg-accent rounded-md transition-colors flex items-start justify-between gap-2',
                   isPubClosed(pub) ? 'opacity-50' : ''
                 ]"
               >
-                <div :class="['text-sm', isPubClosed(pub) ? 'text-muted-foreground' : '']">{{ pub.name }}</div>
-                <div class="text-xs text-muted-foreground">{{ pub.townCity }}</div>
-                <div 
-                  v-if="isAuthenticated && isVisited(pub.id)" 
-                  class="text-xs text-green-600 mt-0.5"
+                <button
+                  @click="$emit('selectPub', pub)"
+                  class="flex-1 text-left"
                 >
-                  Visited {{ formatVisitDate(getVisitDate(pub.id)) }}
-                </div>
-              </button>
+                  <div :class="['text-sm', isPubClosed(pub) ? 'text-muted-foreground' : '']">{{ pub.name }}</div>
+                  <div class="text-xs text-muted-foreground">{{ pub.townCity }}</div>
+                </button>
+                
+                <!-- Visit tracking icon/date -->
+                <button
+                  v-if="isAuthenticated"
+                  @click.stop="openPubTracking(pub)"
+                  class="flex items-center gap-1 text-xs hover:bg-accent/50 rounded px-2 py-1 transition-colors"
+                  :title="isVisited(pub.id) ? 'Edit visit' : 'Track visit'"
+                >
+                  <template v-if="isVisited(pub.id)">
+                    <span class="text-green-600">{{ formatVisitDate(getVisitDate(pub.id)) }}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </template>
+                  <template v-else>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="16"></line>
+                      <line x1="8" y1="12" x2="16" y2="12"></line>
+                    </svg>
+                  </template>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
+  
+  <!-- Login Dialog -->
+  <LoginDialog 
+    :isOpen="showLoginDialog" 
+    @close="showLoginDialog = false"
+    @openSignup="handleOpenSignup" 
+  />
+  
+  <!-- Signup Dialog -->
+  <SignupDialog 
+    :isOpen="showSignupDialog" 
+    @close="showSignupDialog = false"
+    @openLogin="handleOpenLogin" 
+  />
+  
+  <!-- Pub Detail Dialog for Visit Tracking -->
+  <PubDetailSheet
+    v-if="selectedPubForTracking"
+    :isOpen="showPubDetailDialog"
+    @update:isOpen="showPubDetailDialog = $event"
+    :pub="selectedPubForTracking"
+  />
 </template>
 
 <script setup lang="ts">
@@ -152,6 +195,7 @@ import { useVisits } from '@/composables/useVisits'
 import LoginDialog from '@/components/LoginDialog.vue'
 import SignupDialog from '@/components/SignupDialog.vue'
 import UserMenu from '@/components/UserMenu.vue'
+import PubDetailSheet from '@/components/PubDetailSheet.vue'
 
 interface Pub {
   id: number
@@ -185,6 +229,8 @@ const { user, isAuthenticated } = useAuth()
 const { getGroupCounts, loadVisits, clearVisits, isVisited, getVisitDate } = useVisits()
 const showLoginDialog = ref(false)
 const showSignupDialog = ref(false)
+const selectedPubForTracking = ref<Pub | null>(null)
+const showPubDetailDialog = ref(false)
 
 const handleOpenSignup = () => {
   showLoginDialog.value = false
@@ -374,13 +420,21 @@ const formatVisitDate = (isoDate: string | null): string | null => {
   try {
     const date = new Date(isoDate)
     return date.toLocaleDateString('en-GB', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric' 
     })
   } catch (error) {
     console.error('Error formatting date:', error)
     return null
   }
+}
+
+/**
+ * Opens the pub detail dialog for visit tracking.
+ */
+const openPubTracking = (pub: Pub) => {
+  selectedPubForTracking.value = pub
+  showPubDetailDialog.value = true
 }
 </script>
