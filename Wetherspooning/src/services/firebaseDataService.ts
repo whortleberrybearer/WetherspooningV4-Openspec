@@ -1,4 +1,4 @@
-import { collection, getDocs, doc, getDoc, query, where, QueryDocumentSnapshot } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, QueryDocumentSnapshot, orderBy, limit } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
 export interface Pub {
@@ -23,8 +23,8 @@ export interface Pub {
  * Stored in Firestore `visits` collection.
  */
 export interface Visit {
-  /** Unique numeric identifier for the visit */
-  id: number
+  /** Unique identifier for the visit (Firestore auto-generated) */
+  id: string
   /** Firebase UID of the user who made the visit */
   userId: string
   /** Numeric ID of the pub that was visited */
@@ -176,9 +176,9 @@ function validateVisit(docId: string, data: any): data is Visit {
     return false
   }
   
-  // Validate id is positive number
-  if (typeof data.id !== 'number' || data.id <= 0) {
-    console.warn(`Invalid visit document ${docId}: id must be a positive number`)
+  // Validate id is a non-empty string
+  if (typeof data.id !== 'string' || data.id.trim() === '') {
+    console.warn(`Invalid visit document ${docId}: id must be a non-empty string`)
     return false
   }
   
@@ -250,5 +250,196 @@ export async function getUserVisits(userId: string): Promise<Visit[]> {
     console.error(`Failed to load visits for user ${userId} from Firestore:`, error)
     // Return empty array on error to allow app to continue
     return []
+  }
+}
+
+/**
+ * Generate the next unique visit ID
+ * 
+ * Queries the visits collection for the maximum ID and returns maxId + 1.
+ * If the collection is empty, returns 1.
+ * 
+ * @returns Promise resolving to the next available visit ID
+ * @throws Error if network fails or timeout occurs
+ */
+async function generateNextVisitId(): Promise<number> {
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Firestore operation timed out: generateNextVisitId')), 10000)
+    })
+    
+    const fetchPromise = async () => {
+      const q = query(collection(db, 'visits'), orderBy('id', 'desc'), limit(1))
+      const querySnapshot = await getDocs(q)
+      
+      if (querySnapshot.empty) {
+        return 1
+      }
+      
+      const maxDoc = querySnapshot.docs[0]
+      if (!maxDoc) {
+        return 1
+      }
+      const maxId = maxDoc.data().id
+      return maxId + 1
+    }
+    
+    return await Promise.race([fetchPromise(), timeoutPromise])
+  } catch (error: any) {
+    console.error('Failed to generate next visit ID:', error)
+    throw error
+  }
+}
+
+/**
+ * Validate visit data before creating or updating
+ * 
+ * @param data - The visit data to validate
+ * @param isUpdate - Whether this is an update operation (allows partial data)
+ * @throws Error if validation fails with descriptive message
+ */
+function validateVisitMutation(data: any, isUpdate: boolean = false): void {
+  if (!isUpdate) {
+    // Required fields for create
+    if (!data.userId || typeof data.userId !== 'string' || data.userId.trim() === '') {
+      throw new Error('userId must be a non-empty string')
+    }
+    
+    if (!data.pubId || typeof data.pubId !== 'number' || data.pubId <= 0) {
+      throw new Error('pubId must be a positive number')
+    }
+  }
+  
+  // Optional rating validation
+  if ('rating' in data && data.rating !== undefined && data.rating !== null) {
+    if (typeof data.rating !== 'number' || data.rating < 1 || data.rating > 5) {
+      throw new Error('rating must be between 1 and 5')
+    }
+  }
+  
+  // Optional visitedAt validation
+  if ('visitedAt' in data && data.visitedAt !== undefined && data.visitedAt !== null) {
+    if (typeof data.visitedAt !== 'string' || data.visitedAt.trim() === '') {
+      throw new Error('visitedAt must be a valid ISO 8601 date string')
+    }
+  }
+  
+  // Optional notes validation
+  if ('notes' in data && data.notes !== undefined && data.notes !== null) {
+    if (typeof data.notes !== 'string') {
+      throw new Error('notes must be a string')
+    }
+  }
+}
+
+/**
+ * Create a new visit in Firestore
+ * 
+ * Generates a unique ID, validates the visit data, and creates a new document
+ * in the visits collection. Retries with incremented ID if collision occurs.
+ * 
+ * @param visit - Visit data without ID
+ * @returns Promise resolving to complete Visit object with generated ID
+ * @throws Error if validation fails, network fails, or max retries exceeded
+ */
+export async function createVisit(visit: Omit<Visit, 'id'>): Promise<Visit> {
+  validateVisitMutation(visit, false)
+  
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Firestore operation timed out: createVisit')), 10000)
+    })
+    
+    const createPromise = async () => {
+      // Use Firestore auto-generated ID
+      const docRef = doc(collection(db, 'visits'))
+      const newVisit: Visit = {
+        ...visit,
+        id: docRef.id
+      }
+      
+      await setDoc(docRef, newVisit)
+      
+      return newVisit
+    }
+    
+    return await Promise.race([createPromise(), timeoutPromise])
+  } catch (error: any) {
+    console.error('Failed to create visit:', error)
+    throw error
+  }
+}
+
+/**
+ * Update an existing visit in Firestore
+ * 
+ * Merges the provided updates with the existing visit document.
+ * Allows updating optional fields like visitedAt and notes.
+ * 
+ * @param visitId - The numeric ID of the visit to update
+ * @param updates - Partial visit data to update
+ * @throws Error if validation fails or network fails
+ */
+export async function updateVisit(visitId: string, updates: Partial<Visit>): Promise<void> {
+  validateVisitMutation(updates, true)
+  
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Firestore operation timed out: updateVisit')), 10000)
+    })
+    
+    const updatePromise = async () => {
+      const docRef = doc(db, 'visits', visitId)
+      
+      // Remove undefined values and convert null to deleteField equivalent
+      const cleanUpdates: any = {}
+      for (const [key, value] of Object.entries(updates)) {
+        // Skip id and userId - these should never be updated
+        if (key === 'id' || key === 'userId') continue
+        
+        if (value !== undefined) {
+          cleanUpdates[key] = value
+        }
+      }
+      
+      await updateDoc(docRef, cleanUpdates)
+    }
+    
+    await Promise.race([updatePromise(), timeoutPromise])
+  } catch (error: any) {
+    console.error(`Failed to update visit ${visitId}:`, error)
+    throw error
+  }
+}
+
+/**
+ * Delete a visit from Firestore
+ * 
+ * Removes the visit document from the visits collection.
+ * Operation is idempotent - does not error if document doesn't exist.
+ * 
+ * @param visitId - The numeric ID of the visit to delete
+ * @throws Error if network fails
+ */
+export async function deleteVisit(visitId: string): Promise<void> {
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Firestore operation timed out: deleteVisit')), 10000)
+    })
+    
+    const deletePromise = async () => {
+      const docRef = doc(db, 'visits', visitId)
+      await deleteDoc(docRef)
+    }
+    
+    await Promise.race([deletePromise(), timeoutPromise])
+  } catch (error: any) {
+    // Ignore "not found" errors - operation is idempotent
+    if (error.code === 'not-found') {
+      return
+    }
+    
+    console.error(`Failed to delete visit ${visitId}:`, error)
+    throw error
   }
 }

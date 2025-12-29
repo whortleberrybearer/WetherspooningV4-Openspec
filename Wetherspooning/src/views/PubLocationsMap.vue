@@ -24,6 +24,13 @@
 
       <div ref="mapContainer" class="w-full h-full"></div>
     </SidebarInset>
+
+    <!-- Pub Detail Sheet -->
+    <PubDetailSheet 
+      :pub="selectedPub" 
+      :is-open="showPubDetail"
+      @update:is-open="showPubDetail = $event"
+    />
   </div>
 </template>
 
@@ -31,6 +38,7 @@
 import { ref, onMounted, shallowRef, computed, watch } from 'vue'
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 import AppSidebar from '@/components/AppSidebar.vue'
+import PubDetailSheet from '@/components/PubDetailSheet.vue'
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-vue-next'
@@ -45,14 +53,16 @@ const pubs = ref<Pub[]>([])
 const infoWindow = ref<google.maps.InfoWindow | null>(null)
 const error = ref<string>('')
 const showClosedPubs = ref(false)
+const selectedPub = ref<Pub | null>(null)
+const showPubDetail = ref(false)
 
 // Authentication and visit tracking
 const { user, isAuthenticated } = useAuth()
-const { isVisited, getVisitDate, loadVisits, clearVisits } = useVisits()
+const { isVisited, getVisitDate, loadVisits, clearVisits, visitedPubIds, visits } = useVisits()
 
 // Watch authentication state to load/clear visit data
 watch(isAuthenticated, async (authenticated) => {
-  if (authenticated && user.value) {
+  if (authenticated && user.value?.uid) {
     // Load visits when user logs in using Firebase UID
     await loadVisits(user.value.uid)
     // Recreate markers to show visit status AFTER visits are loaded
@@ -64,6 +74,25 @@ watch(isAuthenticated, async (authenticated) => {
     createMarkers()
   }
 })
+
+// Watch for changes in visit data to update markers and info window
+watch([visitedPubIds, visits], () => {
+  // Recreate markers to reflect visit status changes
+  createMarkers()
+  
+  // Update info window if there's a selected pub
+  if (selectedPub.value && infoWindow.value) {
+    const marker = markers.value.find(m => {
+      const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
+      const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat
+      const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng
+      return lat === selectedPub.value!.lat && lng === selectedPub.value!.lng
+    })
+    if (marker) {
+      showPubInfo(selectedPub.value, marker)
+    }
+  }
+}, { deep: true })
 
 // Filter pubs for map markers only
 const filteredPubsForMap = computed(() => {
@@ -236,7 +265,11 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
         visitBadge = `<span class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-500 text-white hover:bg-green-500/80">✓ Visited ${formattedDate}</span>`
       } catch (error) {
         console.error('Error formatting visit date:', error)
+        visitBadge = `<span class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-500 text-white hover:bg-green-500/80">✓ Visited</span>`
       }
+    } else {
+      // No date, show visited badge without date
+      visitBadge = `<span class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-500 text-white hover:bg-green-500/80">✓ Visited</span>`
     }
   }
   
@@ -257,13 +290,26 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
       <div class="p-4 pt-0">
         <p class="text-sm text-muted-foreground mb-1">${pub.address}</p>
         <p class="text-sm text-muted-foreground mb-3">${pub.townCity}, ${pub.county}</p>
-        ${pub.url ? `<a href="${pub.url}" target="_blank" rel="noopener" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3">View Details</a>` : ''}
+        <button id="track-visit-btn-${pub.id}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 w-full">
+          ${visited ? 'Update Visit' : 'Visit'}
+        </button>
       </div>
     </div>
   `
 
   infoWindow.value.setContent(content)
   infoWindow.value.open(map.value!, marker)
+  
+  // Add click listener to Track Visit button after DOM update
+  setTimeout(() => {
+    const trackButton = document.getElementById(`track-visit-btn-${pub.id}`)
+    if (trackButton) {
+      trackButton.addEventListener('click', () => {
+        selectedPub.value = pub
+        showPubDetail.value = true
+      })
+    }
+  }, 0)
 }
 
 const handlePubSelect = (pub: Pub) => {

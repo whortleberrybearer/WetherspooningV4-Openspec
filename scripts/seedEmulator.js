@@ -197,7 +197,12 @@ async function seedData() {
       
       chunk.forEach(visit => {
         const docRef = db.collection('visits').doc()
-        visitBatch.set(docRef, visit)
+        // Use Firestore auto-generated ID instead of numeric ID
+        const visitData = {
+          ...visit,
+          id: docRef.id // Replace numeric ID with Firestore auto-generated string ID
+        }
+        visitBatch.set(docRef, visitData)
       })
       
       await visitBatch.commit()
