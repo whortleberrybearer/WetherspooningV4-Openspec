@@ -15,6 +15,8 @@ A Vue 3 application for exploring Wetherspoons pub locations across the UK using
 
 - Node.js (^20.19.0 || >=22.12.0)
 - Google Maps API key
+- Java Runtime (for Firebase Emulator) - [Download JDK](https://www.oracle.com/java/technologies/downloads/)
+- Firebase CLI (for local development) - Installed in setup steps below
 - Firebase project (for production) or Firebase Emulator (for local development)
 
 ## Google Maps API Setup
@@ -33,21 +35,74 @@ A Vue 3 application for exploring Wetherspoons pub locations across the UK using
    - Add HTTP referrers for production domains
    - Limit to Maps JavaScript API only
 
-## Project Setup
+### 1. Install Dependencies
 
+Install dependencies in the Wetherspooning directory:
 ```sh
+cd Wetherspooning
 npm install
 ```
 
-### Environment Configuration
+Install dependencies in the root directory (for Firebase scripts):
+```sh
+cd ..
+npm install
+```
+
+### 2. Install Firebase CLI
+
+Install Firebase CLI globally:
+```sh
+npm install -g firebase-tools
+```
+
+Verify installation:
+```sh
+firebase --version
+```
+
+### 3. Install Java (Required for Emulator)
+
+The Firebase Emulator requires Java. Install Java 17 or later:
+
+**Windows:**
+```sh
+winget install Oracle.JDK.23
+```
+
+Verify installation:
+```sh
+java -version
+```
+
+### 4. Environment Configuration
 
 1. Copy the example environment file:
 ```sh
-cp .env.example .env.local
+cd Wetherspooning
+cp .env.example .env
 ```
 
-2. Edit `.env.local` and add your API credentials:
+2. Edit `.env` and add your API credentials:
+
+**For Local Development (Emulator):**
+```env
+# Google Maps
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
+VITE_GOOGLE_MAPS_MAP_ID=your_map_id_here
+
+# Firebase (demo values for emulator - no need to change)
+VITE_FIREBASE_API_KEY=demo-api-key
+VITE_FIREBASE_AUTH_DOMAIN=demo-wetherspooning.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=demo-wetherspooning
+VITE_FIREBASE_STORAGE_BUCKET=demo-wetherspooning.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+VITE_FIREBASE_APP_ID=1:123456789:web:abcdef123456
 ```
+
+**For Production:**
+Get Firebase credentials from [Firebase Console](https://console.firebase.google.com/) > Project Settings > General
+```env
 # Google Maps
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 VITE_GOOGLE_MAPS_MAP_ID=your_map_id_here
@@ -61,63 +116,89 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id_here
 VITE_FIREBASE_APP_ID=your_app_id_here
 ```
 
-**Important:** Never commit your `.env.local` file with actual credentials to version control.
+**Important:** Never commit your `.env` file with actual credentials to version control.
 
 ## Firebase Setup
 
 ### Option 1: Local Development with Emulator (Recommended)
 
-1. Install Firebase CLI globally:
+**Important:** Complete steps 1-4 in "Project Setup" above before starting the emulator.
+
+1. Start the Firebase emulator (keep this terminal running):
 ```sh
-npm install -g firebase-tools
+cd Wetherspooning
+firebase emulators:start --project demo-wetherspooning
 ```
 
-2. Login to Firebase (one-time setup):
+The emulator will start on:
+- Firestore: http://localhost:8080
+- Emulator UI: http://localhost:4000
+
+2. In a **new terminal**, seed the emulator with test data:
 ```sh
-firebase login
+cd WetherspooningV4-Openspec
+node scripts/seedEmulator.js
 ```
 
-3. Start the Firebase emulator:
+You should see: "✅ Seeded 15 pubs to Firestore emulator"
+
+3. In a **new terminal**, start the development server:
 ```sh
-npm run emulator
+cd Wetherspooning
+npm run dev
 ```
 
-4. In a separate terminal, seed the emulator with test data:
-```sh
-node ../scripts/seedEmulator.js
-```
+The app will be available at http://localhost:5173 and will automatically connect to the local emulator. You can view and manage data in the Emulator UI at http://localhost:4000.
 
-5. Start the development server:
-```
+**Note:** The emulator is ephemeral - data is lost when stopped. Re-seed after each restart using `node scripts/seedEmulator.js`.
 
 ## Troubleshooting
 
 ### Firebase Connection Issues
 
 **Error: "Failed to load pub locations"**
-- Check that Firebase emulator is running: `npm run emulator`
-- Verify emulator is seeded with data: `node ../scripts/seedEmulator.js`
-- Check browser console for detailed error messages
+1. Verify emulator is running (you should see output in the emulator terminal)
+2. Check emulator is seeded: `node scripts/seedEmulator.js` from root directory
+3. Verify `.env` file contains Firebase variables (even demo values for local dev)
+4. Restart dev server after changing `.env`: `npm run dev`
+5. Check browser console for detailed error messages
 
 **Error: "Missing required Firebase environment variable"**
-- Ensure `.env.local` exists and contains all Firebase variables
+- Ensure `.env` file exists in `Wetherspooning/` directory
+- Copy from `.env.example` if missing
+- For local dev, use the demo values provided in setup step 4
 - Restart dev server after adding environment variables
 
 **Production Firestore permission denied**
 - Verify security rules are deployed: `firebase deploy --only firestore:rules`
 - Check that pubs collection exists in Firestore Console
-- Ensure API key in `.env.local` matches your Firebase project
+- Ensure Firebase config in `.env` matches your Firebase project
 
 ### Emulator Issues
 
-**Emulator won't start**
-- Check if port 8080 or 4000 is already in use
-- Run `firebase emulators:start --project demo-wetherspooning` directly to see detailed errors
+**Error: "Could not start Firestore Emulator, port taken"**
+- Stop the existing emulator process (Ctrl+C in emulator terminal)
+- Wait a few seconds for ports to be released
+- Restart: `firebase emulators:start --project demo-wetherspooning`
+
+**Error: "Could not spawn java"**
+- Install Java JDK (see Prerequisites section)
+- On Windows, refresh PATH: `$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")`
+- Verify with: `java -version`
+
+**Error: "Cannot find module 'firebase-admin'"**
+- Install firebase-admin in root directory: `npm install -D firebase-admin` (from project root)
+- The seed script runs from root, not the Wetherspooning subdirectory
 
 **No data in emulator**
-- Make sure to seed the emulator: `node ../scripts/seedEmulator.js`
+- Make sure to seed the emulator: `node scripts/seedEmulator.js` (from root directory)
 - The emulator is ephemeral - data is lost when stopped
-- Re-seed after each emulator restartsh
+- Re-seed after each emulator restart
+
+**Emulator UI not accessible**
+- Check that port 4000 is not blocked by firewall
+- Access directly: http://127.0.0.1:4000
+- View Firestore data: http://127.0.0.1:4000/firestoresh
 npm run dev
 ```
 
