@@ -1,11 +1,12 @@
 import { reactive, readonly, toRef } from 'vue'
+import { getUserVisits, type Visit as FirebaseVisit } from '@/services/firebaseDataService'
 
 /**
  * Visit information for a pub
  */
 export interface Visit {
   id: number
-  userId: number
+  userId: string  // Changed from number to string for Firebase UID
   pubId: number
   visitedAt?: string  // ISO date string
   rating?: number     // 1-5
@@ -41,7 +42,7 @@ const visitState = reactive<VisitState>({
 /**
  * Visit tracking composable for managing pub visit data.
  * 
- * Loads visit data from static JSON file and provides methods to check
+ * Loads visit data from Firestore and provides methods to check
  * visit status and calculate visit counts for groups of pubs.
  * 
  * @example
@@ -49,7 +50,7 @@ const visitState = reactive<VisitState>({
  * const { isVisited, getGroupCounts, loadVisits } = useVisits()
  * 
  * // Load visits for authenticated user
- * await loadVisits(1)
+ * await loadVisits('firebase-uid-string')
  * 
  * // Check if pub is visited
  * if (isVisited(5)) {
@@ -62,34 +63,20 @@ const visitState = reactive<VisitState>({
  */
 export function useVisits() {
   /**
-   * Load visit data for a specific user from the static JSON file.
+   * Load visit data for a specific user from Firestore.
    * Filters visits to only those belonging to the specified user.
    * 
-   * @param userId - The ID of the user to load visits for
+   * @param userId - The Firebase UID of the user to load visits for
    * @returns Promise that resolves when visits are loaded
    */
-  const loadVisits = async (userId: number): Promise<void> => {
+  const loadVisits = async (userId: string): Promise<void> => {
     visitState.isLoading = true
     visitState.error = null
 
     try {
-      const response = await fetch('/data/visits-sample.json')
-      if (!response.ok) {
-        throw new Error('Failed to load visit data')
-      }
-
-      const data: Visit[] = await response.json()
+      // Load visits from Firestore using the service
+      const userVisits = await getUserVisits(userId)
       
-      // Filter to current user's visits and extract pub IDs
-      const userVisits = data.filter(visit => {
-        // Validate visit structure
-        if (!visit.id || !visit.userId || !visit.pubId) {
-          console.warn('Skipping invalid visit entry:', visit)
-          return false
-        }
-        return visit.userId === userId
-      })
-
       // Store full visit data for date retrieval
       visitState.visits = userVisits
       
@@ -101,10 +88,10 @@ export function useVisits() {
 
       visitState.isLoading = false
     } catch (err) {
-      const errorMsg = 'Failed to load visit data. Visit tracking unavailable.'
+      const errorMsg = 'Failed to load visit data from Firestore. Visit tracking unavailable.'
       visitState.error = errorMsg
       visitState.isLoading = false
-      console.error('Error loading visits:', err)
+      console.warn('Error loading visits:', err)
       // Don't throw - allow app to continue with empty visit state
     }
   }

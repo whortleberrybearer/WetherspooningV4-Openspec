@@ -279,3 +279,175 @@ The system MUST connect Firebase Auth to emulator in development mode for local 
 **Then** no emulator connection is attempted  
 **And** auth operations use production Firebase project
 
+### Requirement: Firestore Visit Data Operations (REQ-FDI-004)
+**Priority:** MUST  
+**Category:** Functional
+
+The system MUST provide methods to retrieve user visit data from Firestore with proper error handling and data validation.
+
+**Acceptance Criteria:**
+- `getUserVisits(userId: string)` method retrieves all visit documents for a specific user
+- Method returns properly typed Visit objects matching Visit interface
+- Query filters visits where `userId` field equals provided parameter
+- Invalid or missing fields in visit documents are handled gracefully
+- Network errors are caught and logged
+- Empty results return empty array (not error)
+- Query results are validated against Visit interface schema
+- Queries have 10-second timeout
+- Method is exported from firebaseDataService
+
+#### Scenario: Retrieve User Visits Successfully
+**Given** the Firestore `visits` collection contains 5 visit documents for user "uid-123"  
+**And** all documents have valid required fields (id, userId, pubId)  
+**When** `getUserVisits("uid-123")` is called  
+**Then** a Promise resolves with an array of 5 Visit objects  
+**And** each Visit object has required fields: id, userId, pubId  
+**And** the operation completes within 2 seconds
+
+#### Scenario: Filter Visits by User ID
+**Given** the Firestore `visits` collection contains:
+- 5 visits for user "uid-123"
+- 3 visits for user "uid-456"  
+**When** `getUserVisits("uid-123")` is called  
+**Then** only the 5 visits for "uid-123" are returned  
+**And** visits for "uid-456" are not included
+
+#### Scenario: Handle User with No Visits
+**Given** the Firestore `visits` collection contains no documents for user "uid-999"  
+**When** `getUserVisits("uid-999")` is called  
+**Then** a Promise resolves with an empty array  
+**And** no error is thrown or logged
+
+#### Scenario: Handle Invalid Visit Data
+**Given** a Firestore visit document is missing required field `pubId`:
+```json
+{
+  "id": 1,
+  "userId": "uid-123"
+}
+```
+**When** `getUserVisits("uid-123")` is called  
+**Then** the invalid document is skipped  
+**And** a warning is logged to console  
+**And** other valid visits are still returned
+
+#### Scenario: Handle Network Timeout
+**Given** the Firestore query takes longer than 10 seconds  
+**When** `getUserVisits("uid-123")` is called  
+**Then** the operation times out  
+**And** an error is thrown with message "Firestore operation timed out: getUserVisits"  
+**And** the error is logged to console
+
+---
+
+### Requirement: Visit Data Validation (REQ-FDI-005)
+**Priority:** MUST  
+**Category:** Functional
+
+The system MUST validate visit document structure and required fields before returning visit objects.
+
+**Acceptance Criteria:**
+- Visit validator function checks for required fields: id, userId, pubId
+- `userId` must be a non-empty string
+- `pubId` must be a positive number
+- `id` must be a positive number
+- Optional fields (visitedAt, rating, notes) are type-checked if present
+- `rating` must be between 1 and 5 if provided
+- `visitedAt` must be a valid ISO 8601 date string if provided
+- Invalid documents trigger console warning with document details
+- Validation does not throw errors (returns false for invalid)
+
+#### Scenario: Validate Complete Visit Document
+**Given** a visit document with all required and optional fields:
+```json
+{
+  "id": 1,
+  "userId": "uid-123",
+  "pubId": 5,
+  "visitedAt": "2025-12-15T14:30:00Z",
+  "rating": 4,
+  "notes": "Great atmosphere!"
+}
+```
+**When** the document is validated  
+**Then** validation returns true  
+**And** the document is included in results
+
+#### Scenario: Reject Visit Missing Required Field
+**Given** a visit document missing `userId`:
+```json
+{
+  "id": 1,
+  "pubId": 5
+}
+```
+**When** the document is validated  
+**Then** validation returns false  
+**And** a warning is logged: "Invalid visit document: missing required field 'userId'"
+
+#### Scenario: Reject Visit with Invalid Rating
+**Given** a visit document with rating outside 1-5 range:
+```json
+{
+  "id": 1,
+  "userId": "uid-123",
+  "pubId": 5,
+  "rating": 6
+}
+```
+**When** the document is validated  
+**Then** validation returns false  
+**And** a warning is logged: "Invalid visit document: rating must be between 1 and 5"
+
+#### Scenario: Accept Visit with Minimal Fields
+**Given** a visit document with only required fields:
+```json
+{
+  "id": 1,
+  "userId": "uid-123",
+  "pubId": 5
+}
+```
+**When** the document is validated  
+**Then** validation returns true  
+**And** the document is included in results
+
+---
+
+### Requirement: Visit Collection Structure (REQ-FDI-006)
+**Priority:** MUST  
+**Category:** Functional
+
+The system MUST define and document the Firestore schema for the visits collection.
+
+**Acceptance Criteria:**
+- Visits stored in top-level `visits` collection (not subcollection)
+- Each document represents a single pub visit
+- Document ID is auto-generated by Firestore
+- Required fields: `id` (number), `userId` (string), `pubId` (number)
+- Optional fields: `visitedAt` (string), `rating` (number), `notes` (string)
+- `createdAt` server timestamp field for audit trail
+- Collection supports composite index on (userId, pubId)
+- Schema documented in service file comments
+
+#### Scenario: Visit Document Structure
+**Given** a user marks pub 5 as visited  
+**When** the visit is stored in Firestore  
+**Then** the document is created in `visits` collection  
+**And** the document has auto-generated ID  
+**And** the document contains userId, pubId, and createdAt timestamp  
+**And** optional fields are included if provided
+
+#### Scenario: Query Visits by User
+**Given** visits collection has index on (userId, pubId)  
+**When** querying `visits.where('userId', '==', 'uid-123')`  
+**Then** the query uses the composite index  
+**And** results are returned efficiently (no full collection scan)
+
+#### Scenario: Prevent Duplicate Visits
+**Given** a user has already visited pub 5  
+**When** checking if visit exists before creating new one  
+**Then** query `visits.where('userId', '==', uid).where('pubId', '==', 5)`  
+**And** existing visit is found  
+**And** duplicate creation is prevented (application logic, not Firestore constraint)
+
