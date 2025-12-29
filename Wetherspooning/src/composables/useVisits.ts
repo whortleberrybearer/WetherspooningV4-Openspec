@@ -301,6 +301,7 @@ export function useVisits() {
   return {
     // Readonly state to prevent direct mutations
     visitedPubIds: readonly(visitState.visitedPubIds),
+    visits: readonly(toRef(visitState, 'visits')),
     isLoading: toRef(visitState, 'isLoading'),
     error: toRef(visitState, 'error'),
     
