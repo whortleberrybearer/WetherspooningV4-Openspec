@@ -36,21 +36,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-vue-next'
 import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
-
-interface Pub {
-  id: number
-  name: string
-  townCity: string
-  address: string
-  county: string
-  region: string
-  country: string
-  lat: number
-  lng: number
-  url?: string
-  imageUrl?: string
-  openState?: string
-}
+import { getAllPubs, type Pub } from '@/services/firebaseDataService'
 
 const mapContainer = ref<HTMLElement | null>(null)
 const map = shallowRef<google.maps.Map | null>(null)
@@ -150,17 +136,13 @@ const centerOnUserLocation = () => {
 
 const loadPubs = async () => {
   try {
-    const response = await fetch('/data/pubs-sample.json')
-    if (!response.ok) {
-      throw new Error('Failed to load pub data')
-    }
-    const data = await response.json()
+    const data = await getAllPubs()
     pubs.value = data
     createMarkers()
   } catch (err) {
-    const errorMsg = 'Failed to load pub locations. Please try again later.'
+    const errorMsg = 'Failed to load pub locations. Please check your connection and try again.'
     error.value = errorMsg
-    console.error('Error loading pubs:', err)
+    console.error('Error loading pubs from Firestore:', err)
   }
 }
 
