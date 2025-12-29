@@ -115,7 +115,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-defineEmits<{
+const emit = defineEmits<{
   'update:isOpen': [value: boolean]
 }>()
 
@@ -214,6 +214,8 @@ const handleRemoveVisit = async () => {
   try {
     await removeVisit(props.pub.id)
     showRemoveDialog.value = false
+    // Close the main dialog after successful removal
+    emit('update:isOpen', false)
   } catch (error: any) {
     errorMessage.value = error.message || 'Failed to remove visit'
   } finally {
