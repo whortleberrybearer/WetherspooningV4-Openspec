@@ -7,9 +7,13 @@ TBD - created by archiving change add-user-authentication. Update Purpose after 
 **Priority:** MUST  
 **Category:** Functional
 
+**Changes:**
+- ADD: "Sign up" link in footer must trigger signup dialog and close login dialog
+- UPDATE: Footer "Sign up" link behavior defined
+
 The system MUST provide a login form that accepts email and password credentials.
 
-**Acceptance Criteria:**
+**Updated Acceptance Criteria:**
 - Login form is accessible via a "Login" button
 - Form contains email input field
 - Email field uses placeholder "m@example.com"
@@ -20,6 +24,7 @@ The system MUST provide a login form that accepts email and password credentials
 - Form includes visual divider with "Or continue with" text below submit button
 - Form includes "Login with Google" button with Google logo icon
 - Form includes "Don't have an account? Sign up" footer text with clickable link
+- **CHANGED:** "Sign up" link triggers signup dialog opening and login dialog closing
 - Form can be dismissed/closed without submitting
 - Form clears both email and password fields when closed
 - Form is accessible via keyboard navigation
@@ -28,55 +33,13 @@ The system MUST provide a login form that accepts email and password credentials
 - Dialog shows title "Login to your account"
 - Dialog shows description "Enter your email below to login to your account"
 
-#### Scenario: Open Login Form
-**Given** the user is not authenticated  
-**And** the application is displayed  
-**When** the user clicks the "Login" button  
-**Then** the login form dialog opens  
-**And** the dialog title reads "Login to your account"  
-**And** the dialog description reads "Enter your email below to login to your account"  
-**And** the email field is focused  
-**And** both input fields are empty
-
-#### Scenario: Submit Login Form
+#### Scenario: Navigate to Signup from Login
+**ADDED:**
 **Given** the login form is open  
-**And** the email field contains "test@example.com"  
-**And** the password field contains "password123"  
-**When** the user clicks the "Login" button  
-**Then** the authentication process is initiated  
-**And** the form displays a loading state  
-**And** the button text changes to "Logging in..."
-
-#### Scenario: Close Login Form
-**Given** the login form is open  
-**When** the user clicks outside the dialog or presses Escape  
-**Then** the login form closes  
-**And** the email field is cleared  
-**And** the password field is cleared  
-**And** any error messages are cleared
-
-#### Scenario: Forgot Password Link Display
-**Given** the login form is open  
-**When** the password field is displayed  
-**Then** a "Forgot your password?" link appears aligned to the right of the Password label  
-**And** the link is underlined and styled as clickable
-
-#### Scenario: Google Sign In Button Display
-**Given** the login form is open  
-**When** the form is rendered  
-**Then** a horizontal divider with "Or continue with" text appears after the Login button  
-**And** a "Login with Google" button appears below the divider  
-**And** the button displays the official Google logo with multiple colors  
-**And** the button has outline styling (border, no fill)
-
-#### Scenario: Sign Up Link Display
-**Given** the login form is open  
-**When** the form is rendered  
-**Then** text "Don't have an account?" appears at the bottom  
-**And** a "Sign up" link appears after the text  
-**And** the link is underlined and clickable
-
----
+**When** the user clicks the "Sign up" link  
+**Then** the login dialog closes  
+**And** the signup dialog opens  
+**And** the login form fields are cleared
 
 ### Requirement: Authentication Validation (REQ-UA-002)
 **Priority:** MUST  
