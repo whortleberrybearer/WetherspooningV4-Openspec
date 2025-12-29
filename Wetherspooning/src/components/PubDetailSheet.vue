@@ -198,6 +198,8 @@ const handleSave = async () => {
       }
       await addVisit(props.pub.id, options, user.value.uid)
     }
+    // Close the dialog after successful save
+    emit('update:isOpen', false)
   } catch (error: any) {
     errorMessage.value = error.message || 'Failed to save visit'
   } finally {
