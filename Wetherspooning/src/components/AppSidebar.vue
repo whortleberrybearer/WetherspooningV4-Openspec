@@ -20,6 +20,37 @@
     </SidebarHeader>
 
     <SidebarContent>
+      <!-- Visit Statistics -->
+      <SidebarGroup v-if="isAuthenticated">
+        <SidebarGroupContent>
+          <div class="grid grid-cols-2 gap-2 px-2">
+            <!-- Total Visited Card -->
+            <div class="rounded-lg border bg-card p-3 shadow-sm">
+              <div class="flex flex-col gap-1">
+                <span class="text-xs text-muted-foreground">Total Visited</span>
+                <div class="flex items-baseline gap-1">
+                  <span class="text-2xl font-bold">{{ allTimeStats.visited }}</span>
+                </div>
+                <span class="text-xs text-muted-foreground">{{ allTimeStats.closedVisited }} that are now closed</span>
+              </div>
+            </div>
+            
+            <!-- Not Visited Card -->
+            <div class="rounded-lg border bg-card p-3 shadow-sm">
+              <div class="flex flex-col gap-1">
+                <span class="text-xs text-muted-foreground">Not Visited</span>
+                <div class="flex items-baseline gap-1">
+                  <span class="text-2xl font-bold">{{ allTimeStats.notVisited }}</span>
+                </div>
+                <span class="text-xs text-muted-foreground">{{ allTimeStats.total }} Total Pubs</span>
+              </div>
+            </div>
+          </div>
+        </SidebarGroupContent>
+      </SidebarGroup>
+
+      <SidebarSeparator v-if="isAuthenticated" />
+
       <!-- Filter Options -->
       <SidebarGroup>
         <SidebarGroupLabel>Options</SidebarGroupLabel>
@@ -364,6 +395,31 @@ const groupedPubs = computed(() => {
     })
 
   return sortedCountries
+})
+
+const allTimeStats = computed(() => {
+  // Always use all pubs, not filtered
+  const { visited } = getGroupCounts(props.pubs)
+  
+  // Count how many visited pubs are now closed
+  const closedVisited = props.pubs.filter(pub => 
+    isVisited(pub.id) && isPubClosed(pub)
+  ).length
+  
+  // Not visited should only count open pubs that haven't been visited
+  const notVisited = props.pubs.filter(pub => 
+    !isVisited(pub.id) && !isPubClosed(pub)
+  ).length
+  
+  // Total should only count open pubs
+  const total = props.pubs.filter(pub => !isPubClosed(pub)).length
+  
+  return {
+    visited,
+    notVisited,
+    total,
+    closedVisited
+  }
 })
 
 const getCountryTotal = (counties: Record<string, Pub[]>) => {
