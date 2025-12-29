@@ -18,48 +18,45 @@
 
         <!-- Visit Tracking Section (Only for Authenticated Users) -->
         <div v-if="isAuthenticated">
-          <!-- Not Visited State -->
-          <div v-if="!isVisited(pub.id)" class="grid gap-3">
-            <Button 
-              @click="handleMarkVisited" 
-              :disabled="isLoading"
-              class="w-full"
-            >
-              <span v-if="!isLoading">Mark as Visited</span>
-              <span v-else>Saving...</span>
-            </Button>
-          </div>
-
-          <!-- Visited State -->
-          <div v-else class="grid gap-4">
+          <div class="grid gap-4">
             <!-- Visit Date -->
             <div class="grid gap-2">
               <Label for="visit-date">Visit Date</Label>
               <Input
                 id="visit-date"
                 type="date"
-                :value="visitDateValue"
-                @change="handleDateChange"
-                :disabled="isUpdating"
+                v-model="dateInput"
+                :disabled="isSaving"
               />
               <p class="text-xs text-muted-foreground">
                 Leave empty if date is unknown
               </p>
             </div>
 
-            <!-- Remove Visit Button -->
-            <Button 
-              @click="showRemoveDialog = true" 
-              variant="destructive"
-              class="w-full"
-              :disabled="isRemoving"
-            >
-              Remove Visit
-            </Button>
+            <!-- Action Buttons -->
+            <div class="flex gap-2">
+              <Button 
+                @click="handleSave" 
+                :disabled="isSaving || !hasChanges"
+                class="flex-1"
+              >
+                <span v-if="!isSaving">{{ isVisited(pub.id) ? 'Update Visit' : 'Save Visit' }}</span>
+                <span v-else>Saving...</span>
+              </Button>
+              
+              <Button 
+                v-if="isVisited(pub.id)"
+                @click="showRemoveDialog = true" 
+                variant="destructive"
+                :disabled="isSaving"
+              >
+                Remove
+              </Button>
+            </div>
           </div>
 
           <!-- Error Message -->
-          <div v-if="errorMessage" class="p-3 bg-destructive/10 border border-destructive rounded-md text-sm">
+          <div v-if="errorMessage" class="p-3 bg-destructive/10 border border-destructive rounded-md text-sm mt-3">
             {{ errorMessage }}
           </div>
         </div>
@@ -132,12 +129,11 @@ defineEmits<{
 const { user, isAuthenticated } = useAuth()
 const { isVisited, getVisit, addVisit, updateVisit, removeVisit } = useVisits()
 
-const isLoading = ref(false)
-const isUpdating = ref(false)
+const isSaving = ref(false)
 const isRemoving = ref(false)
 const errorMessage = ref('')
 const showRemoveDialog = ref(false)
-const notesModel = ref('')
+const dateInput = ref('')
 
 const isPubClosed = computed(() => {
   const state = props.pub?.openState || 'Open'
@@ -149,76 +145,63 @@ const currentVisit = computed(() => {
   return getVisit(props.pub.id)
 })
 
-const visitDateValue = computed(() => {
-  if (!currentVisit.value?.visitedAt) return ''
-  try {
-    const date = new Date(currentVisit.value.visitedAt)
-    return date.toISOString().split('T')[0]
-  } catch {
-    return ''
-  }
+const hasChanges = computed(() => {
+  const currentDate = currentVisit.value?.visitedAt
+  if (!currentDate && !dateInput.value) return true // New visit with no date
+  if (!currentDate) return dateInput.value !== '' // New visit with date
+  
+  const currentDateStr = new Date(currentDate).toISOString().split('T')[0]
+  return currentDateStr !== dateInput.value
 })
 
-// Update notes model when visit changes
-watch(currentVisit, (visit) => {
-  notesModel.value = visit?.notes || ''
+// Initialize date input when pub or visit changes
+watch([() => props.pub, currentVisit], () => {
+  if (!props.pub) {
+    dateInput.value = ''
+    return
+  }
+  
+  if (currentVisit.value?.visitedAt) {
+    try {
+      const date = new Date(currentVisit.value.visitedAt)
+      dateInput.value = date.toISOString().split('T')[0] || ''
+    } catch {
+      dateInput.value = ''
+    }
+  } else if (isVisited(props.pub.id)) {
+    // Visit exists but no date
+    dateInput.value = ''
+  } else {
+    // New visit - default to today
+    dateInput.value = new Date().toISOString().split('T')[0] || ''
+  }
 }, { immediate: true })
 
-const handleMarkVisited = async () => {
+const handleSave = async () => {
   if (!props.pub || !user.value?.uid) return
   
-  isLoading.value = true
+  isSaving.value = true
   errorMessage.value = ''
   
   try {
-    await addVisit(props.pub.id, {}, user.value.uid)
-  } catch (error: any) {
-    errorMessage.value = error.message || 'Failed to mark as visited'
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const handleDateChange = async (event: Event) => {
-  if (!props.pub) return
-  
-  const input = event.target as HTMLInputElement
-  const dateValue = input.value
-  
-  isUpdating.value = true
-  errorMessage.value = ''
-  
-  try {
-    if (dateValue) {
-      // Convert to ISO date string
-      const isoDate = new Date(dateValue).toISOString()
-      await updateVisit(props.pub.id, { visitedAt: isoDate })
+    if (isVisited(props.pub.id)) {
+      // Update existing visit
+      const updates: { visitedAt: string | null } = {
+        visitedAt: dateInput.value ? new Date(dateInput.value).toISOString() : null
+      }
+      await updateVisit(props.pub.id, updates)
     } else {
-      // Clear date (unknown)
-      await updateVisit(props.pub.id, { visitedAt: null })
+      // Create new visit
+      const options: { visitedAt?: string } = {}
+      if (dateInput.value) {
+        options.visitedAt = new Date(dateInput.value).toISOString()
+      }
+      await addVisit(props.pub.id, options, user.value.uid)
     }
   } catch (error: any) {
-    errorMessage.value = error.message || 'Failed to update date'
+    errorMessage.value = error.message || 'Failed to save visit'
   } finally {
-    isUpdating.value = false
-  }
-}
-
-const handleNotesUpdate = async () => {
-  if (!props.pub) return
-  if (notesModel.value === currentVisit.value?.notes) return
-  
-  isUpdating.value = true
-  errorMessage.value = ''
-  
-  try {
-    await updateVisit(props.pub.id, { notes: notesModel.value })
-  } catch (error: any) {
-    errorMessage.value = error.message || 'Failed to update notes'
-    // Revert on error
-    notesModel.value = currentVisit.value?.notes || ''
-  } finally {
-    isUpdating.value = false
+    isSaving.value = false
   }
 }
 
