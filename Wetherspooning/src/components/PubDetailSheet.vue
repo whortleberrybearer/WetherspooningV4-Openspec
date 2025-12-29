@@ -9,13 +9,6 @@
       </DialogHeader>
 
       <div v-if="pub" class="grid gap-4">
-        <!-- Status Badge -->
-        <div class="flex gap-2">
-          <Badge v-if="isPubClosed" variant="destructive">Closed</Badge>
-          <Badge v-else variant="default" class="bg-green-500 hover:bg-green-500/80">Open</Badge>
-          <Badge v-if="isVisited(pub.id)" variant="secondary">✓ Visited</Badge>
-        </div>
-
         <!-- Visit Tracking Section (Only for Authenticated Users) -->
         <div v-if="isAuthenticated">
           <div class="grid gap-4">
