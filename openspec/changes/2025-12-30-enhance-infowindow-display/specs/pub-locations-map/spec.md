@@ -8,14 +8,14 @@
 
 **Changes:**
 - UPDATE: InfoWindow card styling to work correctly with Google Maps close button
-- ADD: Display postcode when available
+- UPDATE: Address field to include full postal address (street, town, county, postcode)
 - ADD: Display link to Wetherspoons pub page when `url` is defined
 - ADD: Display pub image when `imageUrl` is defined
 - ADD: Attribution for Wetherspoons images
 
 **Updated Acceptance Criteria:**
 - Clicking a marker opens an info window
-- Info window displays: pub name, address, postcode (if available), town/city, county
+- Info window displays: pub name, full address (including street, town, county, and postcode in format: "Street, Town, County, Postcode")
 - Info window styling works correctly with Google Maps default close button (no layout conflicts)
 - If `url` field is defined, info window includes a link to the Wetherspoons pub page
 - Link opens in a new tab with `target="_blank"` and `rel="noopener noreferrer"`
@@ -32,8 +32,7 @@
 #### Scenario: Display InfoWindow with All Optional Fields Present
 **Given** pub "The Moon Under Water" has:
   - `name`: "The Moon Under Water"
-  - `address`: "47 High Street"
-  - `postcode`: "L1 2BX"
+  - `address`: "47 High Street, Liverpool, Merseyside, L1 2BX"
   - `townCity`: "Liverpool"
   - `county`: "Merseyside"
   - `url`: "https://www.jdwetherspoon.com/pubs/all-pubs/england/merseyside/the-moon-under-water"
@@ -48,9 +47,7 @@
   - Visit badge ("✓ Visited [date]")
   - Pub image (max 200px height, rounded corners)
   - Attribution text "Image © JD Wetherspoon" below image
-  - Address line: "47 High Street"
-  - Postcode line: "L1 2BX"
-  - Location line: "Liverpool, Merseyside"
+  - Full address: "47 High Street, Liverpool, Merseyside, L1 2BX"
   - Link "View on Wetherspoons website" opening in new tab
   - "Update Visit" button
 **And** the close button functions correctly without styling conflicts
@@ -58,20 +55,17 @@
 #### Scenario: Display InfoWindow with Missing Optional Fields
 **Given** pub "The Regal" has:
   - `name`: "The Regal"
-  - `address`: "69 Church Street"
+  - `address`: "69 Church Street, Birmingham, West Midlands, B2 5TH"
   - `townCity`: "Birmingham"
   - `county`: "West Midlands"
-  - No `postcode` field
   - No `url` field
   - No `imageUrl` field
 **When** the user clicks on the pub's marker
 **Then** the info window opens with:
   - Pub name as heading
   - Status badge
-  - Address line: "69 Church Street"
-  - Location line: "Birmingham, West Midlands"
+  - Full address: "69 Church Street, Birmingham, West Midlands, B2 5TH"
   - "Visit" button
-  - No postcode line displayed
   - No pub image displayed
   - No Wetherspoons link displayed
   - No attribution text displayed

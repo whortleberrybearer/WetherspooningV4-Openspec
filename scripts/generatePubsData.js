@@ -2,6 +2,97 @@
 const fs = require('fs');
 const path = require('path');
 
+// Sample Wetherspoon pub images
+const wetherspoonImages = [
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/03/5243-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/6335-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/185-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/03/246-feature.jpg",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/6255-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7426-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/5647-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/280-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/5504-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/1040-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/2520-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/03/176-feature.jpg",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/91-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/03/5285-feature.jpg",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/42-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/5480-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/541-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/1233-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/89-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/27-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/20-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/39-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/5-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7087-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/6919-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7381-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/03/2194-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/04/7905-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/03/6041-feature.png",
+  "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/438-feature.png"
+];
+
+// UK postcode patterns by region
+const postcodePatterns = {
+  "Greater Manchester": ["M", "OL", "BL", "SK", "WN"],
+  "Greater London": ["E", "EC", "N", "NW", "SE", "SW", "W", "WC"],
+  "West Midlands": ["B", "CV", "DY", "WS", "WV"],
+  "West Yorkshire": ["LS", "BD", "HX", "WF"],
+  "Merseyside": ["L", "CH", "WA"],
+  "Tyne and Wear": ["NE", "SR", "DH"],
+  "Bristol": ["BS"],
+  "South Yorkshire": ["S", "DN", "S"],
+  "Leicestershire": ["LE"],
+  "Nottinghamshire": ["NG"],
+  "Cambridgeshire": ["CB", "PE"],
+  "Hampshire": ["SO", "PO", "GU"],
+  "East Sussex": ["BN"],
+  "Oxfordshire": ["OX"],
+  "North Yorkshire": ["YO", "HG", "DL"],
+  "Devon": ["EX", "PL", "TQ"],
+  "Norfolk": ["NR"],
+  "Kent": ["CT", "ME", "TN"],
+  "Edinburgh": ["EH"],
+  "Glasgow": ["G"],
+  "Aberdeenshire": ["AB"],
+  "Dundee": ["DD"],
+  "Highland": ["IV"],
+  "Cardiff": ["CF"],
+  "Swansea": ["SA"],
+  "Newport": ["NP"],
+  "Wrexham": ["LL"],
+  "County Antrim": ["BT"],
+  "County Londonderry": ["BT"]
+};
+
+function generatePostcode(county) {
+  const patterns = postcodePatterns[county] || ["XX"];
+  const prefix = patterns[Math.floor(Math.random() * patterns.length)];
+  const area = Math.floor(Math.random() * 99) + 1;
+  const sector = Math.floor(Math.random() * 9) + 1;
+  const unit = String.fromCharCode(65 + Math.floor(Math.random() * 26)) + 
+               String.fromCharCode(65 + Math.floor(Math.random() * 26));
+  return `${prefix}${area} ${sector}${unit}`;
+}
+
+function getImageUrl(openState, imageIndex) {
+  // Closed pubs never have images
+  if (openState === "Closed") {
+    return "";
+  }
+  
+  // Open pubs: 70% chance of having an image
+  if (Math.random() < 0.7) {
+    return wetherspoonImages[imageIndex % wetherspoonImages.length];
+  }
+  
+  return "";
+}
+
 // UK cities and towns with realistic coordinates
 const locations = [
   // England - Major Cities
@@ -78,25 +169,29 @@ const pubNames = [
 function generatePubs() {
   const pubs = [];
   let pubId = 1;
+  let imageIndex = 0;
   
   // Generate ~70 pubs for England (spread across locations)
   for (let i = 0; i < 70 && pubId <= 100; i++) {
     const location = locations[Math.floor(Math.random() * 20)]; // England locations
     const pubName = pubNames[(pubId - 1) % pubNames.length];
     const openState = Math.random() < 0.85 ? "Open" : "Closed"; // 85% open
+    const streetNumber = Math.floor(Math.random() * 200) + 1;
+    const streetName = ["High Street", "Market Place", "Church Street", "Bridge Street", "Station Road"][Math.floor(Math.random() * 5)];
+    const postcode = generatePostcode(location.county);
     
     pubs.push({
       id: pubId++,
       name: pubName,
       townCity: location.name,
-      address: `${Math.floor(Math.random() * 200) + 1} ${["High Street", "Market Place", "Church Street", "Bridge Street", "Station Road"][Math.floor(Math.random() * 5)]}`,
+      address: `${streetNumber} ${streetName}, ${location.name}, ${location.county}, ${postcode}`,
       county: location.county,
       region: location.region,
       country: location.country,
       lat: parseFloat((location.lat + (Math.random() - 0.5) * 0.05).toFixed(4)),
       lng: parseFloat((location.lng + (Math.random() - 0.5) * 0.05).toFixed(4)),
       url: `https://www.jdwetherspoon.com/pubs/all-pubs/${location.country.toLowerCase().replace(/ /g, '-')}/${location.county.toLowerCase().replace(/ /g, '-')}/${pubName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-      imageUrl: "",
+      imageUrl: getImageUrl(openState, imageIndex++),
       openState
     });
   }
@@ -106,19 +201,22 @@ function generatePubs() {
     const location = locations[20 + (i % 5)]; // Scotland locations
     const pubName = pubNames[(pubId - 1) % pubNames.length];
     const openState = Math.random() < 0.85 ? "Open" : "Closed";
+    const streetNumber = Math.floor(Math.random() * 200) + 1;
+    const streetName = ["George Street", "High Street", "Princes Street", "Union Street"][Math.floor(Math.random() * 4)];
+    const postcode = generatePostcode(location.county);
     
     pubs.push({
       id: pubId++,
       name: pubName,
       townCity: location.name,
-      address: `${Math.floor(Math.random() * 200) + 1} ${["George Street", "High Street", "Princes Street", "Union Street"][Math.floor(Math.random() * 4)]}`,
+      address: `${streetNumber} ${streetName}, ${location.name}, ${location.county}, ${postcode}`,
       county: location.county,
       region: location.region,
       country: location.country,
       lat: parseFloat((location.lat + (Math.random() - 0.5) * 0.05).toFixed(4)),
       lng: parseFloat((location.lng + (Math.random() - 0.5) * 0.05).toFixed(4)),
       url: `https://www.jdwetherspoon.com/pubs/all-pubs/scotland/${location.county.toLowerCase().replace(/ /g, '-')}/${pubName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-      imageUrl: "",
+      imageUrl: getImageUrl(openState, imageIndex++),
       openState
     });
   }
@@ -128,19 +226,22 @@ function generatePubs() {
     const location = locations[25 + (i % 4)]; // Wales locations
     const pubName = pubNames[(pubId - 1) % pubNames.length];
     const openState = Math.random() < 0.85 ? "Open" : "Closed";
+    const streetNumber = Math.floor(Math.random() * 200) + 1;
+    const streetName = ["High Street", "St Mary Street", "Queen Street"][Math.floor(Math.random() * 3)];
+    const postcode = generatePostcode(location.county);
     
     pubs.push({
       id: pubId++,
       name: pubName,
       townCity: location.name,
-      address: `${Math.floor(Math.random() * 200) + 1} ${["High Street", "St Mary Street", "Queen Street"][Math.floor(Math.random() * 3)]}`,
+      address: `${streetNumber} ${streetName}, ${location.name}, ${location.county}, ${postcode}`,
       county: location.county,
       region: location.region,
       country: location.country,
       lat: parseFloat((location.lat + (Math.random() - 0.5) * 0.05).toFixed(4)),
       lng: parseFloat((location.lng + (Math.random() - 0.5) * 0.05).toFixed(4)),
       url: `https://www.jdwetherspoon.com/pubs/all-pubs/wales/${location.county.toLowerCase().replace(/ /g, '-')}/${pubName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-      imageUrl: "",
+      imageUrl: getImageUrl(openState, imageIndex++),
       openState
     });
   }
@@ -150,19 +251,22 @@ function generatePubs() {
     const location = locations[29 + (i % 2)]; // Northern Ireland locations
     const pubName = pubNames[(pubId - 1) % pubNames.length];
     const openState = Math.random() < 0.85 ? "Open" : "Closed";
+    const streetNumber = Math.floor(Math.random() * 200) + 1;
+    const streetName = ["High Street", "Royal Avenue", "Donegall Place"][Math.floor(Math.random() * 3)];
+    const postcode = generatePostcode(location.county);
     
     pubs.push({
       id: pubId++,
       name: pubName,
       townCity: location.name,
-      address: `${Math.floor(Math.random() * 200) + 1} ${["High Street", "Royal Avenue", "Donegall Place"][Math.floor(Math.random() * 3)]}`,
+      address: `${streetNumber} ${streetName}, ${location.name}, ${location.county}, ${postcode}`,
       county: location.county,
       region: location.region,
       country: location.country,
       lat: parseFloat((location.lat + (Math.random() - 0.5) * 0.05).toFixed(4)),
       lng: parseFloat((location.lng + (Math.random() - 0.5) * 0.05).toFixed(4)),
       url: `https://www.jdwetherspoon.com/pubs/all-pubs/northern-ireland/${location.county.toLowerCase().replace(/ /g, '-')}/${pubName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-      imageUrl: "",
+      imageUrl: getImageUrl(openState, imageIndex++),
       openState
     });
   }
