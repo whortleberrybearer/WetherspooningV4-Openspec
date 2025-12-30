@@ -480,14 +480,14 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
       </div>
       <div style="display: flex; gap: 16px; flex-wrap: wrap;">
         ${imageHtml ? `
-          ${imageHtml}
-          <div style="flex: 1; min-width: 200px;">
+          <div style="flex: 1; min-width: 200px; display: flex; flex-direction: column;">
             ${addressHtml}
             ${websiteLink}
-            <button id="track-visit-btn-${pub.id}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 w-full">
+            <button id="track-visit-btn-${pub.id}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 w-full" style="margin-top: auto;">
               ${visited ? 'Update Visit' : 'Visit'}
             </button>
           </div>
+          ${imageHtml}
         ` : `
           <div style="flex: 1;">
             ${addressHtml}
