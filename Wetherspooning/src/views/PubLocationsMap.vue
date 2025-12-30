@@ -399,19 +399,31 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
   const visited = isVisited(pub.id)
   
   // Parse address components by splitting on comma
+  // Last part is postcode, second-to-last and third-to-last are town/county
+  // Everything before that is street address
   const addressParts = pub.address.split(',').map(part => part.trim())
-  const [street, town, county, postcode] = addressParts
+  const postcode = addressParts[addressParts.length - 1] || ''
+  const county = addressParts[addressParts.length - 2] || ''
+  const town = addressParts[addressParts.length - 3] || ''
+  const streetParts = addressParts.slice(0, -3)
+  const street = streetParts.length > 0 ? streetParts.join(', ') : addressParts[0] || ''
   
-  // Build address HTML with each component on separate line
+  // Build address HTML with 3 lines: street, town/county, postcode
   let addressHtml = ''
-  if (street) addressHtml += `<p class="text-sm text-muted-foreground mb-0.5">${street}</p>`
-  if (town) addressHtml += `<p class="text-sm text-muted-foreground mb-0.5">${town}</p>`
-  if (county) addressHtml += `<p class="text-sm text-muted-foreground mb-0.5">${county}</p>`
-  if (postcode) addressHtml += `<p class="text-sm text-muted-foreground mb-3">${postcode}</p>`
+  if (street) {
+    addressHtml += `<p style="font-size: 14px; color: #6b7280; margin: 0 0 4px 0;">${street}</p>`
+  }
+  if (town || county) {
+    const townCounty = [town, county].filter(Boolean).join(', ')
+    addressHtml += `<p style="font-size: 14px; color: #6b7280; margin: 0 0 4px 0;">${townCounty}</p>`
+  }
+  if (postcode) {
+    addressHtml += `<p style="font-size: 14px; color: #6b7280; margin: 0 0 12px 0;">${postcode}</p>`
+  }
   
   // If no address parts, fallback to raw address
   if (!addressHtml) {
-    addressHtml = `<p class="text-sm text-muted-foreground mb-3">${pub.address}</p>`
+    addressHtml = `<p style="font-size: 14px; color: #6b7280; margin: 0 0 12px 0;">${pub.address}</p>`
   }
   
   // Format visit date if available
@@ -445,12 +457,12 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
   // Image section
   let imageHtml = ''
   if (pub.imageUrl) {
-    imageHtml = `<img src="${pub.imageUrl}" alt="${pub.name}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;" />`
-    
-    // Add attribution for Wetherspoons images
-    if (pub.imageUrl.includes('jdwetherspoon.com')) {
-      imageHtml += `<p class="text-xs text-muted-foreground mb-2" style="font-size: 10px; opacity: 0.7;">Image © JD Wetherspoon</p>`
-    }
+    imageHtml = `
+      <div style="flex: 0 0 200px; max-width: 200px;">
+        <img src="${pub.imageUrl}" alt="${pub.name}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 4px;" />
+        ${pub.imageUrl.includes('jdwetherspoon.com') ? '<p style="font-size: 10px; color: #6b7280; opacity: 0.7; margin: 0;">Image © JD Wetherspoon</p>' : ''}
+      </div>
+    `
   }
   
   // Website link
@@ -460,18 +472,32 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
   }
 
   const content = `
-    <div style="min-width: 250px; max-width: 350px; padding: 12px;">
+    <div style="min-width: 250px; max-width: 500px; padding: 12px;">
       <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 8px 0;">${pub.name}</h3>
       <div style="display: flex; gap: 8px; margin-bottom: 12px;">
         ${statusBadge}
         ${visitBadge}
       </div>
-      ${imageHtml}
-      ${addressHtml}
-      ${websiteLink}
-      <button id="track-visit-btn-${pub.id}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 w-full">
-        ${visited ? 'Update Visit' : 'Visit'}
-      </button>
+      <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+        ${imageHtml ? `
+          ${imageHtml}
+          <div style="flex: 1; min-width: 200px;">
+            ${addressHtml}
+            ${websiteLink}
+            <button id="track-visit-btn-${pub.id}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 w-full">
+              ${visited ? 'Update Visit' : 'Visit'}
+            </button>
+          </div>
+        ` : `
+          <div style="flex: 1;">
+            ${addressHtml}
+            ${websiteLink}
+            <button id="track-visit-btn-${pub.id}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 w-full">
+              ${visited ? 'Update Visit' : 'Visit'}
+            </button>
+          </div>
+        `}
+      </div>
     </div>
   `
 
