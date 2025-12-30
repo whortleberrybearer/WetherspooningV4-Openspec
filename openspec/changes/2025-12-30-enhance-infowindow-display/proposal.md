@@ -15,14 +15,15 @@ The current InfoWindow implementation has styling issues due to the Google Maps 
 ## Proposed Solution
 Update the InfoWindow to:
 1. Fix card styling to work properly with Google Maps close button
-2. Display full postal address in format: "Street, Town, County, Postcode" (e.g., "15–19 Darwen Street, Blackburn, Lancashire, BB2 2BY")
+2. Parse the comma-separated address field ("Street, Town, County, Postcode") and display components on separate lines for better readability
 3. Display a link to the Wetherspoons pub page when `url` is defined
 4. Display pub image when `imageUrl` is defined
 5. Add attribution text for images from Wetherspoons domain
 
 ## User Value
 - **Better usability**: Fixed styling makes the InfoWindow more readable and professional
-- **Complete information**: Users see the full postal address in a single line (street, town, county, postcode)
+- **Complete information**: Users see the full postal address split across multiple lines for easy reading
+- **Improved layout**: Address components (street, town, county, postcode) are separated for clarity
 - **External navigation**: Users can visit the official Wetherspoons page for menu, facilities, and opening hours
 - **Visual recognition**: Images help users identify pubs they're looking for
 - **Legal compliance**: Proper attribution for Wetherspoons images

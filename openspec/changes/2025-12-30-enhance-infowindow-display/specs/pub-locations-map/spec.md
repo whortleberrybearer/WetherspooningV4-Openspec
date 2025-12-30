@@ -8,14 +8,21 @@
 
 **Changes:**
 - UPDATE: InfoWindow card styling to work correctly with Google Maps close button
-- UPDATE: Address field to include full postal address (street, town, county, postcode)
+- UPDATE: Address display to parse comma-separated address field and format across multiple lines
 - ADD: Display link to Wetherspoons pub page when `url` is defined
 - ADD: Display pub image when `imageUrl` is defined
 - ADD: Attribution for Wetherspoons images
 
 **Updated Acceptance Criteria:**
 - Clicking a marker opens an info window
-- Info window displays: pub name, full address (including street, town, county, and postcode in format: "Street, Town, County, Postcode")
+- Info window displays pub name and parsed address components on separate lines
+- Address field (format: "Street, Town, County, Postcode") is split on commas to extract:
+  - Street address (first part)
+  - Town (second part)
+  - County (third part)
+  - Postcode (fourth part)
+- Each address component is displayed on its own line for improved readability
+- Address parsing is resilient to missing components (handles addresses with fewer than 4 parts)
 - Info window styling works correctly with Google Maps default close button (no layout conflicts)
 - If `url` field is defined, info window includes a link to the Wetherspoons pub page
 - Link opens in a new tab with `target="_blank"` and `rel="noopener noreferrer"`
@@ -40,7 +47,11 @@
   - `openState`: "Open"
 **And** the user is authenticated
 **And** the pub has been visited
-**When** the user clicks on the pub's marker
+**WhAddress displayed across multiple lines:
+    - Line 1: "47 High Street"
+    - Line 2: "Liverpool"
+    - Line 3: "Merseyside"
+    - Line 4: "
 **Then** the info window opens with:
   - Pub name as heading
   - Status badge ("Open")
@@ -60,11 +71,26 @@
   - `county`: "West Midlands"
   - No `url` field
   - No `imageUrl` field
+**WhAddress displayed across multiple lines:
+    - Line 1: "69 Church Street"
+    - Line 2: "Birmingham"
+    - Line 3: "West Midlands"
+    - Line 4: "B2 5TH"
+  - "Visit" button
+  - No pub image displayed
+  - No Wetherspoons link displayed
+  - No attribution text displayed
+
+#### Scenario: Address Parsing Handles Incomplete Addresses
+**Given** pub "The Bell" has:
+  - `address`: "15 High Street, York"
 **When** the user clicks on the pub's marker
 **Then** the info window opens with:
-  - Pub name as heading
-  - Status badge
-  - Full address: "69 Church Street, Birmingham, West Midlands, B2 5TH"
+  - Address displayed as available:
+    - Line 1: "15 High Street"
+    - Line 2: "York"
+  - No errors are thrown
+  - Layout remains clean with only available address partset, Birmingham, West Midlands, B2 5TH"
   - "Visit" button
   - No pub image displayed
   - No Wetherspoons link displayed

@@ -6,12 +6,16 @@
 - Ensure content is properly structured for readability
 - **Validation**: InfoWindow opens without layout conflicts, close button is functional
 
-## 2. Update Address Display to Show Full Format
-- Display address in single line format: "Street, Town, County, Postcode"
-- Use existing `pub.address` field (already contains full format from data generator)
-- Remove separate town/city and county lines
-- Use consistent styling with muted text
-- **Validation**: Full address displays correctly, wraps properly on mobile
+## 2. Update Address Display to Parse and Format Components
+- Split `pub.address` on commas to extract address components
+- Display each component on a separate line:
+  - Line 1: Street address
+  - Line 2: Town
+  - Line 3: County  
+  - Line 4: Postcode
+- Handle addresses with fewer than 4 parts gracefully (no errors)
+- Use consistent muted text styling for all address lines
+- **Validation**: Address displays correctly across multiple lines, parsing handles various formats
 
 ## 3. Add Pub Image Display to InfoWindow
 - Check if `pub.imageUrl` is defined before displaying
