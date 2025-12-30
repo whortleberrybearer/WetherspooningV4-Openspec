@@ -472,24 +472,37 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
   }
 
   const content = `
-    <div style="min-width: 250px; max-width: 500px; padding: 12px;">
+    <style>
+      .iw-container { min-width: 250px; max-width: 500px; padding: 12px; }
+      .iw-flex { display: flex; gap: 16px; flex-wrap: wrap; }
+      .iw-content { flex: 1; min-width: 200px; display: flex; flex-direction: column; order: 2; }
+      .iw-image { flex: 0 0 200px; max-width: 200px; order: 1; }
+      @media (min-width: 450px) {
+        .iw-content { order: 1; }
+        .iw-image { order: 2; }
+      }
+    </style>
+    <div class="iw-container">
       <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 8px 0;">${pub.name}</h3>
       <div style="display: flex; gap: 8px; margin-bottom: 12px;">
         ${statusBadge}
         ${visitBadge}
       </div>
-      <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+      <div class="iw-flex">
         ${imageHtml ? `
-          <div style="flex: 1; min-width: 200px; display: flex; flex-direction: column;">
+          <div class="iw-image">
+            <img src="${pub.imageUrl}" alt="${pub.name}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 4px;" />
+            ${pub.imageUrl.includes('jdwetherspoon.com') ? '<p style="font-size: 10px; color: #6b7280; opacity: 0.7; margin: 0;">Image © JD Wetherspoon</p>' : ''}
+          </div>
+          <div class="iw-content">
             ${addressHtml}
             ${websiteLink}
             <button id="track-visit-btn-${pub.id}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 w-full" style="margin-top: auto;">
               ${visited ? 'Update Visit' : 'Visit'}
             </button>
           </div>
-          ${imageHtml}
         ` : `
-          <div style="flex: 1;">
+          <div class="iw-content">
             ${addressHtml}
             ${websiteLink}
             <button id="track-visit-btn-${pub.id}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 w-full">
