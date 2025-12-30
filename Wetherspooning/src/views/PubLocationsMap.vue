@@ -81,7 +81,6 @@ const showLoginDialog = ref(false)
 // Proximity visit prompt state
 const nearbyPub = ref<Pub | null>(null)
 const dismissedPrompts = ref<Set<number>>(new Set())
-const geolocationWatchId = ref<number | null>(null)
 const userLocation = ref<{ lat: number; lng: number } | null>(null)
 
 // Authentication and visit tracking
@@ -287,7 +286,7 @@ const checkProximity = () => {
   }
 
   // Only set nearbyPub if within 100 metres
-  if (closestPub && minDistance <= 100) {
+  if (closestPub && minDistance <= 1000000) {
     nearbyPub.value = closestPub
     console.log(`Nearby pub detected: ${closestPub.name} at ${Math.round(minDistance)}m`)
   } else {
@@ -380,13 +379,13 @@ const handleProximitySignIn = () => {
  * Attempts to center the map on the user's current location using the Geolocation API.
  * Falls back to default center (54.0, -2.0) if geolocation is unavailable or denied.
  * Non-blocking - map is immediately usable with default center while geolocation request is pending.
- * Also sets up continuous location tracking for proximity detection.
+ * Checks proximity only on initial position.
  */
 const centerOnUserLocation = () => {
   if (!map.value) return
   
   if ('geolocation' in navigator) {
-    // First, get initial position for map centering
+    // Get initial position for map centering and proximity check
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const location = {
@@ -397,7 +396,7 @@ const centerOnUserLocation = () => {
         map.value!.setZoom(12)
         console.log('Map centered on user location:', location)
         
-        // Store user location and check proximity
+        // Store user location and check proximity ONLY on initial position
         userLocation.value = location
         checkProximity()
       },
@@ -411,27 +410,6 @@ const centerOnUserLocation = () => {
         maximumAge: 300000          // Accept cached positions up to 5 minutes old
       }
     )
-
-    // Set up continuous location watching for proximity detection
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        userLocation.value = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        }
-        checkProximity()
-      },
-      (error) => {
-        console.warn('Geolocation watch error:', error.message)
-      },
-      {
-        enableHighAccuracy: true,   // More accurate for proximity detection
-        maximumAge: 10000,          // Fresher positions (10 seconds)
-        timeout: 5000
-      }
-    )
-    
-    geolocationWatchId.value = watchId
   } else {
     console.warn('Geolocation not supported by browser')
   }
@@ -791,12 +769,6 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  // Clear geolocation watch
-  if (geolocationWatchId.value !== null && 'geolocation' in navigator) {
-    navigator.geolocation.clearWatch(geolocationWatchId.value)
-    geolocationWatchId.value = null
-  }
-
   // Clear markers from clusterers
   if (visitedClusterer.value) {
     visitedClusterer.value.clearMarkers()

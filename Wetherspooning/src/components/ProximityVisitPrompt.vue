@@ -1,6 +1,6 @@
 <template>
-  <Transition name="slide-up">
-    <Card v-if="isOpen && pub" class="fixed bottom-4 left-4 right-4 z-50 shadow-lg md:left-auto md:right-4 md:w-96">
+  <Transition name="fade">
+    <Card v-if="isOpen && pub" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 shadow-lg w-[calc(100%-2rem)] max-w-md">
       <CardHeader>
         <div class="flex items-start justify-between">
           <div class="flex-1">
@@ -27,8 +27,8 @@
           :alt="pub.name"
           class="w-full h-48 object-cover rounded-md"
         />
-        <p class="text-xs text-muted-foreground mt-1">
-          Image: JD Wetherspoon
+        <p v-if="pub.imageUrl.includes('jdwetherspoon.com')" class="text-xs text-muted-foreground mt-1">
+          Image © JD Wetherspoon
         </p>
       </CardContent>
       
@@ -38,7 +38,7 @@
           class="w-full"
           @click="$emit('confirm')"
         >
-          Yes, I'm here
+          Visit
         </Button>
         <Button
           v-else
@@ -46,7 +46,7 @@
           class="w-full"
           @click="$emit('signIn')"
         >
-          Sign in to track visits
+          Sign in to track visit
         </Button>
       </CardFooter>
     </Card>
@@ -73,18 +73,14 @@ defineEmits<{
 </script>
 
 <style scoped>
-.slide-up-enter-active,
-.slide-up-leave-active {
+.fade-enter-active,
+.fade-leave-active {
   transition: all 0.3s ease;
 }
 
-.slide-up-enter-from {
-  transform: translateY(100%);
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
-}
-
-.slide-up-leave-to {
-  transform: translateY(100%);
-  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.95);
 }
 </style>
