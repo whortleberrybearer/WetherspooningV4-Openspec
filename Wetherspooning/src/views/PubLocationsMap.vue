@@ -398,6 +398,34 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
   const isClosed = pub.openState?.toLowerCase().includes('closed') || false
   const visited = isVisited(pub.id)
   
+  // Parse address components by splitting on comma
+  // Last part is postcode, second-to-last and third-to-last are town/county
+  // Everything before that is street address
+  const addressParts = pub.address.split(',').map(part => part.trim())
+  const postcode = addressParts[addressParts.length - 1] || ''
+  const county = addressParts[addressParts.length - 2] || ''
+  const town = addressParts[addressParts.length - 3] || ''
+  const streetParts = addressParts.slice(0, -3)
+  const street = streetParts.length > 0 ? streetParts.join(', ') : addressParts[0] || ''
+  
+  // Build address HTML with 3 lines: street, town/county, postcode
+  let addressHtml = ''
+  if (street) {
+    addressHtml += `<p style="font-size: 14px; color: #6b7280; margin: 0 0 4px 0;">${street}</p>`
+  }
+  if (town || county) {
+    const townCounty = [town, county].filter(Boolean).join(', ')
+    addressHtml += `<p style="font-size: 14px; color: #6b7280; margin: 0 0 4px 0;">${townCounty}</p>`
+  }
+  if (postcode) {
+    addressHtml += `<p style="font-size: 14px; color: #6b7280; margin: 0 0 12px 0;">${postcode}</p>`
+  }
+  
+  // If no address parts, fallback to raw address
+  if (!addressHtml) {
+    addressHtml = `<p style="font-size: 14px; color: #6b7280; margin: 0 0 12px 0;">${pub.address}</p>`
+  }
+  
   // Format visit date if available
   let visitBadge = ''
   if (isAuthenticated.value && visited) {
@@ -426,21 +454,62 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
     ? `<span class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80">Closed</span>`
     : `<span class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-500 text-white hover:bg-green-500/80">Open</span>`
 
-  const content = `
-    <div class="rounded-lg border bg-card text-card-foreground shadow-sm min-w-[250px] max-w-[350px]">
-      <div class="flex flex-col space-y-1.5 p-4 pb-3">
-        <h3 class="text-base font-semibold leading-none tracking-tight">${pub.name}</h3>
-        <div class="flex gap-2 mt-2">
-          ${statusBadge}
-          ${visitBadge}
-        </div>
+  // Image section
+  let imageHtml = ''
+  if (pub.imageUrl) {
+    imageHtml = `
+      <div style="flex: 0 0 200px; max-width: 200px;">
+        <img src="${pub.imageUrl}" alt="${pub.name}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 4px;" />
+        ${pub.imageUrl.includes('jdwetherspoon.com') ? '<p style="font-size: 10px; color: #6b7280; opacity: 0.7; margin: 0;">Image © JD Wetherspoon</p>' : ''}
       </div>
-      <div class="p-4 pt-0">
-        <p class="text-sm text-muted-foreground mb-1">${pub.address}</p>
-        <p class="text-sm text-muted-foreground mb-3">${pub.townCity}, ${pub.county}</p>
-        <button id="track-visit-btn-${pub.id}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 w-full">
-          ${visited ? 'Update Visit' : 'Visit'}
-        </button>
+    `
+  }
+  
+  // Website link
+  let websiteLink = ''
+  if (pub.url) {
+    websiteLink = `<a href="${pub.url}" target="_blank" rel="noopener noreferrer" class="text-sm text-primary hover:underline mb-3 block">View on Wetherspoons website</a>`
+  }
+
+  const content = `
+    <style>
+      .iw-container { min-width: 250px; max-width: 500px; padding: 12px; }
+      .iw-flex { display: flex; gap: 16px; flex-wrap: wrap; }
+      .iw-content { flex: 1; min-width: 200px; display: flex; flex-direction: column; order: 2; }
+      .iw-image { flex: 0 0 200px; max-width: 200px; order: 1; }
+      @media (min-width: 450px) {
+        .iw-content { order: 1; }
+        .iw-image { order: 2; }
+      }
+    </style>
+    <div class="iw-container">
+      <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 8px 0;">${pub.name}</h3>
+      <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+        ${statusBadge}
+        ${visitBadge}
+      </div>
+      <div class="iw-flex">
+        ${imageHtml ? `
+          <div class="iw-image">
+            <img src="${pub.imageUrl}" alt="${pub.name}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 4px;" />
+            ${pub.imageUrl.includes('jdwetherspoon.com') ? '<p style="font-size: 10px; color: #6b7280; opacity: 0.7; margin: 0;">Image © JD Wetherspoon</p>' : ''}
+          </div>
+          <div class="iw-content">
+            ${addressHtml}
+            ${websiteLink}
+            <button id="track-visit-btn-${pub.id}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 w-full" style="margin-top: auto;">
+              ${visited ? 'Update Visit' : 'Visit'}
+            </button>
+          </div>
+        ` : `
+          <div class="iw-content">
+            ${addressHtml}
+            ${websiteLink}
+            <button id="track-visit-btn-${pub.id}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 w-full">
+              ${visited ? 'Update Visit' : 'Visit'}
+            </button>
+          </div>
+        `}
       </div>
     </div>
   `
