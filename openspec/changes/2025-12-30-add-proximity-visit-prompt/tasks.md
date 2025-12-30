@@ -3,68 +3,68 @@
 ## Phase 1: Core Implementation
 
 ### 1.1 Add Distance Calculation Utility
-- [ ] Create `calculateDistance()` helper function in PubLocationsMap.vue
-- [ ] Implement Haversine formula for lat/lng to metres conversion
-- [ ] Add JSDoc comments explaining the formula
+- [x] Create `calculateDistance()` helper function in PubLocationsMap.vue
+- [x] Implement Haversine formula for lat/lng to metres conversion
+- [x] Add JSDoc comments explaining the formula
 - [ ] Test with known coordinates to verify accuracy
 
 ### 1.2 Add Proximity Detection Logic
-- [ ] Add reactive state for nearest pub: `nearbyPub` (ref)
-- [ ] Add reactive state for dismissed prompts: `dismissedPrompts` (ref<Set<number>>)
-- [ ] Create `checkProximity()` function to find nearest open pub
-- [ ] Filter out closed pubs before distance calculation
-- [ ] Filter out already-visited pubs (check `isVisited()`)
-- [ ] Filter out dismissed pubs (check dismissedPrompts Set)
-- [ ] Find pub with minimum distance
-- [ ] Set `nearbyPub` if distance < 100m, otherwise set to null
-- [ ] Add console logging for debugging proximity detection
+- [x] Add reactive state for nearest pub: `nearbyPub` (ref)
+- [x] Add reactive state for dismissed prompts: `dismissedPrompts` (ref<Set<number>>)
+- [x] Create `checkProximity()` function to find nearest open pub
+- [x] Filter out closed pubs before distance calculation
+- [x] Filter out already-visited pubs (check `isVisited()`)
+- [x] Filter out dismissed pubs (check dismissedPrompts Set)
+- [x] Find pub with minimum distance
+- [x] Set `nearbyPub` if distance < 100m, otherwise set to null
+- [x] Add console logging for debugging proximity detection
 
 ### 1.3 Integrate Geolocation Watch
-- [ ] Add `watchPosition()` call in `centerOnUserLocation()` or separate function
-- [ ] Configure watch options: `enableHighAccuracy: true`, `maximumAge: 10000`, `timeout: 5000`
-- [ ] Store watch ID for cleanup: `geolocationWatchId` (ref)
-- [ ] Call `checkProximity()` on position update callback
-- [ ] Clear watch on component unmount (onBeforeUnmount)
-- [ ] Handle geolocation errors gracefully (no feature crash)
+- [x] Add `watchPosition()` call in `centerOnUserLocation()` or separate function
+- [x] Configure watch options: `enableHighAccuracy: true`, `maximumAge: 10000`, `timeout: 5000`
+- [x] Store watch ID for cleanup: `geolocationWatchId` (ref)
+- [x] Call `checkProximity()` on position update callback
+- [x] Clear watch on component unmount (onBeforeUnmount)
+- [x] Handle geolocation errors gracefully (no feature crash)
 
 ### 1.4 Session Storage for Dismissed Prompts
-- [ ] Create `loadDismissedPrompts()` function to read from sessionStorage
-- [ ] Call `loadDismissedPrompts()` on component mount
-- [ ] Create `saveDismissedPrompts()` function to write to sessionStorage
-- [ ] Call `saveDismissedPrompts()` whenever dismissedPrompts Set changes
+- [x] Create `loadDismissedPrompts()` function to read from sessionStorage
+- [x] Call `loadDismissedPrompts()` on component mount
+- [x] Create `saveDismissedPrompts()` function to write to sessionStorage
+- [x] Call `saveDismissedPrompts()` whenever dismissedPrompts Set changes
 
 ### 1.5 Create ProximityVisitPrompt Component
-- [ ] Create new file: `src/components/ProximityVisitPrompt.vue`
-- [ ] Add props: `pub` (Pub | null), `isOpen` (boolean), `isAuthenticated` (boolean)
-- [ ] Add emits: `confirm`, `dismiss`, `signIn`
-- [ ] Add template structure: Dialog/Card with pub details
-- [ ] Display pub image if `imageUrl` is present
-- [ ] Display "Image: JD Wetherspoon" attribution if image present
-- [ ] Display pub name and address
-- [ ] Add "Yes, I'm here" button (visible if authenticated)
-- [ ] Add "Sign in to track visits" button (visible if NOT authenticated)
-- [ ] Add dismiss/close button (always visible)
-- [ ] Add mobile-first styling (bottom sheet or card)
-- [ ] Use shadcn/vue components (Dialog, Card, Button)
+- [x] Create new file: `src/components/ProximityVisitPrompt.vue`
+- [x] Add props: `pub` (Pub | null), `isOpen` (boolean), `isAuthenticated` (boolean)
+- [x] Add emits: `confirm`, `dismiss`, `signIn`
+- [x] Add template structure: Dialog/Card with pub details
+- [x] Display pub image if `imageUrl` is present
+- [x] Display "Image: JD Wetherspoon" attribution if image present
+- [x] Display pub name and address
+- [x] Add "Yes, I'm here" button (visible if authenticated)
+- [x] Add "Sign in to track visits" button (visible if NOT authenticated)
+- [x] Add dismiss/close button (always visible)
+- [x] Add mobile-first styling (bottom sheet or card)
+- [x] Use shadcn/vue components (Dialog, Card, Button)
 
 ### 1.6 Integrate Prompt Component in Map View
-- [ ] Import ProximityVisitPrompt component in PubLocationsMap.vue
-- [ ] Add component to template
-- [ ] Bind `:pub="nearbyPub"` prop
-- [ ] Bind `:is-open="nearbyPub !== null"` prop
-- [ ] Bind `:is-authenticated="isAuthenticated"` prop
-- [ ] Handle `@confirm` event: call visit creation logic
-- [ ] Handle `@dismiss` event: add pub ID to dismissedPrompts Set
-- [ ] Handle `@signIn` event: open login dialog
+- [x] Import ProximityVisitPrompt component in PubLocationsMap.vue
+- [x] Add component to template
+- [x] Bind `:pub="nearbyPub"` prop
+- [x] Bind `:is-open="nearbyPub !== null"` prop
+- [x] Bind `:is-authenticated="isAuthenticated"` prop
+- [x] Handle `@confirm` event: call visit creation logic
+- [x] Handle `@dismiss` event: add pub ID to dismissedPrompts Set
+- [x] Handle `@signIn` event: open login dialog
 
 ### 1.7 Visit Creation Handler
-- [ ] Create `handleProximityVisitConfirm()` function
-- [ ] Get current user UID from `useAuth`
-- [ ] Call `addVisit(nearbyPub.id, { visitedAt: new Date().toISOString() }, user.uid)`
-- [ ] Handle success: close prompt (set nearbyPub to null)
-- [ ] Handle success: call `showPubInfo()` for the visited pub
-- [ ] Handle error: display error message in or near prompt
-- [ ] Keep prompt open on error for retry
+- [x] Create `handleProximityVisitConfirm()` function
+- [x] Get current user UID from `useAuth`
+- [x] Call `addVisit(nearbyPub.id, { visitedAt: new Date().toISOString() }, user.uid)`
+- [x] Handle success: close prompt (set nearbyPub to null)
+- [x] Handle success: call `showPubInfo()` for the visited pub
+- [x] Handle error: display error message in or near prompt
+- [x] Keep prompt open on error for retry
 
 ## Phase 2: Testing & Refinement
 

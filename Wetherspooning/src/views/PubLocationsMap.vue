@@ -31,6 +31,22 @@
       :is-open="showPubDetail"
       @update:is-open="showPubDetail = $event"
     />
+
+    <!-- Proximity Visit Prompt -->
+    <ProximityVisitPrompt
+      :pub="nearbyPub"
+      :is-open="nearbyPub !== null"
+      :is-authenticated="isAuthenticated"
+      @confirm="handleProximityVisitConfirm"
+      @dismiss="handleProximityDismiss"
+      @sign-in="handleProximitySignIn"
+    />
+
+    <!-- Login Dialog -->
+    <LoginDialog
+      :is-open="showLoginDialog"
+      @close="showLoginDialog = false"
+    />
   </div>
 </template>
 
@@ -40,6 +56,8 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 import { MarkerClusterer } from '@googlemaps/markerclusterer'
 import AppSidebar from '@/components/AppSidebar.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
+import ProximityVisitPrompt from '@/components/ProximityVisitPrompt.vue'
+import LoginDialog from '@/components/LoginDialog.vue'
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-vue-next'
@@ -58,10 +76,17 @@ const error = ref<string>('')
 const showClosedPubs = ref(false)
 const selectedPub = ref<Pub | null>(null)
 const showPubDetail = ref(false)
+const showLoginDialog = ref(false)
+
+// Proximity visit prompt state
+const nearbyPub = ref<Pub | null>(null)
+const dismissedPrompts = ref<Set<number>>(new Set())
+const geolocationWatchId = ref<number | null>(null)
+const userLocation = ref<{ lat: number; lng: number } | null>(null)
 
 // Authentication and visit tracking
 const { user, isAuthenticated } = useAuth()
-const { isVisited, getVisitDate, loadVisits, clearVisits, visitedPubIds, visits } = useVisits()
+const { isVisited, getVisitDate, loadVisits, clearVisits, visitedPubIds, visits, addVisit } = useVisits()
 
 // Watch authentication state to load/clear visit data
 watch(isAuthenticated, async (authenticated) => {
@@ -176,23 +201,205 @@ const initMap = () => {
 }
 
 /**
+ * Calculate the distance between two geographic coordinates using the Haversine formula.
+ * 
+ * The Haversine formula calculates the great-circle distance between two points
+ * on a sphere given their longitudes and latitudes. This is accurate for short
+ * distances (< 100km) and doesn't require external libraries.
+ * 
+ * @param lat1 - Latitude of first point in decimal degrees
+ * @param lng1 - Longitude of first point in decimal degrees
+ * @param lat2 - Latitude of second point in decimal degrees
+ * @param lng2 - Longitude of second point in decimal degrees
+ * @returns Distance in metres
+ */
+const calculateDistance = (
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number => {
+  const R = 6371e3 // Earth's radius in metres
+  const φ1 = lat1 * Math.PI / 180 // Convert to radians
+  const φ2 = lat2 * Math.PI / 180
+  const Δφ = (lat2 - lat1) * Math.PI / 180
+  const Δλ = (lng2 - lng1) * Math.PI / 180
+
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+
+  return R * c // Distance in metres
+}
+
+/**
+ * Check if the user is near any open, unvisited pubs and update nearbyPub state.
+ * 
+ * Filters pubs to only consider:
+ * - Open pubs (excludes closed)
+ * - Unvisited pubs (if authenticated)
+ * - Not dismissed in this session
+ * 
+ * Sets nearbyPub to the closest pub if within 100 metres, otherwise null.
+ */
+const checkProximity = () => {
+  if (!userLocation.value || pubs.value.length === 0) {
+    nearbyPub.value = null
+    return
+  }
+
+  const { lat, lng } = userLocation.value
+
+  // Filter pubs: open, not visited (if authenticated), not dismissed
+  const candidatePubs = pubs.value.filter(pub => {
+    // Filter out closed pubs
+    const isClosed = pub.openState?.toLowerCase().includes('closed') || false
+    if (isClosed) return false
+
+    // Filter out visited pubs (if authenticated)
+    if (isAuthenticated.value && isVisited(pub.id)) return false
+
+    // Filter out dismissed pubs
+    if (dismissedPrompts.value.has(pub.id)) return false
+
+    return true
+  })
+
+  if (candidatePubs.length === 0) {
+    nearbyPub.value = null
+    return
+  }
+
+  // Find closest pub
+  let closestPub: Pub | null = null
+  let minDistance = Infinity
+
+  for (const pub of candidatePubs) {
+    if (!pub.lat || !pub.lng) continue
+
+    const distance = calculateDistance(lat, lng, pub.lat, pub.lng)
+    
+    if (distance < minDistance) {
+      minDistance = distance
+      closestPub = pub
+    }
+  }
+
+  // Only set nearbyPub if within 100 metres
+  if (closestPub && minDistance <= 100) {
+    nearbyPub.value = closestPub
+    console.log(`Nearby pub detected: ${closestPub.name} at ${Math.round(minDistance)}m`)
+  } else {
+    nearbyPub.value = null
+  }
+}
+
+/**
+ * Load dismissed prompt IDs from session storage.
+ */
+const loadDismissedPrompts = () => {
+  try {
+    const stored = sessionStorage.getItem('dismissedPrompts')
+    if (stored) {
+      const ids = JSON.parse(stored) as number[]
+      dismissedPrompts.value = new Set(ids)
+    }
+  } catch (error) {
+    console.warn('Failed to load dismissed prompts from session storage:', error)
+    dismissedPrompts.value = new Set()
+  }
+}
+
+/**
+ * Save dismissed prompt IDs to session storage.
+ */
+const saveDismissedPrompts = () => {
+  try {
+    const ids = Array.from(dismissedPrompts.value)
+    sessionStorage.setItem('dismissedPrompts', JSON.stringify(ids))
+  } catch (error) {
+    console.warn('Failed to save dismissed prompts to session storage:', error)
+  }
+}
+
+/**
+ * Handle proximity visit confirmation - create visit and show info window.
+ */
+const handleProximityVisitConfirm = async () => {
+  if (!nearbyPub.value || !user.value?.uid) return
+
+  try {
+    // Create visit with current date
+    await addVisit(
+      nearbyPub.value.id,
+      { visitedAt: new Date().toISOString() },
+      user.value.uid
+    )
+
+    // Find the marker for this pub
+    const marker = markers.value.find(m => {
+      const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
+      const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat
+      const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng
+      return lat === nearbyPub.value!.lat && lng === nearbyPub.value!.lng
+    })
+
+    // Show info window for the pub
+    if (marker) {
+      showPubInfo(nearbyPub.value, marker)
+    }
+
+    // Close proximity prompt
+    nearbyPub.value = null
+  } catch (error) {
+    console.error('Failed to create visit from proximity prompt:', error)
+    // Keep prompt open for retry - error will be shown by addVisit
+  }
+}
+
+/**
+ * Handle proximity prompt dismissal - add to dismissed list.
+ */
+const handleProximityDismiss = () => {
+  if (!nearbyPub.value) return
+  
+  dismissedPrompts.value.add(nearbyPub.value.id)
+  saveDismissedPrompts()
+  nearbyPub.value = null
+}
+
+/**
+ * Handle sign in request from proximity prompt - open login dialog.
+ */
+const handleProximitySignIn = () => {
+  showLoginDialog.value = true
+}
+
+/**
  * Attempts to center the map on the user's current location using the Geolocation API.
  * Falls back to default center (54.0, -2.0) if geolocation is unavailable or denied.
  * Non-blocking - map is immediately usable with default center while geolocation request is pending.
+ * Also sets up continuous location tracking for proximity detection.
  */
 const centerOnUserLocation = () => {
   if (!map.value) return
   
   if ('geolocation' in navigator) {
+    // First, get initial position for map centering
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const userLocation = {
+        const location = {
           lat: position.coords.latitude,
           lng: position.coords.longitude
         }
-        map.value!.setCenter(userLocation)
+        map.value!.setCenter(location)
         map.value!.setZoom(12)
-        console.log('Map centered on user location:', userLocation)
+        console.log('Map centered on user location:', location)
+        
+        // Store user location and check proximity
+        userLocation.value = location
+        checkProximity()
       },
       (error) => {
         console.warn('Geolocation failed:', error.message)
@@ -204,6 +411,27 @@ const centerOnUserLocation = () => {
         maximumAge: 300000          // Accept cached positions up to 5 minutes old
       }
     )
+
+    // Set up continuous location watching for proximity detection
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        userLocation.value = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        }
+        checkProximity()
+      },
+      (error) => {
+        console.warn('Geolocation watch error:', error.message)
+      },
+      {
+        enableHighAccuracy: true,   // More accurate for proximity detection
+        maximumAge: 10000,          // Fresher positions (10 seconds)
+        timeout: 5000
+      }
+    )
+    
+    geolocationWatchId.value = watchId
   } else {
     console.warn('Geolocation not supported by browser')
   }
@@ -460,7 +688,7 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
     imageHtml = `
       <div style="flex: 0 0 200px; max-width: 200px;">
         <img src="${pub.imageUrl}" alt="${pub.name}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 4px;" />
-        ${pub.imageUrl.includes('jdwetherspoon.com') ? '<p style="font-size: 10px; color: #6b7280; opacity: 0.7; margin: 0;">Image © JD Wetherspoon</p>' : ''}
+        ${pub.imageUrl?.includes('jdwetherspoon.com') ? '<p style="font-size: 10px; color: #6b7280; opacity: 0.7; margin: 0;">Image © JD Wetherspoon</p>' : ''}
       </div>
     `
   }
@@ -492,7 +720,7 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
         ${imageHtml ? `
           <div class="iw-image">
             <img src="${pub.imageUrl}" alt="${pub.name}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 4px;" />
-            ${pub.imageUrl.includes('jdwetherspoon.com') ? '<p style="font-size: 10px; color: #6b7280; opacity: 0.7; margin: 0;">Image © JD Wetherspoon</p>' : ''}
+            ${pub.imageUrl?.includes('jdwetherspoon.com') ? '<p style="font-size: 10px; color: #6b7280; opacity: 0.7; margin: 0;">Image © JD Wetherspoon</p>' : ''}
           </div>
           <div class="iw-content">
             ${addressHtml}
@@ -551,6 +779,9 @@ const handlePubSelect = (pub: Pub) => {
 }
 
 onMounted(async () => {
+  // Load dismissed prompts from session storage
+  loadDismissedPrompts()
+
   setOptions({ key: import.meta.env.VITE_GOOGLE_MAPS_API_KEY, v: 'weekly' })
   await importLibrary('maps')
   await importLibrary('marker')
@@ -560,6 +791,12 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  // Clear geolocation watch
+  if (geolocationWatchId.value !== null && 'geolocation' in navigator) {
+    navigator.geolocation.clearWatch(geolocationWatchId.value)
+    geolocationWatchId.value = null
+  }
+
   // Clear markers from clusterers
   if (visitedClusterer.value) {
     visitedClusterer.value.clearMarkers()
