@@ -701,8 +701,8 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
         border-radius: 6px;
         font-size: 14px;
         font-weight: 500;
-        background-color: hsl(var(--primary));
-        color: hsl(var(--primary-foreground));
+        background-color: #0f172a;
+        color: #f8fafc;
         height: 36px;
         padding: 0 16px;
         width: 100%;
@@ -711,7 +711,7 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
         transition: background-color 0.2s;
       }
       .iw-button:hover {
-        opacity: 0.9;
+        background-color: #1e293b;
       }
       @media (max-width: 450px) {
         .iw-card {
