@@ -56,8 +56,9 @@ The system MUST display an Account Settings dialog that shows account informatio
 - Dialog displays current username
 - Dialog displays current email address
 - Dialog includes a "Delete Account" button with destructive (red) styling
-- Dialog includes a "Close" button
+- "Delete Account" button is right-aligned (not full-width)
 - Dialog can be dismissed by clicking outside or pressing Escape
+- Dialog does not include a Close button (dismissible via Escape or click-outside)
 - Dialog is mobile-responsive
 - All interactive elements are keyboard accessible
 
@@ -68,117 +69,108 @@ The system MUST display an Account Settings dialog that shows account informatio
 **And** the username "testuser" is displayed  
 **And** the email "testuser@example.com" is displayed  
 **And** a "Delete Account" button is visible with destructive styling  
-**And** a "Close" button is visible
+**And** the button is right-aligned
 
-#### Scenario: Close Account Settings Dialog
+#### Scenario: Dismiss Account Settings Dialog
 **Given** the Account Settings dialog is open  
-**When** the user clicks the "Close" button  
+**When** the user presses Escape or clicks outside the dialog  
 **Then** the dialog closes  
 **And** the user returns to the main view
 
 ---
 
-### Requirement: Delete Account Confirmation (REQ-AS-003)
-**Priority:** MUST  
-**Category:** Functional
-
-The system MUST require explicit confirmation before proceeding with account deletion.
-
-**Acceptance Criteria:**
-- Clicking "Delete Account" opens a confirmation dialog
-- Confirmation dialog warns that deletion is permanent and non-recoverable
-- Warning message states: "This action is permanent and cannot be undone. All your visit data will be permanently deleted."
-- Confirmation dialog provides "Cancel" button
-- Confirmation dialog provides "Delete Account" button with destructive styling
-- Clicking "Cancel" closes confirmation and returns to Account Settings
-- Confirmation dialog can be dismissed with Escape key
-- Dialog uses clear, non-technical language
-
-#### Scenario: Display Delete Confirmation Dialog
-**Given** the Account Settings dialog is open  
-**When** the user clicks "Delete Account"  
-**Then** a confirmation dialog opens  
-**And** the dialog title is "Delete Account?"  
-**And** the warning message "This action is permanent and cannot be undone. All your visit data will be permanently deleted." is displayed  
-**And** a "Cancel" button is visible  
-**And** a "Delete Account" button is visible with destructive styling
-
-#### Scenario: Cancel Account Deletion
-**Given** the delete confirmation dialog is open  
-**When** the user clicks "Cancel"  
-**Then** the confirmation dialog closes  
-**And** the Account Settings dialog remains open  
-**And** the user account is not deleted
-
----
-
-### Requirement: Re-authentication Before Deletion (REQ-AS-004)
+### Requirement: Delete Account Confirmation and Re-authentication (REQ-AS-003)
 **Priority:** MUST  
 **Category:** Security
 
-The system MUST require users to re-authenticate with their password before completing account deletion.
+The system MUST display a combined confirmation and re-authentication dialog when user initiates account deletion.
 
 **Acceptance Criteria:**
-- Confirming deletion opens a re-authentication dialog
-- Re-authentication dialog title is "Confirm Your Identity"
-- Dialog description states: "Please enter your password to confirm account deletion"
-- Dialog contains a password input field (masked)
-- Password field has placeholder "Enter your password"
+- Clicking "Delete Account" opens a single dialog for confirmation and re-authentication
+- Dialog title is "Delete Account?"
+- Dialog warns that deletion is permanent and non-recoverable
+- Warning message states: "This action is permanent and cannot be undone. All your visit data will be permanently deleted."
+- Dialog includes password input field for re-authentication
+- Password field has label "Enter your password to confirm"
+- Password field is masked
 - Dialog provides "Cancel" button
-- Dialog provides "Confirm" button with destructive styling
-- Submit button is disabled when password field is empty
-- Incorrect password displays error message
-- Error message states: "Incorrect password. Please try again."
-- Successful re-authentication proceeds to account deletion
-- Re-authentication uses Firebase reauthenticateWithCredential API
-- Dialog is keyboard accessible (Enter to submit, Escape to cancel)
+- Dialog provides "Delete Account" button with destructive styling
+- "Delete Account" button is disabled when password field is empty
+- Clicking "Cancel" closes dialog and returns to Account Settings
+- Dialog can be dismissed with Escape key
+- Dialog uses clear, non-technical language
 
-#### Scenario: Display Re-authentication Dialog
-**Given** the delete confirmation dialog is open  
+#### Scenario: Display Combined Confirmation and Re-auth Dialog
+**Given** the Account Settings dialog is open  
 **When** the user clicks "Delete Account"  
-**Then** the re-authentication dialog opens  
-**And** the dialog title is "Confirm Your Identity"  
-**And** the description "Please enter your password to confirm account deletion" is displayed  
-**And** a password input field is visible  
+**Then** a combined confirmation and re-auth dialog opens  
+**And** the dialog title is "Delete Account?"  
+**And** the warning message "This action is permanent and cannot be undone. All your visit data will be permanently deleted." is displayed  
+**And** a password input field is visible with label "Enter your password to confirm"  
 **And** the password field is masked  
-**And** "Cancel" and "Confirm" buttons are visible  
-**And** the "Confirm" button is disabled
+**And** a "Cancel" button is visible  
+**And** a "Delete Account" button is visible with destructive styling  
+**And** the "Delete Account" button is disabled
 
-#### Scenario: Cancel Re-authentication
-**Given** the re-authentication dialog is open  
+#### Scenario: Cancel Account Deletion from Combined Dialog
+**Given** the combined confirmation and re-auth dialog is open  
 **When** the user clicks "Cancel"  
-**Then** the re-authentication dialog closes  
-**And** the delete confirmation dialog closes  
+**Then** the dialog closes  
 **And** the Account Settings dialog remains open  
 **And** the user account is not deleted
 
-#### Scenario: Re-authenticate with Correct Password
-**Given** the re-authentication dialog is open  
+#### Scenario: Enable Delete Button When Password Entered
+**Given** the combined confirmation and re-auth dialog is open  
+**And** the password field is empty  
+**And** the "Delete Account" button is disabled  
+**When** the user types any characters in the password field  
+**Then** the "Delete Account" button becomes enabled
+
+---
+
+### Requirement: Re-authentication and Deletion Execution (REQ-AS-004)
+**Priority:** MUST  
+**Category:** Security
+
+The system MUST validate the user's password and execute account deletion from the combined confirmation dialog.
+
+**Acceptance Criteria:**
+- Clicking "Delete Account" in the combined dialog triggers re-authentication
+- Re-authentication uses Firebase reauthenticateWithCredential API
+- Incorrect password displays error message below password field
+- Error message states: "Incorrect password. Please try again."
+- Successful re-authentication proceeds to account deletion
+- Dialog is keyboard accessible (Enter to submit, Escape to cancel)
+- Password field is cleared after incorrect password attempt
+
+#### Scenario: Submit with Correct Password
+**Given** the combined confirmation and re-auth dialog is open  
 **And** the user's password is "correctpassword123"  
 **When** the user enters "correctpassword123"  
-**And** clicks "Confirm"  
+**And** clicks "Delete Account"  
 **Then** Firebase reauthenticateWithCredential is called  
 **And** re-authentication succeeds  
 **And** the account deletion process proceeds
 
-#### Scenario: Re-authenticate with Incorrect Password
-**Given** the re-authentication dialog is open  
+#### Scenario: Submit with Incorrect Password
+**Given** the combined confirmation and re-auth dialog is open  
 **And** the user's password is "correctpassword123"  
 **When** the user enters "wrongpassword"  
-**And** clicks "Confirm"  
+**And** clicks "Delete Account"  
 **Then** Firebase reauthenticateWithCredential is called  
 **And** re-authentication fails  
-**And** an error message "Incorrect password. Please try again." is displayed  
-**And** the re-authentication dialog remains open  
+**And** an error message "Incorrect password. Please try again." is displayed below the password field  
+**And** the dialog remains open  
 **And** the password field is cleared  
 **And** the account is not deleted
 
-#### Scenario: Enable Confirm Button When Password Entered
-**Given** the re-authentication dialog is open  
-**And** the password field is empty  
-**And** the "Confirm" button is disabled  
-**When** the user types any characters in the password field  
-**Then** the "Confirm" button becomes enabled
+#### Scenario: Submit with Enter Key
+**Given** the combined confirmation and re-auth dialog is open  
+**And** the user has entered their password  
+**And** focus is in the password field  
+**When** the user presses Enter  
+**Then** the deletion process begins  
+**And** re-authentication is attempted
 
 ---
 

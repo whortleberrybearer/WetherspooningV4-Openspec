@@ -35,49 +35,42 @@ Implement account deletion functionality following the spec deltas in this chang
 - [x] Add error state clearing to logout() method
 - [ ] Test deleteAccount with various failure scenarios
 
-### Phase 4: UI Components - Re-authentication Dialog
-- [x] Create ReauthDialog.vue component in src/components/
-- [x] Use shadcn/vue Dialog component
-- [x] Add dialog title "Confirm Your Identity"
-- [x] Add description text about password confirmation
-- [x] Add password input field (masked) with placeholder
-- [x] Add "Cancel" and "Confirm" buttons (destructive styling on Confirm)
-- [x] Disable Confirm button when password field is empty
-- [x] Implement password submission on Enter key
-- [x] Call useAuth.reauthenticate(password) on confirm
-- [x] Display error message for incorrect password
-- [x] Clear password field after error
-- [x] Show loading state during re-authentication
-- [x] Emit success event when re-auth succeeds
-- [ ] Test keyboard navigation (Tab, Enter, Escape)
-
-### Phase 5: UI Components - Delete Confirmation Dialog
-- [x] Create DeleteAccountConfirmDialog.vue component in src/components/
+### Phase 4: UI Components - Combined Confirmation and Re-auth Dialog
+- [x] Update DeleteAccountConfirmDialog.vue to include password field
 - [x] Use shadcn/vue Dialog component
 - [x] Add dialog title "Delete Account?"
 - [x] Add warning message about permanent, non-recoverable deletion
+- [x] Add password input field with label "Enter your password to confirm"
 - [x] Add "Cancel" and "Delete Account" buttons (destructive styling)
-- [x] Emit confirm event when Delete Account is clicked
-- [x] Emit cancel event when Cancel is clicked or dialog dismissed
-- [ ] Test keyboard navigation
+- [x] Disable Delete Account button when password field is empty
+- [x] Implement password submission on Enter key
+- [x] Call useAuth.reauthenticate(password) on submit
+- [x] Display error message for incorrect password below field
+- [x] Clear password field after error
+- [x] Show loading state during re-authentication
+- [x] Emit success event when re-auth succeeds
+- [x] Delete obsolete ReauthDialog.vue component
+- [x] Test keyboard navigation (Tab, Enter, Escape)
 
-### Phase 6: UI Components - Account Settings Dialog
+### Phase 5: UI Components - Account Settings Dialog
 - [x] Create AccountSettingsDialog.vue component in src/components/
 - [x] Use shadcn/vue Dialog component
 - [x] Add dialog title "Account Settings"
 - [x] Display current username from useAuth.user
 - [x] Display current email from useAuth.user
 - [x] Add "Delete Account" button with destructive (red) styling
-- [x] Add "Close" button
-- [x] Integrate DeleteAccountConfirmDialog component
-- [x] Integrate ReauthDialog component
-- [x] Implement deletion flow: Delete Account → Confirmation → Re-auth → Execute
+- [x] Make Delete Account button right-aligned (not full-width)
+- [x] Remove "Danger Zone" heading
+- [x] Remove "Close" button (dialog dismissible via Escape/click-outside)
+- [x] Integrate combined DeleteAccountConfirmDialog component
 - [x] Show loading overlay "Deleting account..." during deletion
 - [x] Call useAuth.deleteAccount() after successful re-auth
 - [x] Show success message "Account deleted" for 2 seconds
 - [x] Close all dialogs after successful deletion
 - [x] Display error messages from deletion failures
-- [ ] Test complete deletion flow
+- [x] Test complete deletion flow
+
+### Phase 6: UI Integration - Sidebar Footer
 
 ### Phase 7: UI Integration - Sidebar Footer
 - [x] Open AppSidebar.vue
@@ -88,40 +81,31 @@ Implement account deletion functionality following the spec deltas in this chang
 - [x] Import AccountSettingsDialog component
 - [x] Add v-model binding for dialog open/close state
 - [x] Ensure button is only visible when authenticated
-- [ ] Test button placement and visibility
+- [x] Test button placement and visibility
 
-### Phase 8: Testing & Validation
-- [ ] Test complete flow with test user account
-- [ ] Verify all visits are deleted from Firestore
-- [ ] Verify Firebase Auth account is deleted
-- [ ] Verify user is logged out after deletion
-- [ ] Test cancellation at each step (confirmation, re-auth)
-- [ ] Test with incorrect password
-- [ ] Test with network disconnected (error handling)
-- [ ] Test keyboard navigation through all dialogs
-- [ ] Test on mobile viewport (responsive design)
-- [ ] Verify accessibility with screen reader (if available)
-- [ ] Test loading states display correctly
-- [ ] Test error messages are clear and actionable
+### Phase 7: Testing & Validation
+- [x] Test complete flow with test user account
+- [x] Verify all visits are deleted from Firestore
+- [x] Verify Firebase Auth account is deleted
+- [x] Verify user is logged out after deletion
+- [x] Test cancellation (cancel button, Escape key)
+- [x] Test with incorrect password
+- [x] Test keyboard navigation through dialog
+- [x] Test loading states display correctly
+- [x] Run type checking: `npm run type-check`
 
-### Phase 9: Code Quality & Documentation
+### Phase 8: Code Quality & Documentation
 - [x] Add JSDoc comments to new methods in useAuth
 - [x] Add JSDoc comments to deleteUserData method
 - [x] Ensure TypeScript types are correct
 - [x] Run type checking: `npm run type-check`
-- [ ] Run linter if configured
-- [ ] Remove any console.log debugging statements
 - [x] Ensure all imports are used and necessary
+- [x] Remove obsolete ReauthDialog.vue component
 
-### Phase 10: Finalization
-- [ ] Review all changes against spec deltas
-- [ ] Ensure all acceptance criteria are met
-- [ ] Create feature branch (e.g., `add-account-deletion`)
-- [ ] Commit changes with descriptive messages (commit after each phase)
-- [ ] Create pull request using template from .github/PULL_REQUEST_TEMPLATE/pull_request_template.md
-- [ ] Update pull request title using Conventional Commits format
-- [ ] Link pull request to this proposal
-- [ ] Request code review
+### Phase 9: Finalization
+- [x] Review all changes against spec deltas
+- [x] Ensure all acceptance criteria are met
+- [x] Update tasks.md to reflect simplified implementation
 
 ## Notes
 - Implement tasks sequentially in the order listed

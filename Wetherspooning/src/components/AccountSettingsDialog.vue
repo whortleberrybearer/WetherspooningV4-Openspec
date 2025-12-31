@@ -18,21 +18,15 @@
           </div>
         </div>
 
-        <!-- Delete Account Section -->
-        <div class="border-t pt-4">
-          <div class="flex flex-col gap-2">
-            <span class="text-sm font-medium text-destructive">Danger Zone</span>
-            <p class="text-xs text-muted-foreground">
-              Once you delete your account, there is no going back.
-            </p>
-            <button
-              type="button"
-              @click="showDeleteConfirm = true"
-              class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2"
-            >
-              Delete Account
-            </button>
-          </div>
+        <!-- Delete Account Button -->
+        <div class="border-t pt-4 flex justify-end">
+          <button
+            type="button"
+            @click="showDeleteConfirm = true"
+            class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2"
+          >
+            Delete Account
+          </button>
         </div>
 
         <!-- Error Message -->
@@ -40,31 +34,13 @@
           {{ errorMessage }}
         </p>
       </div>
-
-      <DialogFooter>
-        <button
-          type="button"
-          @click="handleClose"
-          :disabled="isDeleting"
-          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-        >
-          Close
-        </button>
-      </DialogFooter>
     </DialogContent>
   </Dialog>
 
-  <!-- Delete Confirmation Dialog -->
+  <!-- Delete Confirmation Dialog with Re-authentication -->
   <DeleteAccountConfirmDialog
     :is-open="showDeleteConfirm"
     @close="showDeleteConfirm = false"
-    @confirm="handleDeleteConfirm"
-  />
-
-  <!-- Re-authentication Dialog -->
-  <ReauthDialog
-    :is-open="showReauth"
-    @close="handleReauthCancel"
     @success="handleReauthSuccess"
   />
 
@@ -102,12 +78,10 @@ import { useAuth } from '@/composables/useAuth'
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import DeleteAccountConfirmDialog from './DeleteAccountConfirmDialog.vue'
-import ReauthDialog from './ReauthDialog.vue'
 
 const props = defineProps<{
   isOpen: boolean
@@ -120,7 +94,6 @@ const emit = defineEmits<{
 const { user, deleteAccount } = useAuth()
 
 const showDeleteConfirm = ref(false)
-const showReauth = ref(false)
 const isDeleting = ref(false)
 const showSuccess = ref(false)
 const errorMessage = ref('')
@@ -132,17 +105,8 @@ const handleClose = () => {
   errorMessage.value = ''
 }
 
-const handleDeleteConfirm = () => {
-  showDeleteConfirm.value = false
-  showReauth.value = true
-}
-
-const handleReauthCancel = () => {
-  showReauth.value = false
-}
-
 const handleReauthSuccess = async () => {
-  showReauth.value = false
+  showDeleteConfirm.value = false
   isDeleting.value = true
   errorMessage.value = ''
 
@@ -168,7 +132,6 @@ const handleReauthSuccess = async () => {
 watch(() => props.isOpen, (newValue) => {
   if (!newValue) {
     showDeleteConfirm.value = false
-    showReauth.value = false
     isDeleting.value = false
     showSuccess.value = false
     errorMessage.value = ''

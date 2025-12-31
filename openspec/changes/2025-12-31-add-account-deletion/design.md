@@ -9,20 +9,20 @@ Account deletion follows a secure multi-step flow that ensures user intent while
 **AccountSettingsDialog.vue** (NEW)
 - Modal dialog component using shadcn/vue Dialog
 - Contains account management options
-- Houses "Delete Account" button with destructive styling
-- Manages sub-dialogs for deletion flow
+- Displays username and email (read-only)
+- Houses right-aligned "Delete Account" button with destructive styling
+- No "Close" button (dismissible via Escape or click-outside)
+- Manages DeleteAccountConfirmDialog for deletion flow
 
 **DeleteAccountConfirmDialog.vue** (NEW)
-- Confirmation dialog displayed when user clicks "Delete Account"
+- Combined confirmation and re-authentication dialog
 - Shows warning message about permanent, non-recoverable action
-- Provides "Cancel" and "Confirm Deletion" buttons
-- Triggers re-authentication flow on confirmation
-
-**ReauthDialog.vue** (NEW)
-- Re-authentication dialog requiring user to re-enter password
-- Uses Firebase reauthenticateWithCredential API
-- Only proceeds with deletion after successful re-authentication
-- Returns error if credentials don't match
+- Includes password input field for re-authentication
+- "Cancel" and "Delete Account" buttons (destructive styling on Delete)
+- Delete button disabled when password field is empty
+- Calls Firebase reauthenticateWithCredential before deletion
+- Shows error messages for incorrect password below field
+- Returns to idle state after successful re-authentication
 
 ### 2. Composable Layer
 **useAuth.ts** (MODIFIED)
@@ -46,12 +46,10 @@ Account deletion follows a secure multi-step flow that ensures user intent while
    → AccountSettingsDialog opens
 
 2. User clicks "Delete Account"
-   → DeleteAccountConfirmDialog opens with warning
+   → DeleteAccountConfirmDialog opens with warning and password field
 
-3. User confirms deletion
-   → ReauthDialog opens
-   → User enters password
-   → Firebase reauthenticateWithCredential() called
+3. User enters password and clicks "Delete Account"
+   → Firebase reauthenticateWithCredential() called with entered password
 
 4. Re-authentication succeeds
    → deleteUserData(userId) called (Firestore visits)
@@ -61,7 +59,7 @@ Account deletion follows a secure multi-step flow that ensures user intent while
    → All dialogs closed
 
 5. Re-authentication fails
-   → Error shown in ReauthDialog
+   → Error shown in DeleteAccountConfirmDialog below password field
    → User can retry or cancel
 ```
 
@@ -93,21 +91,16 @@ Account deletion follows a secure multi-step flow that ensures user intent while
 ### Dialog Hierarchy
 1. **Account Settings Dialog**
    - Title: "Account Settings"
-   - Contains account info (username, email)
-   - "Delete Account" button in destructive (red) styling
-   - Footer: "Close" button
+   - Contains account info (username, email) as read-only text
+   - Right-aligned "Delete Account" button in destructive (red) styling
+   - No "Close" button - dialog is dismissible via Escape key or clicking outside
 
-2. **Delete Confirmation Dialog**
+2. **Combined Delete Confirmation and Re-authentication Dialog**
    - Title: "Delete Account?"
    - Warning text: "This action is permanent and cannot be undone. All your visit data will be permanently deleted."
-   - Footer: "Cancel" + "Delete Account" (destructive)
-
-3. **Re-authentication Dialog**
-   - Title: "Confirm Your Identity"
-   - Description: "Please enter your password to confirm account deletion"
-   - Password field (masked)
-   - Footer: "Cancel" + "Confirm" (destructive)
-   - Error display for wrong password
+   - Password field (masked) with label "Enter your password to confirm"
+   - Error display below password field for wrong password
+   - Footer: "Cancel" + "Delete Account" (destructive, disabled when password empty)
 
 ### Loading States
 - Re-authentication: Disable confirm button, show spinner
