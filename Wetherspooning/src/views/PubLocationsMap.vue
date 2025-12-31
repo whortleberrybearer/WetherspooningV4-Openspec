@@ -32,16 +32,6 @@
       @update:is-open="showPubDetail = $event"
     />
 
-    <!-- Proximity Visit Prompt -->
-    <ProximityVisitPrompt
-      :pub="nearbyPub"
-      :is-open="nearbyPub !== null"
-      :is-authenticated="isAuthenticated"
-      @confirm="handleProximityVisitConfirm"
-      @dismiss="handleProximityDismiss"
-      @sign-in="handleProximitySignIn"
-    />
-
     <!-- Login Dialog -->
     <LoginDialog
       :is-open="showLoginDialog"
@@ -56,7 +46,6 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 import { MarkerClusterer } from '@googlemaps/markerclusterer'
 import AppSidebar from '@/components/AppSidebar.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
-import ProximityVisitPrompt from '@/components/ProximityVisitPrompt.vue'
 import LoginDialog from '@/components/LoginDialog.vue'
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -78,10 +67,8 @@ const selectedPub = ref<Pub | null>(null)
 const showPubDetail = ref(false)
 const showLoginDialog = ref(false)
 
-// Proximity visit prompt state
-const nearbyPub = ref<Pub | null>(null)
-const dismissedPrompts = ref<Set<number>>(new Set())
-const userLocation = ref<{ lat: number; lng: number } | null>(null)
+// User location for proximity detection
+const hasCheckedProximity = ref(false)
 
 // Authentication and visit tracking
 const { user, isAuthenticated } = useAuth()
@@ -233,41 +220,28 @@ const calculateDistance = (
 }
 
 /**
- * Check if the user is near any open, unvisited pubs and update nearbyPub state.
+ * Check if the user is near any open pubs and return the closest one if within 100 metres.
  * 
- * Filters pubs to only consider:
- * - Open pubs (excludes closed)
- * - Unvisited pubs (if authenticated)
- * - Not dismissed in this session
+ * Filters pubs to only consider open pubs (excludes closed).
  * 
- * Sets nearbyPub to the closest pub if within 100 metres, otherwise null.
+ * @param lat - User's latitude
+ * @param lng - User's longitude
+ * @returns The closest pub if within 100 metres, otherwise null
  */
-const checkProximity = () => {
-  if (!userLocation.value || pubs.value.length === 0) {
-    nearbyPub.value = null
-    return
+const checkProximity = (lat: number, lng: number): Pub | null => {
+  if (pubs.value.length === 0) {
+    return null
   }
 
-  const { lat, lng } = userLocation.value
-
-  // Filter pubs: open, not visited (if authenticated), not dismissed
+  // Filter pubs: open only
   const candidatePubs = pubs.value.filter(pub => {
     // Filter out closed pubs
     const isClosed = pub.openState?.toLowerCase().includes('closed') || false
-    if (isClosed) return false
-
-    // Filter out visited pubs (if authenticated)
-    if (isAuthenticated.value && isVisited(pub.id)) return false
-
-    // Filter out dismissed pubs
-    if (dismissedPrompts.value.has(pub.id)) return false
-
-    return true
+    return !isClosed
   })
 
   if (candidatePubs.length === 0) {
-    nearbyPub.value = null
-    return
+    return null
   }
 
   // Find closest pub
@@ -285,101 +259,23 @@ const checkProximity = () => {
     }
   }
 
-  // Only set nearbyPub if within 100 metres
-  if (closestPub && minDistance <= 100000) {
-    nearbyPub.value = closestPub
+  // Only return pub if within 100 metres
+  if (closestPub && minDistance <= 100) {
     console.log(`Nearby pub detected: ${closestPub.name} at ${Math.round(minDistance)}m`)
-  } else {
-    nearbyPub.value = null
+    return closestPub
   }
-}
-
-/**
- * Load dismissed prompt IDs from session storage.
- */
-const loadDismissedPrompts = () => {
-  try {
-    const stored = sessionStorage.getItem('dismissedPrompts')
-    if (stored) {
-      const ids = JSON.parse(stored) as number[]
-      dismissedPrompts.value = new Set(ids)
-    }
-  } catch (error) {
-    console.warn('Failed to load dismissed prompts from session storage:', error)
-    dismissedPrompts.value = new Set()
-  }
-}
-
-/**
- * Save dismissed prompt IDs to session storage.
- */
-const saveDismissedPrompts = () => {
-  try {
-    const ids = Array.from(dismissedPrompts.value)
-    sessionStorage.setItem('dismissedPrompts', JSON.stringify(ids))
-  } catch (error) {
-    console.warn('Failed to save dismissed prompts to session storage:', error)
-  }
+  
+  return null
 }
 
 /**
  * Handle proximity visit confirmation - create visit and show info window.
  */
-const handleProximityVisitConfirm = async () => {
-  if (!nearbyPub.value || !user.value?.uid) return
-
-  try {
-    // Create visit with current date
-    await addVisit(
-      nearbyPub.value.id,
-      { visitedAt: new Date().toISOString() },
-      user.value.uid
-    )
-
-    // Find the marker for this pub
-    const marker = markers.value.find(m => {
-      const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
-      const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat
-      const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng
-      return lat === nearbyPub.value!.lat && lng === nearbyPub.value!.lng
-    })
-
-    // Show info window for the pub
-    if (marker) {
-      showPubInfo(nearbyPub.value, marker)
-    }
-
-    // Close proximity prompt
-    nearbyPub.value = null
-  } catch (error) {
-    console.error('Failed to create visit from proximity prompt:', error)
-    // Keep prompt open for retry - error will be shown by addVisit
-  }
-}
-
-/**
- * Handle proximity prompt dismissal - add to dismissed list.
- */
-const handleProximityDismiss = () => {
-  if (!nearbyPub.value) return
-  
-  dismissedPrompts.value.add(nearbyPub.value.id)
-  saveDismissedPrompts()
-  nearbyPub.value = null
-}
-
-/**
- * Handle sign in request from proximity prompt - open login dialog.
- */
-const handleProximitySignIn = () => {
-  showLoginDialog.value = true
-}
-
 /**
  * Attempts to center the map on the user's current location using the Geolocation API.
  * Falls back to default center (54.0, -2.0) if geolocation is unavailable or denied.
  * Non-blocking - map is immediately usable with default center while geolocation request is pending.
- * Checks proximity only on initial position.
+ * On first geolocation, checks proximity and auto-centers on nearby pub if within 100m.
  */
 const centerOnUserLocation = () => {
   if (!map.value) return
@@ -392,13 +288,37 @@ const centerOnUserLocation = () => {
           lat: position.coords.latitude,
           lng: position.coords.longitude
         }
-        map.value!.setCenter(location)
-        map.value!.setZoom(12)
-        console.log('Map centered on user location:', location)
         
-        // Store user location and check proximity ONLY on initial position
-        userLocation.value = location
-        checkProximity()
+        // Check proximity only on first geolocation
+        if (!hasCheckedProximity.value) {
+          hasCheckedProximity.value = true
+          
+          const nearbyPub = checkProximity(location.lat, location.lng)
+          
+          if (nearbyPub) {
+            // Auto-center on nearby pub
+            map.value!.panTo({ lat: nearbyPub.lat, lng: nearbyPub.lng })
+            map.value!.setZoom(15)
+            console.log('Map auto-centered on nearby pub:', nearbyPub.name)
+            
+            // Find marker and open info window
+            const marker = markers.value.find(m => {
+              const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
+              const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat
+              const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng
+              return lat === nearbyPub.lat && lng === nearbyPub.lng
+            })
+            
+            if (marker) {
+              showPubInfo(nearbyPub, marker)
+            }
+          } else {
+            // No nearby pub - center on user location
+            map.value!.setCenter(location)
+            map.value!.setZoom(12)
+            console.log('Map centered on user location:', location)
+          }
+        }
       },
       (error) => {
         console.warn('Geolocation failed:', error.message)
@@ -420,11 +340,6 @@ const loadPubs = async () => {
     const data = await getAllPubs()
     pubs.value = data
     createMarkers()
-    
-    // Check proximity after pubs are loaded (if user location is already available)
-    if (userLocation.value) {
-      checkProximity()
-    }
   } catch (err) {
     const errorMsg = 'Failed to load pub locations. Please check your connection and try again.'
     error.value = errorMsg
@@ -775,9 +690,6 @@ const handlePubSelect = (pub: Pub) => {
 }
 
 onMounted(async () => {
-  // Load dismissed prompts from session storage
-  loadDismissedPrompts()
-
   setOptions({ key: import.meta.env.VITE_GOOGLE_MAPS_API_KEY, v: 'weekly' })
   await importLibrary('maps')
   await importLibrary('marker')
