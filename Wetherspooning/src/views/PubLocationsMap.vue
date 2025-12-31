@@ -68,6 +68,7 @@ const showPubDetail = ref(false)
 const showLoginDialog = ref(false)
 
 // User location for proximity detection
+const userLocation = ref<{ lat: number; lng: number } | null>(null)
 const hasCheckedProximity = ref(false)
 
 // Authentication and visit tracking
@@ -269,8 +270,41 @@ const checkProximity = (lat: number, lng: number): Pub | null => {
 }
 
 /**
- * Handle proximity visit confirmation - create visit and show info window.
+ * Perform proximity check and auto-center if nearby pub found.
+ * Only runs once when both user location and pubs are available.
  */
+const performProximityCheck = () => {
+  if (!userLocation.value || hasCheckedProximity.value) return
+  
+  hasCheckedProximity.value = true
+  
+  const nearbyPub = checkProximity(userLocation.value.lat, userLocation.value.lng)
+  
+  if (nearbyPub) {
+    // Auto-center on nearby pub
+    map.value!.panTo({ lat: nearbyPub.lat, lng: nearbyPub.lng })
+    map.value!.setZoom(15)
+    console.log('Map auto-centered on nearby pub:', nearbyPub.name)
+    
+    // Find marker and open info window
+    const marker = markers.value.find(m => {
+      const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
+      const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat
+      const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng
+      return lat === nearbyPub.lat && lng === nearbyPub.lng
+    })
+    
+    if (marker) {
+      showPubInfo(nearbyPub, marker)
+    }
+  } else {
+    // No nearby pub - center on user location
+    map.value!.setCenter(userLocation.value)
+    map.value!.setZoom(12)
+    console.log('Map centered on user location (no nearby pubs):', userLocation.value)
+  }
+}
+
 /**
  * Attempts to center the map on the user's current location using the Geolocation API.
  * Falls back to default center (54.0, -2.0) if geolocation is unavailable or denied.
@@ -284,40 +318,15 @@ const centerOnUserLocation = () => {
     // Get initial position for map centering and proximity check
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const location = {
+        userLocation.value = {
           lat: position.coords.latitude,
           lng: position.coords.longitude
         }
+        console.log('User location obtained:', userLocation.value)
         
-        // Check proximity only on first geolocation
-        if (!hasCheckedProximity.value) {
-          hasCheckedProximity.value = true
-          
-          const nearbyPub = checkProximity(location.lat, location.lng)
-          
-          if (nearbyPub) {
-            // Auto-center on nearby pub
-            map.value!.panTo({ lat: nearbyPub.lat, lng: nearbyPub.lng })
-            map.value!.setZoom(15)
-            console.log('Map auto-centered on nearby pub:', nearbyPub.name)
-            
-            // Find marker and open info window
-            const marker = markers.value.find(m => {
-              const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
-              const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat
-              const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng
-              return lat === nearbyPub.lat && lng === nearbyPub.lng
-            })
-            
-            if (marker) {
-              showPubInfo(nearbyPub, marker)
-            }
-          } else {
-            // No nearby pub - center on user location
-            map.value!.setCenter(location)
-            map.value!.setZoom(12)
-            console.log('Map centered on user location:', location)
-          }
+        // Trigger proximity check if pubs are already loaded
+        if (pubs.value.length > 0 && !hasCheckedProximity.value) {
+          performProximityCheck()
         }
       },
       (error) => {
@@ -340,6 +349,11 @@ const loadPubs = async () => {
     const data = await getAllPubs()
     pubs.value = data
     createMarkers()
+    
+    // After markers are created, trigger proximity check if geolocation already completed
+    if (userLocation.value && !hasCheckedProximity.value) {
+      performProximityCheck()
+    }
   } catch (err) {
     const errorMsg = 'Failed to load pub locations. Please check your connection and try again.'
     error.value = errorMsg
