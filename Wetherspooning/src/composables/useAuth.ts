@@ -7,6 +7,7 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
   deleteUser,
+  updatePassword,
   type User as FirebaseUser
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
@@ -238,6 +239,44 @@ export function useAuth() {
   }
 
   /**
+   * Change the current user's password.
+   * Requires re-authentication with current password before updating.
+   * 
+   * @param currentPassword - User's current password
+   * @param newPassword - New password to set
+   * @returns Promise that resolves on successful password change
+   * @throws Error if user is not logged in, current password is incorrect, or update fails
+   */
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+    try {
+      const currentUser = auth.currentUser
+
+      if (!currentUser) {
+        throw new Error('No user is currently logged in.')
+      }
+
+      // Step 1: Re-authenticate with current password
+      await reauthenticate(currentPassword)
+
+      // Step 2: Update password
+      try {
+        await updatePassword(currentUser, newPassword)
+      } catch (error: any) {
+        // Handle network errors
+        if (error.code === 'auth/network-request-failed') {
+          throw new Error('Network error. Please check your connection and try again.')
+        }
+
+        // Map Firebase errors to user-friendly messages
+        throw new Error(mapFirebaseError(error.code))
+      }
+    } catch (error: any) {
+      // Re-throw formatted errors
+      throw error
+    }
+  }
+
+  /**
    * Clear any authentication errors.
    */
   const clearError = (): void => {
@@ -255,6 +294,7 @@ export function useAuth() {
     register,
     reauthenticate,
     deleteAccount,
+    changePassword,
     clearError
   }
 }
