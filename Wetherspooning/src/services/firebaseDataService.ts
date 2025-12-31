@@ -1,4 +1,4 @@
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, QueryDocumentSnapshot, orderBy, limit } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, QueryDocumentSnapshot, orderBy, limit, writeBatch } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
 export interface Pub {
@@ -441,5 +441,78 @@ export async function deleteVisit(visitId: string): Promise<void> {
     
     console.error(`Failed to delete visit ${visitId}:`, error)
     throw error
+  }
+}
+
+/**
+ * Delete all user data from Firestore
+ * 
+ * Removes all visit documents associated with the specified user.
+ * Uses batch operations to ensure atomic deletion within each batch.
+ * Handles large numbers of visits by splitting into multiple batches.
+ * 
+ * @param userId - Firebase UID of the user whose data should be deleted
+ * @returns Promise that resolves when all data is deleted
+ * @throws Error if userId is invalid, query fails, or batch commit fails
+ */
+export async function deleteUserData(userId: string): Promise<void> {
+  if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+    throw new Error('Invalid user ID provided.')
+  }
+
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Firestore operation timed out: deleteUserData')), 10000)
+    })
+    
+    const deletePromise = async () => {
+      // Query all visits for this user
+      const q = query(collection(db, 'visits'), where('userId', '==', userId))
+      const querySnapshot = await getDocs(q)
+      
+      if (querySnapshot.empty) {
+        // No visits to delete - succeed without error
+        return
+      }
+      
+      // Firestore batch limit is 500 operations
+      const BATCH_SIZE = 500
+      const docs = querySnapshot.docs
+      
+      // Process in batches
+      for (let i = 0; i < docs.length; i += BATCH_SIZE) {
+        const batch = writeBatch(db)
+        const batchDocs = docs.slice(i, Math.min(i + BATCH_SIZE, docs.length))
+        
+        batchDocs.forEach((doc) => {
+          batch.delete(doc.ref)
+        })
+        
+        try {
+          await batch.commit()
+        } catch (batchError: any) {
+          console.error(`Failed to delete batch of user data (batch ${Math.floor(i / BATCH_SIZE) + 1}):`, batchError)
+          
+          // If this is not the first batch, some data has already been deleted
+          if (i > 0) {
+            throw new Error('Failed to delete all user data. Some data may remain. Please try again.')
+          } else {
+            throw new Error('Failed to delete user data. Please check your connection and try again.')
+          }
+        }
+      }
+    }
+    
+    await Promise.race([deletePromise(), timeoutPromise])
+  } catch (error: any) {
+    // If it's already our formatted error, rethrow it
+    if (error.message?.includes('Invalid user ID') || 
+        error.message?.includes('Failed to delete')) {
+      throw error
+    }
+    
+    // Handle query failures
+    console.error(`Failed to retrieve user data for deletion:`, error)
+    throw new Error('Failed to retrieve user data for deletion. Please try again.')
   }
 }
