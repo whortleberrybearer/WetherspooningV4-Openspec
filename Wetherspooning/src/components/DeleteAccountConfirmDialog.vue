@@ -73,7 +73,7 @@ const emit = defineEmits<{
   success: []
 }>()
 
-const { reauthenticate } = useAuth()
+const { reauthenticate, deleteAccount } = useAuth()
 
 const password = ref('')
 const errorMessage = ref('')
@@ -86,15 +86,21 @@ const handleSubmit = async () => {
   isLoading.value = true
 
   try {
+    // Re-authenticate first
     await reauthenticate(password.value)
+    
+    // Then delete the account
+    await deleteAccount()
+    
+    // Emit success only after both operations complete
     emit('success')
+    
     // Clear password after success
     password.value = ''
   } catch (error: any) {
     errorMessage.value = error.message || 'An error occurred. Please try again.'
     // Clear password after error
     password.value = ''
-  } finally {
     isLoading.value = false
   }
 }

@@ -111,26 +111,9 @@ const handleClose = () => {
 }
 
 const handleReauthSuccess = async () => {
+  // Close both dialogs immediately
   showDeleteConfirm.value = false
-  isDeleting.value = true
-  errorMessage.value = ''
-
-  try {
-    await deleteAccount()
-    
-    // Show success message
-    showSuccess.value = true
-    
-    // Wait 2 seconds then close everything
-    setTimeout(() => {
-      showSuccess.value = false
-      isDeleting.value = false
-      emit('update:isOpen', false)
-    }, 2000)
-  } catch (error: any) {
-    isDeleting.value = false
-    errorMessage.value = error.message || 'Failed to delete account. Please try again.'
-  }
+  emit('update:isOpen', false)
 }
 
 // Reset state when dialog is closed
