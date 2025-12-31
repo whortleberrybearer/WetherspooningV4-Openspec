@@ -31,6 +31,12 @@
       :is-open="showPubDetail"
       @update:is-open="showPubDetail = $event"
     />
+
+    <!-- Login Dialog -->
+    <LoginDialog
+      :is-open="showLoginDialog"
+      @close="showLoginDialog = false"
+    />
   </div>
 </template>
 
@@ -40,6 +46,7 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 import { MarkerClusterer } from '@googlemaps/markerclusterer'
 import AppSidebar from '@/components/AppSidebar.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
+import LoginDialog from '@/components/LoginDialog.vue'
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-vue-next'
@@ -58,10 +65,15 @@ const error = ref<string>('')
 const showClosedPubs = ref(false)
 const selectedPub = ref<Pub | null>(null)
 const showPubDetail = ref(false)
+const showLoginDialog = ref(false)
+
+// User location for proximity detection
+const userLocation = ref<{ lat: number; lng: number } | null>(null)
+const hasCheckedProximity = ref(false)
 
 // Authentication and visit tracking
 const { user, isAuthenticated } = useAuth()
-const { isVisited, getVisitDate, loadVisits, clearVisits, visitedPubIds, visits } = useVisits()
+const { isVisited, getVisitDate, loadVisits, clearVisits, visitedPubIds, visits, addVisit } = useVisits()
 
 // Watch authentication state to load/clear visit data
 watch(isAuthenticated, async (authenticated) => {
@@ -176,23 +188,146 @@ const initMap = () => {
 }
 
 /**
+ * Calculate the distance between two geographic coordinates using the Haversine formula.
+ * 
+ * The Haversine formula calculates the great-circle distance between two points
+ * on a sphere given their longitudes and latitudes. This is accurate for short
+ * distances (< 100km) and doesn't require external libraries.
+ * 
+ * @param lat1 - Latitude of first point in decimal degrees
+ * @param lng1 - Longitude of first point in decimal degrees
+ * @param lat2 - Latitude of second point in decimal degrees
+ * @param lng2 - Longitude of second point in decimal degrees
+ * @returns Distance in metres
+ */
+const calculateDistance = (
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number => {
+  const R = 6371e3 // Earth's radius in metres
+  const φ1 = lat1 * Math.PI / 180 // Convert to radians
+  const φ2 = lat2 * Math.PI / 180
+  const Δφ = (lat2 - lat1) * Math.PI / 180
+  const Δλ = (lng2 - lng1) * Math.PI / 180
+
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+
+  return R * c // Distance in metres
+}
+
+/**
+ * Check if the user is near any open pubs and return the closest one if within 100 metres.
+ * 
+ * Filters pubs to only consider open pubs (excludes closed).
+ * 
+ * @param lat - User's latitude
+ * @param lng - User's longitude
+ * @returns The closest pub if within 100 metres, otherwise null
+ */
+const checkProximity = (lat: number, lng: number): Pub | null => {
+  if (pubs.value.length === 0) {
+    return null
+  }
+
+  // Filter pubs: open only
+  const candidatePubs = pubs.value.filter(pub => {
+    // Filter out closed pubs
+    const isClosed = pub.openState?.toLowerCase().includes('closed') || false
+    return !isClosed
+  })
+
+  if (candidatePubs.length === 0) {
+    return null
+  }
+
+  // Find closest pub
+  let closestPub: Pub | null = null
+  let minDistance = Infinity
+
+  for (const pub of candidatePubs) {
+    if (!pub.lat || !pub.lng) continue
+
+    const distance = calculateDistance(lat, lng, pub.lat, pub.lng)
+    
+    if (distance < minDistance) {
+      minDistance = distance
+      closestPub = pub
+    }
+  }
+
+  // Only return pub if within 100 metres
+  if (closestPub && minDistance <= 100) {
+    console.log(`Nearby pub detected: ${closestPub.name} at ${Math.round(minDistance)}m`)
+    return closestPub
+  }
+  
+  return null
+}
+
+/**
+ * Perform proximity check and auto-center if nearby pub found.
+ * Only runs once when both user location and pubs are available.
+ */
+const performProximityCheck = () => {
+  if (!userLocation.value || hasCheckedProximity.value) return
+  
+  hasCheckedProximity.value = true
+  
+  const nearbyPub = checkProximity(userLocation.value.lat, userLocation.value.lng)
+  
+  if (nearbyPub) {
+    // Auto-center on nearby pub
+    map.value!.panTo({ lat: nearbyPub.lat, lng: nearbyPub.lng })
+    map.value!.setZoom(15)
+    console.log('Map auto-centered on nearby pub:', nearbyPub.name)
+    
+    // Find marker and open info window
+    const marker = markers.value.find(m => {
+      const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
+      const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat
+      const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng
+      return lat === nearbyPub.lat && lng === nearbyPub.lng
+    })
+    
+    if (marker) {
+      showPubInfo(nearbyPub, marker)
+    }
+  } else {
+    // No nearby pub - center on user location
+    map.value!.setCenter(userLocation.value)
+    map.value!.setZoom(12)
+    console.log('Map centered on user location (no nearby pubs):', userLocation.value)
+  }
+}
+
+/**
  * Attempts to center the map on the user's current location using the Geolocation API.
  * Falls back to default center (54.0, -2.0) if geolocation is unavailable or denied.
  * Non-blocking - map is immediately usable with default center while geolocation request is pending.
+ * On first geolocation, checks proximity and auto-centers on nearby pub if within 100m.
  */
 const centerOnUserLocation = () => {
   if (!map.value) return
   
   if ('geolocation' in navigator) {
+    // Get initial position for map centering and proximity check
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const userLocation = {
+        userLocation.value = {
           lat: position.coords.latitude,
           lng: position.coords.longitude
         }
-        map.value!.setCenter(userLocation)
-        map.value!.setZoom(12)
-        console.log('Map centered on user location:', userLocation)
+        console.log('User location obtained:', userLocation.value)
+        
+        // Trigger proximity check if pubs are already loaded
+        if (pubs.value.length > 0 && !hasCheckedProximity.value) {
+          performProximityCheck()
+        }
       },
       (error) => {
         console.warn('Geolocation failed:', error.message)
@@ -214,6 +349,11 @@ const loadPubs = async () => {
     const data = await getAllPubs()
     pubs.value = data
     createMarkers()
+    
+    // After markers are created, trigger proximity check if geolocation already completed
+    if (userLocation.value && !hasCheckedProximity.value) {
+      performProximityCheck()
+    }
   } catch (err) {
     const errorMsg = 'Failed to load pub locations. Please check your connection and try again.'
     error.value = errorMsg
@@ -398,132 +538,145 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
   const isClosed = pub.openState?.toLowerCase().includes('closed') || false
   const visited = isVisited(pub.id)
   
-  // Parse address components by splitting on comma
-  // Last part is postcode, second-to-last and third-to-last are town/county
-  // Everything before that is street address
-  const addressParts = pub.address.split(',').map(part => part.trim())
-  const postcode = addressParts[addressParts.length - 1] || ''
-  const county = addressParts[addressParts.length - 2] || ''
-  const town = addressParts[addressParts.length - 3] || ''
-  const streetParts = addressParts.slice(0, -3)
-  const street = streetParts.length > 0 ? streetParts.join(', ') : addressParts[0] || ''
-  
-  // Build address HTML with 3 lines: street, town/county, postcode
-  let addressHtml = ''
-  if (street) {
-    addressHtml += `<p style="font-size: 14px; color: #6b7280; margin: 0 0 4px 0;">${street}</p>`
-  }
-  if (town || county) {
-    const townCounty = [town, county].filter(Boolean).join(', ')
-    addressHtml += `<p style="font-size: 14px; color: #6b7280; margin: 0 0 4px 0;">${townCounty}</p>`
-  }
-  if (postcode) {
-    addressHtml += `<p style="font-size: 14px; color: #6b7280; margin: 0 0 12px 0;">${postcode}</p>`
-  }
-  
-  // If no address parts, fallback to raw address
-  if (!addressHtml) {
-    addressHtml = `<p style="font-size: 14px; color: #6b7280; margin: 0 0 12px 0;">${pub.address}</p>`
-  }
-  
-  // Format visit date if available
-  let visitBadge = ''
-  if (isAuthenticated.value && visited) {
-    const visitDate = getVisitDate(pub.id)
-    if (visitDate) {
-      try {
-        const date = new Date(visitDate)
-        const formattedDate = date.toLocaleDateString('en-GB', { 
-          day: '2-digit',
-          month: '2-digit',
-          year: '2-digit'
-        })
-        visitBadge = `<span class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-500 text-white hover:bg-green-500/80">✓ Visited ${formattedDate}</span>`
-      } catch (error) {
-        console.error('Error formatting visit date:', error)
-        visitBadge = `<span class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-500 text-white hover:bg-green-500/80">✓ Visited</span>`
-      }
-    } else {
-      // No date, show visited badge without date
-      visitBadge = `<span class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-500 text-white hover:bg-green-500/80">✓ Visited</span>`
-    }
+  // Image section with conditional attribution
+  let imageHtml = ''
+  if (pub.imageUrl) {
+    const attribution = pub.imageUrl.includes('jdwetherspoon.com') 
+      ? '<p style="font-size: 10px; color: #6b7280; margin: 4px 0 0 0;">Image © JD Wetherspoon</p>' 
+      : ''
+    imageHtml = `
+      <div style="margin-bottom: 12px;">
+        <img src="${pub.imageUrl}" alt="${pub.name}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px;" />
+        ${attribution}
+      </div>
+    `
   }
   
   // Status badge
   const statusBadge = isClosed 
-    ? `<span class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80">Closed</span>`
-    : `<span class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-500 text-white hover:bg-green-500/80">Open</span>`
-
-  // Image section
-  let imageHtml = ''
-  if (pub.imageUrl) {
-    imageHtml = `
-      <div style="flex: 0 0 200px; max-width: 200px;">
-        <img src="${pub.imageUrl}" alt="${pub.name}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 4px;" />
-        ${pub.imageUrl.includes('jdwetherspoon.com') ? '<p style="font-size: 10px; color: #6b7280; opacity: 0.7; margin: 0;">Image © JD Wetherspoon</p>' : ''}
-      </div>
-    `
+    ? `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: hsl(var(--destructive)); color: hsl(var(--destructive-foreground));">Closed</span>`
+    : `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #22c55e; color: white;">Open</span>`
+  
+  // Visit badge with formatted date
+  let visitBadge = ''
+  if (isAuthenticated.value && visited) {
+    const visitDate = getVisitDate(pub.id)
+    let formattedDate = ''
+    if (visitDate) {
+      try {
+        const date = new Date(visitDate)
+        formattedDate = ' ' + date.toLocaleDateString('en-GB', { 
+          day: '2-digit',
+          month: '2-digit',
+          year: '2-digit'
+        })
+      } catch (error) {
+        console.error('Error formatting visit date:', error)
+      }
+    }
+    visitBadge = `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #22c55e; color: white;">✓ Visited${formattedDate}</span>`
   }
   
   // Website link
   let websiteLink = ''
   if (pub.url) {
-    websiteLink = `<a href="${pub.url}" target="_blank" rel="noopener noreferrer" class="text-sm text-primary hover:underline mb-3 block">View on Wetherspoons website</a>`
+    websiteLink = `<a href="${pub.url}" target="_blank" rel="noopener noreferrer" style="font-size: 14px; color: hsl(var(--primary)); text-decoration: none; display: block; margin-bottom: 12px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">View on Wetherspoons website</a>`
+  }
+  
+  // Button text based on authentication state
+  let buttonText = ''
+  let buttonId = ''
+  if (isAuthenticated.value) {
+    buttonText = visited ? 'Update Visit' : 'Visit'
+    buttonId = `track-visit-btn-${pub.id}`
+  } else {
+    buttonText = 'Sign in to track visit'
+    buttonId = `sign-in-btn-${pub.id}`
   }
 
   const content = `
     <style>
-      .iw-container { min-width: 250px; max-width: 500px; padding: 12px; }
-      .iw-flex { display: flex; gap: 16px; flex-wrap: wrap; }
-      .iw-content { flex: 1; min-width: 200px; display: flex; flex-direction: column; order: 2; }
-      .iw-image { flex: 0 0 200px; max-width: 200px; order: 1; }
-      @media (min-width: 450px) {
-        .iw-content { order: 1; }
-        .iw-image { order: 2; }
+      .iw-card {
+        min-width: 250px;
+        max-width: 400px;
+        padding: 16px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+      .iw-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 8px 0;
+        color: #1f2937;
+      }
+      .iw-badges {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+      }
+      .iw-address {
+        font-size: 14px;
+        color: #6b7280;
+        margin: 0 0 12px 0;
+        line-height: 1.5;
+      }
+      .iw-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        background-color: #0f172a;
+        color: #f8fafc;
+        height: 36px;
+        padding: 0 16px;
+        width: 100%;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .iw-button:hover {
+        background-color: #1e293b;
+      }
+      @media (max-width: 450px) {
+        .iw-card {
+          max-width: calc(100vw - 40px);
+        }
       }
     </style>
-    <div class="iw-container">
-      <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 8px 0;">${pub.name}</h3>
-      <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+    <div class="iw-card">
+      ${imageHtml}
+      <h3 class="iw-title">${pub.name}</h3>
+      <div class="iw-badges">
         ${statusBadge}
         ${visitBadge}
       </div>
-      <div class="iw-flex">
-        ${imageHtml ? `
-          <div class="iw-image">
-            <img src="${pub.imageUrl}" alt="${pub.name}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 4px;" />
-            ${pub.imageUrl.includes('jdwetherspoon.com') ? '<p style="font-size: 10px; color: #6b7280; opacity: 0.7; margin: 0;">Image © JD Wetherspoon</p>' : ''}
-          </div>
-          <div class="iw-content">
-            ${addressHtml}
-            ${websiteLink}
-            <button id="track-visit-btn-${pub.id}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 w-full" style="margin-top: auto;">
-              ${visited ? 'Update Visit' : 'Visit'}
-            </button>
-          </div>
-        ` : `
-          <div class="iw-content">
-            ${addressHtml}
-            ${websiteLink}
-            <button id="track-visit-btn-${pub.id}" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 w-full">
-              ${visited ? 'Update Visit' : 'Visit'}
-            </button>
-          </div>
-        `}
-      </div>
+      <p class="iw-address">${pub.address}</p>
+      ${websiteLink}
+      <button id="${buttonId}" class="iw-button">
+        ${buttonText}
+      </button>
     </div>
   `
 
   infoWindow.value.setContent(content)
   infoWindow.value.open(map.value!, marker)
   
-  // Add click listener to Track Visit button after DOM update
+  // Add click listener to button after DOM update
   setTimeout(() => {
-    const trackButton = document.getElementById(`track-visit-btn-${pub.id}`)
-    if (trackButton) {
-      trackButton.addEventListener('click', () => {
-        selectedPub.value = pub
-        showPubDetail.value = true
+    const button = document.getElementById(buttonId)
+    if (button) {
+      button.addEventListener('click', () => {
+        if (isAuthenticated.value) {
+          selectedPub.value = pub
+          showPubDetail.value = true
+        } else {
+          showLoginDialog.value = true
+        }
       })
     }
   }, 0)
