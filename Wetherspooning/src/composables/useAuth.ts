@@ -4,9 +4,13 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  deleteUser,
   type User as FirebaseUser
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
+import { deleteUserData } from '@/services/firebaseDataService'
 
 /**
  * User information
@@ -50,6 +54,8 @@ function mapFirebaseError(code: string): string {
       return 'Invalid email or password'
     case 'auth/too-many-requests':
       return 'Too many failed attempts. Please try again later.'
+    case 'auth/requires-recent-login':
+      return 'Please log in again to complete this action.'
     default:
       return 'An error occurred. Please try again.'
   }
@@ -150,6 +156,88 @@ export function useAuth() {
   }
 
   /**
+   * Re-authenticate the current user with their password.
+   * Required before performing sensitive operations like account deletion.
+   * 
+   * @param password - User's current password
+   * @returns Promise that resolves on successful re-authentication
+   * @throws Error if user is not logged in, password is incorrect, or network fails
+   */
+  const reauthenticate = async (password: string): Promise<void> => {
+    try {
+      const currentUser = auth.currentUser
+
+      if (!currentUser || !currentUser.email) {
+        throw new Error('No user is currently logged in.')
+      }
+
+      const credential = EmailAuthProvider.credential(currentUser.email, password)
+      await reauthenticateWithCredential(currentUser, credential)
+    } catch (error: any) {
+      if (error.message === 'No user is currently logged in.') {
+        throw error
+      }
+
+      // Handle network errors
+      if (error.code === 'auth/network-request-failed') {
+        throw new Error('Network error. Please check your connection and try again.')
+      }
+
+      // Handle wrong password
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        throw new Error('Incorrect password. Please try again.')
+      }
+
+      // Default error
+      throw new Error(mapFirebaseError(error.code))
+    }
+  }
+
+  /**
+   * Permanently delete the current user's account and all associated data.
+   * Deletes all visit data from Firestore, then deletes the Firebase Auth account.
+   * User will be logged out after successful deletion.
+   * 
+   * @returns Promise that resolves on successful deletion
+   * @throws Error if user is not logged in, data deletion fails, or auth deletion fails
+   */
+  const deleteAccount = async (): Promise<void> => {
+    try {
+      const currentUser = auth.currentUser
+
+      if (!currentUser) {
+        throw new Error('No user is currently logged in.')
+      }
+
+      const userId = currentUser.uid
+
+      // Step 1: Delete all user data from Firestore
+      try {
+        await deleteUserData(userId)
+      } catch (error: any) {
+        // If Firestore deletion fails, stop and report error
+        throw new Error(error.message || 'Failed to delete account data. Please check your connection and try again.')
+      }
+
+      // Step 2: Delete Firebase Auth account
+      try {
+        await deleteUser(currentUser)
+      } catch (error: any) {
+        // Auth deletion failed after Firestore deletion succeeded
+        console.error('Failed to delete auth account after Firestore deletion:', error)
+        throw new Error('Failed to delete account. Please try again or contact support.')
+      }
+
+      // Auth state will be updated by onAuthStateChanged observer
+      // Clear error state
+      authState.error = null
+    } catch (error: any) {
+      // Re-throw formatted errors
+      throw error
+    }
+  }
+
+  /**
    * Clear any authentication errors.
    */
   const clearError = (): void => {
@@ -165,6 +253,8 @@ export function useAuth() {
     login,
     logout,
     register,
+    reauthenticate,
+    deleteAccount,
     clearError
   }
 }
