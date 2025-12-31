@@ -1,5 +1,4 @@
 <template>
-  <Transition name="fade">
     <Card v-if="isOpen && pub" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 shadow-lg w-[calc(100%-2rem)] max-w-md">
       <CardHeader>
         <div class="flex items-start justify-between">
@@ -50,7 +49,6 @@
         </Button>
       </CardFooter>
     </Card>
-  </Transition>
 </template>
 
 <script setup lang="ts">
@@ -71,16 +69,3 @@ defineEmits<{
   signIn: []
 }>()
 </script>
-
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: all 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0.95);
-}
-</style>

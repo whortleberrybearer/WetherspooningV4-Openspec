@@ -286,7 +286,7 @@ const checkProximity = () => {
   }
 
   // Only set nearbyPub if within 100 metres
-  if (closestPub && minDistance <= 1000000) {
+  if (closestPub && minDistance <= 100000) {
     nearbyPub.value = closestPub
     console.log(`Nearby pub detected: ${closestPub.name} at ${Math.round(minDistance)}m`)
   } else {
@@ -420,6 +420,11 @@ const loadPubs = async () => {
     const data = await getAllPubs()
     pubs.value = data
     createMarkers()
+    
+    // Check proximity after pubs are loaded (if user location is already available)
+    if (userLocation.value) {
+      checkProximity()
+    }
   } catch (err) {
     const errorMsg = 'Failed to load pub locations. Please check your connection and try again.'
     error.value = errorMsg
