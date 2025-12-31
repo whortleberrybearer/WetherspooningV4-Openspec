@@ -2,70 +2,63 @@
 
 ## What Changes
 
-When a user's geolocation is detected and the closest open pub is within 100 metres, display a prompt asking if the user is visiting that pub. The prompt should include the pub's address and image (if available from Wetherspoon's website, with attribution). If the user is already signed in and has already visited the pub, no prompt is displayed. If the user is not signed in, provide a link to sign in. If signed in, show a "Yes" button that creates a visit record with the current date. After creating the visit, display the pub's info window.
+When a user's geolocation is detected on initial page load and the closest open pub is within 100 metres, automatically center the map on that pub's location and display its info window. This provides immediate contextual awareness when a user opens the app near a Wetherspoon pub. The proximity check only happens once on the first geolocation detection, not continuously.
 
-### New Capability: proximity-visit-prompt
-**Type:** new  
+### Updated Capability: proximity-visit-prompt
+**Type:** modified  
 **Spec:** `openspec/specs/proximity-visit-prompt/spec.md`
 
-Add a location-aware feature that prompts authenticated users to log visits when they are physically near a Wetherspoon pub.
+Modify the location-aware feature to automatically focus the map on nearby pubs instead of showing a separate prompt dialog.
 
-**New Requirements:**
-- REQ-PVP-001: Proximity Detection - Detect when user is within 100m of an open pub
-- REQ-PVP-002: Visit Prompt Display - Show prompt with pub details when near an unvisited pub
-- REQ-PVP-003: Authentication State Handling - Display appropriate UI based on authentication state
-- REQ-PVP-004: Visit Creation from Prompt - Create visit record when user confirms
-- REQ-PVP-005: Post-Visit Info Window - Display pub info window after visit creation
+**Updated Requirements:**
+- REQ-PVP-001: Proximity Detection - Detect when user is within 100m of an open pub on initial geolocation
+- REQ-PVP-002: Auto-Center and Info Window - Center map on pub and display info window when proximity detected
+- REQ-PVP-003: Single Check Only - Only check proximity on first geolocation, not continuously
+
+**Removed:**
+- ProximityVisitPrompt component (no longer needed)
+- Session storage for dismissed prompts
+- Authentication-specific prompt handling
+- Visit creation from prompt
 
 ## Why This Matters
 
 **User Value:**
-- Frictionless visit tracking when physically at a pub
-- Encourages engagement with the tracking feature through contextual prompts
-- Reduces manual search and selection effort
+- Immediate awareness when near a pub without requiring extra interaction
+- Simpler, more streamlined UX - reuses existing info window instead of new UI
+- Reduces cognitive load - one less dialog to dismiss
 
 **Business Value:**
-- Increases user engagement with visit tracking feature
-- Higher quality visit data (location-verified visits)
-- Drives authentication sign-ups through contextual prompts
+- Lower development/maintenance overhead - fewer components
+- Reuses existing info window UI patterns
+- Still encourages visit tracking through focused context
 
 ## Implementation Scope
 
 ### Components Affected
-- `PubLocationsMap.vue` - Add proximity detection logic and prompt UI
-- `useVisits.ts` - Use existing visit creation methods
+- `PubLocationsMap.vue` - Update proximity detection to center map and show info window
 
-### New Files
-- New component: `ProximityVisitPrompt.vue` - Dialog/card component for visit prompt
+### Files to Remove
+- `ProximityVisitPrompt.vue` - Component no longer needed
 
 ### Dependencies
 - Geolocation API (already in use for map centering)
-- Existing visit tracking system (`useVisits` composable)
-- Existing authentication system (`useAuth` composable)
+- Google Maps API (for map centering and info window display)
 
 ## Risks & Mitigations
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Geolocation permission denied | Feature unusable | Gracefully degrade - no prompt shown, feature optional |
-| Inaccurate GPS coordinates | Wrong pub suggested | Use 100m threshold to reduce false positives |
-| Prompt appears too frequently | Annoying user experience | Only show once per pub visit, hide after user dismisses |
-| Performance impact from distance calculations | Map lag | Throttle calculations, only check on geolocation updates |
-
-## Open Questions
-
-1. Should the prompt automatically dismiss after a timeout (e.g., 30 seconds)?
-2. Should there be a "Not now" option that prevents re-prompting for the same pub during the session?
-3. Should the distance threshold be configurable (e.g., user preference)?
-4. Should the prompt show if the user is near multiple pubs? (Show closest only)
+| Geolocation permission denied | Feature unusable | Gracefully degrade - map centers on default location |
+| Inaccurate GPS coordinates | Wrong pub focused | Use 100m threshold to reduce false positives |
+| Performance impact | Map lag | Single check on initial load only |
 
 ## Related Changes
 
-None - this is a new, standalone feature.
+Supersedes previous proximity-visit-prompt implementation with dialog component.
 
 ## Validation
 
 - Proposal structure follows OpenSpec conventions
 - Spec deltas include clear scenarios for all requirements
 - Tasks are ordered and verifiable
-- All validation passes with `npx openspec validate 2025-12-30-add-proximity-visit-prompt --strict`

@@ -1,153 +1,105 @@
-# Tasks: Add Proximity Visit Prompt
+# Tasks: Update Proximity Visit Prompt
 
-## Phase 1: Core Implementation
+## Phase 1: Simplify Implementation
 
-### 1.1 Add Distance Calculation Utility
-- [x] Create `calculateDistance()` helper function in PubLocationsMap.vue
-- [x] Implement Haversine formula for lat/lng to metres conversion
-- [x] Add JSDoc comments explaining the formula
-- [ ] Test with known coordinates to verify accuracy
+### 1.1 Remove ProximityVisitPrompt Component
+- [ ] Delete `src/components/ProximityVisitPrompt.vue` file
+- [ ] Remove import of ProximityVisitPrompt from PubLocationsMap.vue
+- [ ] Remove ProximityVisitPrompt component from template
+- [ ] Remove prompt-related event handlers (@confirm, @dismiss, @signIn)
 
-### 1.2 Add Proximity Detection Logic
-- [x] Add reactive state for nearest pub: `nearbyPub` (ref)
-- [x] Add reactive state for dismissed prompts: `dismissedPrompts` (ref<Set<number>>)
-- [x] Create `checkProximity()` function to find nearest open pub
-- [x] Filter out closed pubs before distance calculation
-- [x] Filter out already-visited pubs (check `isVisited()`)
-- [x] Filter out dismissed pubs (check dismissedPrompts Set)
-- [x] Find pub with minimum distance
-- [x] Set `nearbyPub` if distance < 100m, otherwise set to null
-- [x] Add console logging for debugging proximity detection
+### 1.2 Remove Session Storage Logic
+- [ ] Remove `dismissedPrompts` ref and Set
+- [ ] Remove `loadDismissedPrompts()` function
+- [ ] Remove `saveDismissedPrompts()` function
+- [ ] Remove sessionStorage calls
+- [ ] Remove `onMounted` call to loadDismissedPrompts
 
-### 1.3 Integrate Geolocation Watch
-- [x] Add `watchPosition()` call in `centerOnUserLocation()` or separate function
-- [x] Configure watch options: `enableHighAccuracy: true`, `maximumAge: 10000`, `timeout: 5000`
-- [x] Store watch ID for cleanup: `geolocationWatchId` (ref)
-- [x] Call `checkProximity()` on position update callback
-- [x] Clear watch on component unmount (onBeforeUnmount)
-- [x] Handle geolocation errors gracefully (no feature crash)
+### 1.3 Update Proximity Detection Logic
+- [ ] Keep `calculateDistance()` helper function (Haversine formula)
+- [ ] Update `checkProximity()` to remove visited and dismissed filtering
+- [ ] Simplify to only filter closed pubs
+- [ ] Remove `nearbyPub` ref (no longer needed)
+- [ ] Add flag to track if proximity check has run: `hasCheckedProximity` (ref)
 
-### 1.4 Session Storage for Dismissed Prompts
-- [x] Create `loadDismissedPrompts()` function to read from sessionStorage
-- [x] Call `loadDismissedPrompts()` on component mount
-- [x] Create `saveDismissedPrompts()` function to write to sessionStorage
-- [x] Call `saveDismissedPrompts()` whenever dismissedPrompts Set changes
+### 1.4 Remove Continuous Location Tracking
+- [ ] Remove `geolocationWatchId` ref
+- [ ] Remove `watchPosition()` call
+- [ ] Remove `onBeforeUnmount` cleanup for watch
+- [ ] Keep single `getCurrentPosition()` call in `centerOnUserLocation()`
 
-### 1.5 Create ProximityVisitPrompt Component
-- [x] Create new file: `src/components/ProximityVisitPrompt.vue`
-- [x] Add props: `pub` (Pub | null), `isOpen` (boolean), `isAuthenticated` (boolean)
-- [x] Add emits: `confirm`, `dismiss`, `signIn`
-- [x] Add template structure: Dialog/Card with pub details
-- [x] Display pub image if `imageUrl` is present
-- [x] Display "Image: JD Wetherspoon" attribution if image present
-- [x] Display pub name and address
-- [x] Add "Yes, I'm here" button (visible if authenticated)
-- [x] Add "Sign in to track visits" button (visible if NOT authenticated)
-- [x] Add dismiss/close button (always visible)
-- [x] Add mobile-first styling (bottom sheet or card)
-- [x] Use shadcn/vue components (Dialog, Card, Button)
+### 1.5 Implement Auto-Center and Info Window Display
+- [ ] Update `checkProximity()` to return nearby pub (or null)
+- [ ] In `centerOnUserLocation()` after getting position:
+  - [ ] Call `checkProximity()` once if `hasCheckedProximity` is false
+  - [ ] If nearby pub found within 100m:
+    - [ ] Call `map.value.panTo()` with pub coordinates
+    - [ ] Call `map.value.setZoom(15)` for detail view
+    - [ ] Find marker for the nearby pub
+    - [ ] Call `showPubInfo(pub, marker)` to open info window
+  - [ ] Set `hasCheckedProximity = true` after check
 
-### 1.6 Integrate Prompt Component in Map View
-- [x] Import ProximityVisitPrompt component in PubLocationsMap.vue
-- [x] Add component to template
-- [x] Bind `:pub="nearbyPub"` prop
-- [x] Bind `:is-open="nearbyPub !== null"` prop
-- [x] Bind `:is-authenticated="isAuthenticated"` prop
-- [x] Handle `@confirm` event: call visit creation logic
-- [x] Handle `@dismiss` event: add pub ID to dismissedPrompts Set
-- [x] Handle `@signIn` event: open login dialog
+### 1.6 Update `checkProximity()` Function
+- [ ] Change function to accept user coordinates as parameters
+- [ ] Return the nearby pub object (or null) instead of setting state
+- [ ] Filter pubs to only open pubs (exclude closed)
+- [ ] Remove filtering for visited pubs
+- [ ] Remove filtering for dismissed pubs
+- [ ] Calculate distance for each open pub
+- [ ] Find minimum distance
+- [ ] Return pub if distance <= 100m, otherwise return null
 
-### 1.7 Visit Creation Handler
-- [x] Create `handleProximityVisitConfirm()` function
-- [x] Get current user UID from `useAuth`
-- [x] Call `addVisit(nearbyPub.id, { visitedAt: new Date().toISOString() }, user.uid)`
-- [x] Handle success: close prompt (set nearbyPub to null)
-- [x] Handle success: call `showPubInfo()` for the visited pub
-- [x] Handle error: display error message in or near prompt
-- [x] Keep prompt open on error for retry
+## Phase 2: Testing & Validation
 
-## Phase 2: Testing & Refinement
+### 2.1 Manual Testing - Core Functionality
+- [ ] Test: Map centers on nearby pub when within 100m on page load
+- [ ] Test: Info window opens automatically for nearby pub
+- [ ] Test: Proximity check only happens once (not on subsequent location changes)
+- [ ] Test: No auto-center when >100m from nearest pub
+- [ ] Test: No auto-center for closed pubs
+- [ ] Test: User can close auto-opened info window
+- [ ] Test: Info window shows correct pub details
+- [ ] Test: User can interact with other markers after auto-center
+- [ ] Test: Visit can be created via info window button
 
-### 2.1 Unit Testing
-- [ ] Test `calculateDistance()` with known coordinates
-- [ ] Verify distance calculation accuracy (±1%)
-- [ ] Test proximity detection filtering logic
-- [ ] Test session storage persistence
-- [ ] Test dismissed prompts lookup (Set operations)
+### 2.2 Manual Testing - Edge Cases
+- [ ] Test: Multiple pubs nearby → centers on closest only
+- [ ] Test: Geolocation permission denied → no errors, map centers on default location
+- [ ] Test: Geolocation timeout → no errors, map centers on default location
+- [ ] Test: User location exactly 100m from pub → info window opens
+- [ ] Test: User location exactly 101m from pub → no auto-center
 
-### 2.2 Manual Testing - Core Functionality
-- [ ] Test: Prompt appears when within 100m of open pub
-- [ ] Test: Prompt does NOT appear when >100m from nearest pub
-- [ ] Test: Prompt does NOT appear for closed pubs
-- [ ] Test: Prompt does NOT appear for already-visited pubs
-- [ ] Test: Prompt shows correct pub name and address
-- [ ] Test: Prompt shows pub image and attribution (if available)
-- [ ] Test: Prompt shows "Yes, I'm here" for authenticated users
-- [ ] Test: Prompt shows "Sign in to track visits" for unauthenticated users
-- [ ] Test: Clicking "Yes, I'm here" creates visit with current date
-- [ ] Test: Info window opens after visit creation
-- [ ] Test: Dismissing prompt prevents re-display in same session
-- [ ] Test: Dismissal persists across page refresh
-- [ ] Test: Dismissal clears after closing and reopening browser
-
-### 2.3 Manual Testing - Edge Cases
-- [ ] Test: Multiple pubs nearby → prompt shows closest only
-- [ ] Test: User moves from far to near → prompt appears
-- [ ] Test: User moves from near to far → prompt disappears
-- [ ] Test: Geolocation permission denied → no errors, feature disabled
-- [ ] Test: Geolocation timeout → no errors, feature disabled
-- [ ] Test: Visit creation fails → error message shown, prompt remains open
-- [ ] Test: User logs in while prompt showing → prompt updates to show "Yes" button
-- [ ] Test: User logs out while prompt showing → prompt updates to show sign-in link
-
-### 2.4 Performance Testing
+### 2.3 Performance Testing
 - [ ] Measure distance calculation time with 100 pubs
-- [ ] Verify calculation completes in <20ms
-- [ ] Verify no lag on geolocation position updates
-- [ ] Verify map remains responsive during proximity checks
-- [ ] Check memory usage (no leaks from geolocation watch)
+- [ ] Verify calculation completes in <50ms (single check, not critical)
+- [ ] Verify no lag during initial page load
+- [ ] Verify map remains responsive
 
-### 2.5 Accessibility Testing
-- [ ] Test keyboard navigation (Tab through buttons)
-- [ ] Test Escape key dismisses prompt
-- [ ] Test focus management (focus moves to prompt on open)
-- [ ] Test screen reader announcements (NVDA/JAWS)
-- [ ] Verify ARIA attributes are present and correct
-- [ ] Check color contrast ratio (4.5:1 minimum)
-- [ ] Test at 200% zoom (text remains readable)
-
-### 2.6 Mobile Testing
-- [ ] Test on Chrome mobile (Android)
-- [ ] Test on Safari mobile (iOS)
-- [ ] Verify prompt is positioned correctly (bottom of screen)
-- [ ] Verify prompt is readable on small screens
-- [ ] Verify buttons are tappable (minimum 44px touch target)
-- [ ] Test geolocation accuracy on mobile devices
-
-## Phase 3: Documentation & Polish
-
-### 3.1 Code Documentation
-- [ ] Add JSDoc comments to all new functions
-- [ ] Document component props and emits
-- [ ] Add inline comments for complex logic (Haversine, filtering)
-- [ ] Document session storage keys and structure
-
-### 3.2 OpenSpec Validation
-- [ ] Run `npx openspec validate 2025-12-30-add-proximity-visit-prompt --strict`
-- [ ] Fix any validation errors
-- [ ] Verify all requirements have scenarios
-- [ ] Verify all scenarios are testable
-
-### 3.3 TypeScript & Build
+### 2.4 TypeScript & Build
 - [ ] Run `npm run type-check` and fix errors
 - [ ] Ensure build completes successfully
 - [ ] No console warnings or errors in dev mode
-- [ ] Verify production build works
+- [ ] Remove debug console.logs
 
-### 3.4 Code Review Preparation
-- [ ] Review code for adherence to project conventions
-- [ ] Remove debug console.logs (keep intentional logging only)
+### 2.5 OpenSpec Validation
+- [ ] Run `npx openspec validate 2025-12-30-add-proximity-visit-prompt --strict`
+- [ ] Fix any validation errors
+- [ ] Verify all requirements have scenarios
+- [ ] Verify MODIFIED and REMOVED sections are correct
+
+## Phase 3: Cleanup & Documentation
+
+### 3.1 Code Cleanup
+- [ ] Remove all proximity prompt-related code
+- [ ] Remove unused imports
+- [ ] Remove unused reactive refs
+- [ ] Update comments to reflect new behavior
 - [ ] Ensure consistent code style
+
+### 3.2 Documentation
+- [ ] Update JSDoc comments for modified functions
+- [ ] Document that proximity check happens only once
+- [ ] Add inline comments for auto-center logic
 - [ ] Check for unused imports and variables
 - [ ] Verify all temporary/commented code is removed
 

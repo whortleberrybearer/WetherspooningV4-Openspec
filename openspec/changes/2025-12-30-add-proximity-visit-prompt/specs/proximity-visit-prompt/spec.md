@@ -1,32 +1,31 @@
 # proximity-visit-prompt Specification Delta
 
-## ADDED Requirements
+## MODIFIED Requirements
 
-### Requirement: Proximity Detection (REQ-PVP-001)
+### Requirement: Proximity Detection on Initial Geolocation (REQ-PVP-001)
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST detect when the user's current location is within 100 metres of an open Wetherspoon pub.
+The system MUST detect when the user's current location is within 100 metres of an open Wetherspoon pub on the first geolocation position detection only.
 
 **Acceptance Criteria:**
-- System uses browser Geolocation API via `navigator.geolocation.watchPosition()`
-- Geolocation watch is configured with:
-  - `enableHighAccuracy: true` (for precise proximity detection)
-  - `maximumAge: 10000` (accept positions cached up to 10 seconds)
-  - `timeout: 5000` (5 second timeout for position updates)
+- System uses browser Geolocation API via `navigator.geolocation.getCurrentPosition()`
+- Geolocation is requested with `enableHighAccuracy: false` (balanced accuracy)
 - Distance calculation uses Haversine formula for accuracy
 - Distance is calculated in metres
 - Only open pubs are considered (pubs with `openState` containing "closed" are excluded)
 - System identifies the single closest open pub
-- Detection triggers only when geolocation position updates (not continuously)
+- Proximity check happens ONLY once on first successful geolocation
 - If geolocation is denied or unavailable, feature is disabled gracefully
+- No continuous location tracking (no watchPosition)
 
-#### Scenario: Detect Nearby Open Pub
+#### Scenario: Detect Nearby Open Pub on Initial Load
 **Given** the user has granted geolocation permission  
 **And** the user's location is at coordinates (53.4808, -2.2426)  
 **And** there is an open pub at (53.4816, -2.2430) approximately 95 metres away  
 **And** all other pubs are farther than 100 metres  
-**When** the geolocation position updates  
+**And** this is the first geolocation check  
+**When** the geolocation position is received  
 **Then** the system calculates the distance using Haversine formula  
 **And** identifies the pub at (53.4816, -2.2430) as the closest  
 **And** determines the user is within 100 metres of that pub
@@ -34,120 +33,123 @@ The system MUST detect when the user's current location is within 100 metres of 
 #### Scenario: No Nearby Open Pubs
 **Given** the user's location is known  
 **And** the closest open pub is 250 metres away  
-**When** the geolocation position updates  
+**When** the initial geolocation position is received  
 **Then** the system determines no pubs are within 100 metres  
-**And** no proximity prompt is shown
+**And** no automatic centering occurs  
+**And** map remains at user's current location
 
 #### Scenario: Nearby Pub is Closed
 **Given** the user is 50 metres from a pub  
 **And** that pub has `openState` set to "Closed"  
-**When** the geolocation position updates  
+**When** the initial geolocation position is received  
 **Then** the system excludes that pub from consideration  
 **And** checks other open pubs for proximity  
-**And** no prompt is shown if no open pubs are within 100m
+**And** no auto-centering occurs if no open pubs are within 100m
 
 #### Scenario: Geolocation Permission Denied
 **Given** the user has denied geolocation permission  
 **When** the page loads  
 **Then** the proximity detection feature is disabled  
-**And** no prompts are shown  
+**And** no auto-centering occurs  
 **And** no errors are thrown  
-**And** the map continues to function normally
+**And** the map continues to function normally at default center
+
+#### Scenario: Proximity Check Only Runs Once
+**Given** the user's initial location was within 100m of a pub  
+**And** proximity detection has already run once  
+**When** the user moves to a new location  
+**Then** no additional proximity checks are performed  
+**And** no auto-centering occurs
 
 ---
 
-### Requirement: Visit Prompt Display (REQ-PVP-002)
+### Requirement: Auto-Center Map and Display Info Window (REQ-PVP-002)
 **Priority:** MUST  
 **Category:** User Interface
 
-The system MUST display a prompt with pub details when the user is near an unvisited open pub.
+The system MUST center the map on the nearby pub's location and automatically display its info window when proximity is detected.
 
 **Acceptance Criteria:**
-- Prompt appears automatically when proximity conditions are met
-- Prompt displays:
-  - Pub image (if `imageUrl` is available)
-  - Image attribution text: "Image: JD Wetherspoon" (if image present)
-  - Pub name
-  - Pub address
-  - Action button(s) based on authentication state
-  - Dismiss/close option
-- Prompt is mobile-friendly (positioned at bottom of screen)
-- Prompt is modal or overlay (non-blocking but prominent)
-- Prompt does NOT appear if user has already visited the pub
-- Prompt does NOT appear if user has dismissed it for this pub in current session
-- Only one prompt is shown at a time (even if multiple pubs nearby)
-- Prompt for the closest pub only
+- Map centers on the pub's coordinates using `map.panTo()` or `map.setCenter()`
+- Map zoom level adjusts to appropriate level (e.g., 15-16) for pub detail view
+- Info window opens automatically for the nearby pub
+- Info window displays standard pub information (image, name, address, badges, link, button)
+- No separate prompt dialog is shown
+- Centering and info window display happen immediately after proximity detection
+- User can close the info window and interact with map normally
+- No visit is automatically created - user must click button in info window
 
-#### Scenario: Display Prompt for Nearby Unvisited Pub
-**Given** the user is authenticated  
-**And** the user is within 95 metres of "The Moon Under Water"  
-**And** the user has not visited "The Moon Under Water"  
-**And** "The Moon Under Water" has an image URL  
+#### Scenario: Auto-Center and Show Info Window for Nearby Pub
+**Given** the user is within 95 metres of "The Moon Under Water"  
+**And** "The Moon Under Water" is open  
+**And** this is the first geolocation check  
 **When** proximity is detected  
-**Then** a prompt is displayed at the bottom of the screen  
-**And** the prompt shows the pub's image  
-**And** the prompt shows "Image: JD Wetherspoon"  
-**And** the prompt shows "The Moon Under Water"  
-**And** the prompt shows the pub's full address  
-**And** the prompt shows a "Yes, I'm here" button
+**Then** the map centers on "The Moon Under Water" coordinates  
+**And** the map zoom level adjusts to 15  
+**And** the info window opens for "The Moon Under Water"  
+**And** the info window displays the pub's image (if available)  
+**And** the info window displays the pub's name and address  
+**And** the info window displays status and visit badges  
+**And** the info window displays the website link (if available)  
+**And** the info window displays the appropriate action button
 
-#### Scenario: No Prompt for Already Visited Pub
-**Given** the user is authenticated  
-**And** the user is within 80 metres of "The Moon Under Water"  
-**And** the user has already visited "The Moon Under Water"  
-**When** proximity is detected  
-**Then** no prompt is displayed
+#### Scenario: User Can Close Auto-Opened Info Window
+**Given** the info window was auto-opened due to proximity  
+**When** the user clicks the close button on the info window  
+**Then** the info window closes  
+**And** the map remains centered on the pub  
+**And** the user can interact with other markers normally
 
-#### Scenario: No Prompt After Dismissal in Session
-**Given** the user is within 90 metres of "The Moon Under Water"  
-**And** the user previously dismissed the prompt for this pub in this browser session  
-**When** proximity is detected  
-**Then** no prompt is displayed  
-**And** the dismissal persists until the browser session ends
-
-#### Scenario: Prompt Without Image
-**Given** the user is within 75 metres of "The Counting House"  
-**And** "The Counting House" has no `imageUrl`  
-**When** proximity is detected  
-**Then** a prompt is displayed  
-**And** no image placeholder is shown  
-**And** the pub name and address are displayed  
-**And** no image attribution text is shown
+#### Scenario: No Auto-Center When Not Within Proximity
+**Given** the user's location is known  
+**And** no open pubs are within 100 metres  
+**When** the initial geolocation position is received  
+**Then** the map does NOT auto-center on any pub  
+**And** the map centers on the user's current location  
+**And** no info window is displayed
 
 ---
 
-### Requirement: Authentication State Handling (REQ-PVP-003)
+### Requirement: Single Proximity Check (REQ-PVP-003)
 **Priority:** MUST  
-**Category:** User Experience
+**Category:** Performance
 
-The system MUST display different prompt actions based on whether the user is authenticated.
+The system MUST perform proximity checking only once on the initial geolocation detection, not continuously.
 
 **Acceptance Criteria:**
-- If user is NOT authenticated:
-  - Prompt shows "Sign in to track visits" link/button
-  - Clicking the link opens the login dialog
-  - No "Yes" button is shown
-- If user IS authenticated:
-  - Prompt shows "Yes, I'm here" button
-  - No sign-in link is shown
-- Authentication state changes update prompt UI reactively
-- Prompt respects authentication state at time of display
+- Proximity check executes only after first successful geolocation
+- No continuous location tracking (no watchPosition)
+- No repeated proximity checks if user moves
+- No performance impact from continuous distance calculations
+- Feature does not interfere with normal map interactions
+- No session storage or persistence needed
 
-#### Scenario: Prompt for Unauthenticated User
-**Given** the user is NOT authenticated  
-**And** the user is within 85 metres of "The Regal"  
-**When** the proximity prompt is displayed  
-**Then** the prompt shows "Sign in to track visits" button  
-**And** the prompt does NOT show "Yes, I'm here" button
+#### Scenario: No Repeated Checks After Initial Detection
+**Given** the initial proximity check has completed  
+**And** a nearby pub was found and info window displayed  
+**When** the user moves to a different location  
+**Then** no additional proximity checks are performed  
+**And** no new auto-centering occurs  
+**And** the previously opened info window remains (or is closed by user)
 
-#### Scenario: Sign In Link Opens Login Dialog
-**Given** the user is NOT authenticated  
-**And** the proximity prompt is displayed  
-**When** the user clicks "Sign in to track visits"  
-**Then** the login dialog opens  
-**And** the proximity prompt remains visible (or closes based on UX decision)
+#### Scenario: No Checks After User Dismisses Info Window
+**Given** the info window was auto-opened due to proximity  
+**When** the user closes the info window  
+**Then** no additional proximity checks are triggered  
+**And** the closed info window stays closed  
+**And** the user can manually interact with other pub markers
 
-#### Scenario: Prompt for Authenticated User
+## REMOVED Requirements
+
+The following requirements from the original specification are removed:
+
+- **REQ-PVP-002: Visit Prompt Display** - Removed: No separate prompt component needed
+- **REQ-PVP-003: Authentication State Handling** - Removed: Handled by existing info window
+- **REQ-PVP-004: Visit Creation from Prompt** - Removed: Visit creation via info window button only
+- **REQ-PVP-005: Post-Visit Info Window** - Removed: Info window already displayed
+- **REQ-PVP-006: Session Persistence** - Removed: No session storage needed
+- **REQ-PVP-007: Prompt Dismissal** - Removed: No prompt to dismiss
+- **REQ-PVP-008: Accessibility** - Removed: Accessibility handled by info window implementation
 **Given** the user is authenticated  
 **And** the user is within 70 metres of "The Moon Under Water"  
 **And** the user has not visited "The Moon Under Water"  
