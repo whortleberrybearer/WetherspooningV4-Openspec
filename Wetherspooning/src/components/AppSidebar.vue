@@ -138,8 +138,11 @@
                           >
                             <div class="flex items-start justify-between gap-2 flex-1 min-w-0">
                               <div class="flex flex-col gap-0.5 flex-1 min-w-0">
-                                <span :class="['text-sm break-words', isPubClosed(pub) ? 'text-muted-foreground' : '']">
-                                  {{ pub.name }}
+                                <span :class="['text-sm break-words flex items-center gap-1', isPubClosed(pub) ? 'text-muted-foreground' : '']">
+                                  <span v-if="pub.isHotel" title="Hotel">🏨</span>
+                                  <span v-if="pub.inAirport" title="Airport">✈️</span>
+                                  <span v-if="pub.inTrainStation" title="Train Station">🚂</span>
+                                  <span>{{ pub.name }}</span>
                                 </span>
                                 <span class="text-xs text-muted-foreground">{{ pub.townCity }}</span>
                               </div>
@@ -348,6 +351,9 @@ interface Pub {
   url?: string
   imageUrl?: string
   openState?: string
+  isHotel?: boolean
+  inAirport?: boolean
+  inTrainStation?: boolean
 }
 
 interface Props {

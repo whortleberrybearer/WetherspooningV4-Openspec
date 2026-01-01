@@ -593,11 +593,11 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
   // Location type badge
   let locationBadge = ''
   if (pub.isHotel) {
-    locationBadge = `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #f59e0b; color: white;">Hotel</span>`
+    locationBadge = `<span style="display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #f59e0b; color: white;">🏨 Hotel</span>`
   } else if (pub.inAirport) {
-    locationBadge = `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #3b82f6; color: white;">Airport</span>`
+    locationBadge = `<span style="display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #3b82f6; color: white;">✈️ Airport</span>`
   } else if (pub.inTrainStation) {
-    locationBadge = `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #8b5cf6; color: white;">Train Station</span>`
+    locationBadge = `<span style="display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #8b5cf6; color: white;">🚂 Train Station</span>`
   }
   
   // Visit badge with formatted date (without rating stars)
