@@ -1,42 +1,6 @@
-# user-profile-menu Specification
+# user-profile-menu Specification Delta
 
-## Purpose
-TBD - created by archiving change add-user-authentication. Update Purpose after archive.
-## Requirements
-### Requirement: Authentication State Display (REQ-UPM-001)
-**Priority:** MUST  
-**Category:** Functional
-
-The system MUST display different UI elements based on authentication state.
-
-**Acceptance Criteria:**
-- When not authenticated, display "Login" button
-- When authenticated, display user menu with username
-- Authentication state changes update UI immediately
-- "Login" button is clearly labeled and visible
-- User menu clearly indicates logged-in user
-- State display is consistent across page navigation
-
-#### Scenario: Display Login Button
-**Given** the user is not authenticated  
-**When** the application loads  
-**Then** a "Login" button is displayed in the sidebar header  
-**And** no user menu is visible
-
-#### Scenario: Display User Menu After Login
-**Given** the user is not authenticated  
-**When** the user successfully logs in  
-**Then** the "Login" button is replaced with a user menu  
-**And** the user menu displays the username "test"
-
-#### Scenario: Display Login Button After Logout
-**Given** the user is authenticated  
-**And** the user menu is visible  
-**When** the user logs out  
-**Then** the user menu is replaced with a "Login" button  
-**And** no user information is visible
-
----
+## MODIFIED Requirements
 
 ### Requirement: User Menu Display (REQ-UPM-002)
 **Priority:** MUST  
@@ -102,6 +66,26 @@ The system MUST provide an inline logout button within the user profile section.
 
 ---
 
+## REMOVED Requirements
+
+### Requirement: Extensible Menu Structure (REQ-UPM-004)
+**Reason for Removal:** The dropdown menu structure is being removed in favor of an inline logout button. Extensibility for future features can be re-introduced if/when multiple user actions are needed.
+
+**Impact:**
+- No dropdown menu to extend
+- Future features requiring multiple actions will need dropdown re-introduction
+- Current implementation simpler and more direct
+
+**Migration Path:**
+If future features require multiple user actions:
+1. Restore dropdown menu structure
+2. Add new menu items alongside logout
+3. Update this requirement with new extensibility patterns
+
+---
+
+## MODIFIED Requirements (Continued)
+
 ### Requirement: Visual Design (REQ-UPM-005)
 **Priority:** MUST  
 **Category:** UI/UX
@@ -165,33 +149,3 @@ The system MUST provide a responsive user profile section that works on mobile d
 **And** logout button is positioned inline with user details  
 **And** appropriate spacing is maintained  
 **And** no dropdown menu is present
-
----
-
-### Requirement: Accessibility (REQ-UPM-007)
-**Priority:** MUST  
-**Category:** Accessibility
-
-The system MUST provide accessible user profile interactions.
-
-**Acceptance Criteria:**
-- Logout button has appropriate ARIA labels
-- Logout button is keyboard navigable
-- Button can be activated with Enter or Space
-- Screen readers announce button purpose
-- Focus management is correct
-- Button has visible focus indicator
-
-#### Scenario: Keyboard Navigation
-**Given** the user is authenticated  
-**And** the logout button is focused  
-**When** the user presses Enter or Space  
-**Then** the logout process is triggered  
-**And** the user is logged out successfully
-
-#### Scenario: Screen Reader Announcements
-**Given** the user is using a screen reader  
-**When** the user profile section is displayed  
-**Then** the screen reader announces the username  
-**And** the logout button is announced as a button with its purpose
-
