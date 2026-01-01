@@ -98,10 +98,10 @@ watch(isAuthenticated, async (authenticated) => {
   }
 })
 
-// Watch for changes in visit data to update clusters and info window
+// Watch for changes in visit data to update markers and clusters
 watch([visitedPubIds, visits], () => {
-  // Update clusters to reflect visit status changes
-  updateClusters()
+  // Recreate markers to reflect visit status changes (checkmark icons)
+  createMarkers()
   
   // Update info window if there's a selected pub
   if (selectedPub.value && infoWindow.value) {
@@ -117,8 +117,11 @@ watch([visitedPubIds, visits], () => {
   }
 }, { deep: true })
 
-// Watch for theme changes to update info window
+// Watch for theme changes to update markers and info window
 watch(isDark, () => {
+  // Recreate markers with theme-appropriate colors
+  createMarkers()
+  
   // Update info window if there's a selected pub
   if (selectedPub.value && infoWindow.value) {
     const marker = markers.value.find(m => {
@@ -154,7 +157,7 @@ const createClusterRenderer = (backgroundColor: string) => {
   return {
     render: ({ count, position }: { count: number; position: google.maps.LatLng }) => {
       const svg = `
-        <svg fill="${backgroundColor}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="50" height="50">
+        <svg fill="${backgroundColor}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="72" height="72">
           <circle cx="120" cy="120" opacity="1" r="70" />
           <circle cx="120" cy="120" opacity="1" r="55" stroke="white" stroke-width="4" fill="${backgroundColor}" />
         </svg>
@@ -172,7 +175,7 @@ const createClusterRenderer = (backgroundColor: string) => {
       textElement.style.left = '50%'
       textElement.style.transform = 'translate(-50%, -50%)'
       textElement.style.color = 'white'
-      textElement.style.fontSize = '14px'
+      textElement.style.fontSize = '18px'
       textElement.style.fontWeight = 'bold'
       textElement.style.fontFamily = 'Arial, sans-serif'
       textElement.style.pointerEvents = 'none'
@@ -394,6 +397,21 @@ watch(showClosedPubs, () => {
   }
 })
 
+/**
+ * Creates map markers for all filtered pubs with enhanced pin-style design.
+ * 
+ * Markers use a traditional pin/teardrop shape (30px × 40px) with SVG for crisp rendering.
+ * State is communicated through icons (not just color) for accessibility:
+ * - Visited: Checkmark (✓) icon inside pin
+ * - Closed: Red badge with X icon in top-right corner
+ * 
+ * Colors provide supplementary context:
+ * - Green: Visited pubs
+ * - Blue: Unvisited pubs
+ * - Red badge: Closed state (when applicable)
+ * 
+ * Theme-aware: Colors adapt to light/dark mode via isDark composable.
+ */
 const createMarkers = () => {
   if (!map.value) return
 
@@ -411,39 +429,100 @@ const createMarkers = () => {
     const isClosed = pub.openState?.toLowerCase().includes('closed') || false
     const visited = isVisited(pub.id)
 
-    // Create marker with visual differentiation for 4 states
+    // Create enhanced pin marker with SVG
     const markerElement = document.createElement('div')
-    markerElement.className = 'custom-marker'
-    markerElement.style.width = '12px'
-    markerElement.style.height = '12px'
-    markerElement.style.borderRadius = '50%'
-    markerElement.style.border = '2px solid white'
-    markerElement.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)'
+    markerElement.className = 'enhanced-marker'
+    markerElement.dataset.visited = String(visited)
+    markerElement.dataset.closed = String(isClosed)
     
-    // Determine marker color and opacity based on visited and open state
-    if (visited && !isClosed) {
-      // Visited + Open: Green at 100% opacity
-      markerElement.style.backgroundColor = '#34a853'
-      markerElement.style.opacity = '1'
-    } else if (visited && isClosed) {
-      // Visited + Closed: Blue at 60% opacity
-      markerElement.style.backgroundColor = '#4285f4'
-      markerElement.style.opacity = '0.6'
-    } else if (!visited && isClosed) {
-      // Unvisited + Closed: Gray at 60% opacity
-      markerElement.style.backgroundColor = '#9ca3af'
-      markerElement.style.opacity = '0.6'
+    // Determine marker color based on visited state (green for visited, blue for unvisited)
+    let markerColor = ''
+    
+    if (visited) {
+      // Visited: Green
+      markerColor = isDark.value ? '#16a34a' : '#22c55e'
     } else {
-      // Unvisited + Open: Red at 100% opacity (default)
-      markerElement.style.backgroundColor = '#ea4335'
-      markerElement.style.opacity = '1'
+      // Unvisited: Blue
+      markerColor = isDark.value ? '#2563eb' : '#3b82f6'
     }
+    
+    // Build SVG pin marker with state icons
+    markerElement.innerHTML = `
+      <svg class="marker-pin" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg" style="width: 36px; height: 48px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+        <!-- Pin shape: rounded top with pointed bottom -->
+        <path d="M15,0 C6.716,0 0,6.716 0,15 C0,23.284 15,40 15,40 S30,23.284 30,15 C30,6.716 23.284,0 15,0 Z" 
+              fill="${markerColor}" 
+              stroke="white" 
+              stroke-width="2"/>
+        
+        <!-- Visited checkmark icon (white) -->
+        ${visited ? `
+          <path d="M10,16 L13,19 L20,12" 
+                fill="none" 
+                stroke="white" 
+                stroke-width="2.5" 
+                stroke-linecap="round" 
+                stroke-linejoin="round"/>
+        ` : ''}
+      </svg>
+    `
+    
+    // Add closed state badge if pub is closed
+    if (isClosed) {
+      const badge = document.createElement('div')
+      badge.className = 'closed-badge'
+      badge.style.cssText = `
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        width: 18px;
+        height: 18px;
+        background: #ef4444;
+        border: 2px solid white;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      `
+      
+      // Add X icon in the badge
+      badge.innerHTML = `
+        <svg viewBox="0 0 12 12" style="width: 10px; height: 10px;">
+          <line x1="3" y1="3" x2="9" y2="9" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          <line x1="9" y1="3" x2="3" y2="9" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      `
+      
+      markerElement.appendChild(badge)
+    }
+    
+    // Style the marker container
+    markerElement.style.cssText = `
+      width: 36px;
+      height: 48px;
+      position: relative;
+      cursor: pointer;
+      transform-origin: bottom center;
+      transition: transform 0.2s ease;
+    `
 
     const marker = new google.maps.marker.AdvancedMarkerElement({
       position: { lat: pub.lat, lng: pub.lng },
       map: map.value!,
       title: pub.name,
       content: markerElement,
+    })
+
+    // Add hover effect
+    markerElement.addEventListener('mouseenter', () => {
+      markerElement.style.transform = 'scale(1.1)'
+      markerElement.style.zIndex = '1000'
+    })
+    
+    markerElement.addEventListener('mouseleave', () => {
+      markerElement.style.transform = 'scale(1)'
+      markerElement.style.zIndex = ''
     })
 
     marker.addListener('click', () => {
@@ -514,7 +593,7 @@ const initializeClusters = () => {
     visitedClusterer.value = new MarkerClusterer({
       map: map.value,
       markers: visited,
-      renderer: createClusterRenderer('#34a853'),
+      renderer: createClusterRenderer(isDark.value ? '#16a34a' : '#22c55e'),
       algorithmOptions: {
         maxZoom: 12
       }
@@ -523,12 +602,12 @@ const initializeClusters = () => {
     visitedClusterer.value.addMarkers(visited)
   }
   
-  // Create or update unvisited clusterer (red)
+  // Create or update unvisited clusterer (blue)
   if (!unvisitedClusterer.value) {
     unvisitedClusterer.value = new MarkerClusterer({
       map: map.value,
       markers: unvisited,
-      renderer: createClusterRenderer('#ea4335'),
+      renderer: createClusterRenderer(isDark.value ? '#2563eb' : '#3b82f6'),
       algorithmOptions: {
         maxZoom: 12
       }
