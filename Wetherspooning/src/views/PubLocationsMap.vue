@@ -157,7 +157,7 @@ const createClusterRenderer = (backgroundColor: string) => {
   return {
     render: ({ count, position }: { count: number; position: google.maps.LatLng }) => {
       const svg = `
-        <svg fill="${backgroundColor}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="60" height="60">
+        <svg fill="${backgroundColor}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="72" height="72">
           <circle cx="120" cy="120" opacity="1" r="70" />
           <circle cx="120" cy="120" opacity="1" r="55" stroke="white" stroke-width="4" fill="${backgroundColor}" />
         </svg>
@@ -175,7 +175,7 @@ const createClusterRenderer = (backgroundColor: string) => {
       textElement.style.left = '50%'
       textElement.style.transform = 'translate(-50%, -50%)'
       textElement.style.color = 'white'
-      textElement.style.fontSize = '16px'
+      textElement.style.fontSize = '18px'
       textElement.style.fontWeight = 'bold'
       textElement.style.fontFamily = 'Arial, sans-serif'
       textElement.style.pointerEvents = 'none'
@@ -448,7 +448,7 @@ const createMarkers = () => {
     
     // Build SVG pin marker with state icons
     markerElement.innerHTML = `
-      <svg class="marker-pin" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg" style="width: 30px; height: 40px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+      <svg class="marker-pin" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg" style="width: 36px; height: 48px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
         <!-- Pin shape: rounded top with pointed bottom -->
         <path d="M15,0 C6.716,0 0,6.716 0,15 C0,23.284 15,40 15,40 S30,23.284 30,15 C30,6.716 23.284,0 15,0 Z" 
               fill="${markerColor}" 
@@ -499,8 +499,8 @@ const createMarkers = () => {
     
     // Style the marker container
     markerElement.style.cssText = `
-      width: 30px;
-      height: 40px;
+      width: 36px;
+      height: 48px;
       position: relative;
       cursor: pointer;
       transform-origin: bottom center;
