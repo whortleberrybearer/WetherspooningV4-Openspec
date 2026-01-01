@@ -403,14 +403,12 @@ watch(showClosedPubs, () => {
  * Markers use a traditional pin/teardrop shape (30px × 40px) with SVG for crisp rendering.
  * State is communicated through icons (not just color) for accessibility:
  * - Visited: Checkmark (✓) icon inside pin
- * - Closed: X icon overlaid on pin
- * - Location types: Small badge in top-right corner (hotel, airport, train station)
+ * - Closed: Red badge with X icon in top-right corner
  * 
  * Colors provide supplementary context:
- * - Green: Visited + Open
- * - Blue: Visited + Closed (70% opacity)
- * - Red: Unvisited + Open
- * - Gray: Unvisited + Closed (70% opacity)
+ * - Green: Visited pubs
+ * - Blue: Unvisited pubs
+ * - Red badge: Closed state (when applicable)
  * 
  * Theme-aware: Colors adapt to light/dark mode via isDark composable.
  */
@@ -437,29 +435,20 @@ const createMarkers = () => {
     markerElement.dataset.visited = String(visited)
     markerElement.dataset.closed = String(isClosed)
     
-    // Determine marker color based on visited and open state
+    // Determine marker color based on visited state (green for visited, blue for unvisited)
     let markerColor = ''
-    let markerOpacity = '1'
     
-    if (visited && !isClosed) {
-      // Visited + Open: Green
+    if (visited) {
+      // Visited: Green
       markerColor = isDark.value ? '#16a34a' : '#22c55e'
-    } else if (visited && isClosed) {
-      // Visited + Closed: Blue
-      markerColor = isDark.value ? '#2563eb' : '#3b82f6'
-      markerOpacity = '0.7'
-    } else if (!visited && isClosed) {
-      // Unvisited + Closed: Gray
-      markerColor = isDark.value ? '#4b5563' : '#6b7280'
-      markerOpacity = '0.7'
     } else {
-      // Unvisited + Open: Red (default)
-      markerColor = isDark.value ? '#dc2626' : '#ef4444'
+      // Unvisited: Blue
+      markerColor = isDark.value ? '#2563eb' : '#3b82f6'
     }
     
     // Build SVG pin marker with state icons
     markerElement.innerHTML = `
-      <svg class="marker-pin" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg" style="width: 30px; height: 40px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); opacity: ${markerOpacity};">
+      <svg class="marker-pin" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg" style="width: 30px; height: 40px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
         <!-- Pin shape: rounded top with pointed bottom -->
         <path d="M15,0 C6.716,0 0,6.716 0,15 C0,23.284 15,40 15,40 S30,23.284 30,15 C30,6.716 23.284,0 15,0 Z" 
               fill="${markerColor}" 
@@ -475,49 +464,35 @@ const createMarkers = () => {
                 stroke-linecap="round" 
                 stroke-linejoin="round"/>
         ` : ''}
-        
-        <!-- Closed X icon (white, overlaid on top) -->
-        ${isClosed ? `
-          <line x1="10" y1="10" x2="20" y2="20" 
-                stroke="white" 
-                stroke-width="2.5" 
-                stroke-linecap="round"/>
-          <line x1="20" y1="10" x2="10" y2="20" 
-                stroke="white" 
-                stroke-width="2.5" 
-                stroke-linecap="round"/>
-        ` : ''}
       </svg>
     `
     
-    // Add location type badge if applicable
-    // Note: This requires pub properties from 2026-01-02-add-pub-location-types
-    // For now, we check if these properties exist
-    if ((pub as any).isHotel || (pub as any).inAirport || (pub as any).inTrainStation) {
+    // Add closed state badge if pub is closed
+    if (isClosed) {
       const badge = document.createElement('div')
-      badge.className = 'location-badge'
+      badge.className = 'closed-badge'
       badge.style.cssText = `
         position: absolute;
-        top: -2px;
-        right: -2px;
-        width: 12px;
-        height: 12px;
-        background: white;
+        top: -4px;
+        right: -4px;
+        width: 18px;
+        height: 18px;
+        background: #ef4444;
+        border: 2px solid white;
         border-radius: 50%;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 8px;
       `
       
-      if ((pub as any).isHotel) {
-        badge.textContent = '🏨'
-      } else if ((pub as any).inAirport) {
-        badge.textContent = '✈️'
-      } else if ((pub as any).inTrainStation) {
-        badge.textContent = '🚂'
-      }
+      // Add X icon in the badge
+      badge.innerHTML = `
+        <svg viewBox="0 0 12 12" style="width: 10px; height: 10px;">
+          <line x1="3" y1="3" x2="9" y2="9" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          <line x1="9" y1="3" x2="3" y2="9" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      `
       
       markerElement.appendChild(badge)
     }
