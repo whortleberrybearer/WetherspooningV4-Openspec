@@ -42,28 +42,31 @@ The system MUST display different UI elements based on authentication state.
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST display a user menu that shows user information and available actions.
+The system MUST display user information with an inline logout action.
 
 **Acceptance Criteria:**
 - User menu is visible only when authenticated
-- User menu displays the username
-- User menu is clickable to open a dropdown/menu
-- Menu includes "Logout" action
-- Menu is positioned appropriately (sidebar header)
-- Menu has clear visual hierarchy
+- User menu displays the username and email
+- User menu includes inline logout button (not dropdown)
+- Logout button is positioned next to user details
+- Menu is positioned appropriately (sidebar footer)
+- Layout has clear visual hierarchy
 
-#### Scenario: View User Menu
+#### Scenario: View User Profile
 **Given** the user is authenticated as "test"  
-**When** the user menu is displayed  
-**Then** the menu shows "test" as the username  
-**And** the menu has a clickable trigger (button or dropdown)
+**When** the user profile section is displayed  
+**Then** the section shows "test" as the username  
+**And** shows the user's email address  
+**And** displays an inline logout button  
+**And** no dropdown menu is present
 
-#### Scenario: Open User Menu Dropdown
+#### Scenario: User Profile Layout
 **Given** the user is authenticated  
-**And** the user menu is visible  
-**When** the user clicks the menu trigger  
-**Then** a dropdown menu opens  
-**And** the dropdown contains user options
+**When** the user profile section renders  
+**Then** the user avatar is displayed on the left  
+**And** the username and email are displayed in the center  
+**And** the logout button is displayed on the right or adjacent to user info  
+**And** all elements are aligned in a single row
 
 ---
 
@@ -71,56 +74,31 @@ The system MUST display a user menu that shows user information and available ac
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST provide a logout action within the user menu.
+The system MUST provide an inline logout button within the user profile section.
 
 **Acceptance Criteria:**
-- "Logout" option is visible in user menu dropdown
-- "Logout" option is clearly labeled
-- Clicking "Logout" triggers logout functionality
+- Logout button is visible as an inline element (not in dropdown)
+- Logout button is clearly labeled with icon and/or text
+- Clicking logout button triggers logout functionality
+- No dropdown interaction required
 - No confirmation dialog required for logout
-- Menu closes after logout action
+- Button has appropriate hover/focus states
 
-#### Scenario: Logout from User Menu
+#### Scenario: Logout via Inline Button
 **Given** the user is authenticated  
-**And** the user menu dropdown is open  
-**When** the user clicks "Logout"  
-**Then** the logout process is triggered  
-**And** the dropdown closes  
-**And** the user menu is replaced with "Login" button
+**And** the user profile section is visible  
+**When** the user clicks the logout button  
+**Then** the logout process is triggered immediately  
+**And** the user profile section is replaced with "Login" button  
+**And** no dropdown menu interaction occurs
 
----
-
-### Requirement: Extensible Menu Structure (REQ-UPM-004)
-**Priority:** MUST  
-**Category:** Functional
-
-The system MUST provide an extensible menu structure for future user-related features.
-
-**Acceptance Criteria:**
-- Menu structure supports adding new items
-- Menu can display disabled/coming-soon items
-- Menu items can be grouped logically
-- Menu items support icons (optional)
-- Future items include: Preferences, Change Password, Profile
-- Disabled items are visually distinguished
-- Disabled items show tooltips or labels (e.g., "Coming Soon")
-
-#### Scenario: Display Future Feature Placeholders
+#### Scenario: Logout Button Accessibility
 **Given** the user is authenticated  
-**And** the user menu dropdown is open  
-**When** the menu is rendered  
-**Then** placeholder items are visible for future features  
-**And** placeholder items are disabled  
-**And** placeholder items are visually distinguished from active items
-
-#### Scenario: Menu Item Order
-**Given** the user menu dropdown is open  
-**When** the menu is rendered  
-**Then** menu items are ordered logically:  
-- User info/profile (if displayed)  
-- Active actions (currently none)  
-- Future features (disabled)  
-- Logout (at bottom)
+**When** the logout button is rendered  
+**Then** the button has a clear visual indicator (icon/text)  
+**And** the button has visible hover state  
+**And** the button has visible focus state for keyboard navigation  
+**And** the button meets minimum touch target size (44x44px)
 
 ---
 
@@ -128,21 +106,31 @@ The system MUST provide an extensible menu structure for future user-related fea
 **Priority:** MUST  
 **Category:** UI/UX
 
-The system MUST provide a visually consistent user menu that matches the application design.
+The system MUST provide a visually consistent user profile section that matches the application design.
 
 **Acceptance Criteria:**
-- Menu uses shadcn/vue components (DropdownMenu or similar)
-- Menu follows application color scheme and typography
-- Menu has clear hover states
-- Menu has appropriate padding and spacing
-- Menu is visually distinct from other UI elements
-- Menu integrates seamlessly into sidebar header
+- User profile uses shadcn/vue components where appropriate (Button, etc.)
+- Section follows application color scheme and typography
+- Logout button has clear hover states
+- Section has appropriate padding and spacing
+- User info and logout button are visually distinct
+- Section integrates seamlessly into sidebar footer
+- No dropdown menu components used
 
 #### Scenario: Consistent Styling
-**Given** the user menu is displayed  
+**Given** the user profile section is displayed  
 **When** compared with other UI elements  
-**Then** the menu uses consistent colors, fonts, and spacing  
-**And** the menu follows the application's design system
+**Then** the section uses consistent colors, fonts, and spacing  
+**And** the section follows the application's design system  
+**And** the logout button styling matches other action buttons
+
+#### Scenario: Visual Hierarchy
+**Given** the user profile section is rendered  
+**When** viewing the layout  
+**Then** user information (avatar, name, email) is visually prominent  
+**And** logout button is clearly identifiable but secondary  
+**And** spacing creates clear separation between elements  
+**And** no dropdown chevron or menu trigger is present
 
 ---
 
@@ -150,22 +138,33 @@ The system MUST provide a visually consistent user menu that matches the applica
 **Priority:** MUST  
 **Category:** UI/UX
 
-The system MUST ensure the user menu works correctly on mobile devices.
+The system MUST provide a responsive user profile section that works on mobile devices.
 
 **Acceptance Criteria:**
-- Menu trigger is touch-friendly (minimum 44x44px)
-- Dropdown menu is appropriately sized for mobile
-- Menu doesn't cause layout shifts
-- Menu closes when sidebar closes
-- Menu is accessible on small screens
+- User profile section adapts to different screen sizes
+- Logout button remains accessible on mobile
+- Touch targets meet minimum size requirements (44x44px)
+- Text truncates appropriately on smaller screens
+- No horizontal scrolling or overflow
+- Inline layout maintains usability on mobile
 
-#### Scenario: Use Menu on Mobile
+#### Scenario: Mobile Display
 **Given** the user is authenticated  
-**And** the user is on a mobile device  
-**When** the user taps the menu trigger  
-**Then** the dropdown opens and is fully visible  
-**And** all menu items are tappable  
-**And** the menu doesn't overflow the screen
+**And** the viewport is mobile-sized (≤767px)  
+**When** the user profile section is displayed  
+**Then** the user avatar, name, email, and logout button are visible  
+**And** the layout does not overflow or require horizontal scrolling  
+**And** text truncates with ellipsis if too long  
+**And** logout button touch target is at least 44x44px
+
+#### Scenario: Desktop Display
+**Given** the user is authenticated  
+**And** the viewport is desktop-sized (≥1024px)  
+**When** the user profile section is displayed  
+**Then** all user information is fully visible  
+**And** logout button is positioned inline with user details  
+**And** appropriate spacing is maintained  
+**And** no dropdown menu is present
 
 ---
 
@@ -173,29 +172,26 @@ The system MUST ensure the user menu works correctly on mobile devices.
 **Priority:** MUST  
 **Category:** Accessibility
 
-The system MUST provide accessible user menu interactions.
+The system MUST provide accessible user profile interactions.
 
 **Acceptance Criteria:**
-- Menu trigger has appropriate ARIA labels
-- Dropdown has appropriate ARIA attributes
-- Menu items are keyboard navigable
-- Menu can be closed with Escape key
-- Screen readers announce menu state changes
-- Focus management is correct (focus trap in dropdown)
+- Logout button has appropriate ARIA labels
+- Logout button is keyboard navigable
+- Button can be activated with Enter or Space
+- Screen readers announce button purpose
+- Focus management is correct
+- Button has visible focus indicator
 
 #### Scenario: Keyboard Navigation
 **Given** the user is authenticated  
-**And** the menu trigger is focused  
+**And** the logout button is focused  
 **When** the user presses Enter or Space  
-**Then** the dropdown opens  
-**And** focus moves to the first menu item  
-**And** arrow keys navigate between items  
-**And** Escape closes the dropdown
+**Then** the logout process is triggered  
+**And** the user is logged out successfully
 
 #### Scenario: Screen Reader Announcements
 **Given** the user is using a screen reader  
-**When** the user menu is displayed  
+**When** the user profile section is displayed  
 **Then** the screen reader announces the username  
-**And** the menu trigger is announced as a button/menu  
-**And** menu items are announced with their action
+**And** the logout button is announced as a button with its purpose
 
