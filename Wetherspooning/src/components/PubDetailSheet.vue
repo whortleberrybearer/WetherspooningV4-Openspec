@@ -4,7 +4,7 @@
       <DialogHeader>
         <DialogTitle>{{ pub?.name }}</DialogTitle>
         <DialogDescription v-if="pub">
-          {{ pub.address }}, {{ pub.townCity }}, {{ pub.county }}
+          {{ pub.address }}
         </DialogDescription>
       </DialogHeader>
 
@@ -23,6 +23,32 @@
               />
               <p class="text-xs text-muted-foreground">
                 Leave empty if date is unknown
+              </p>
+            </div>
+
+            <!-- Rating -->
+            <div class="grid gap-2">
+              <Label for="rating">Rating (optional)</Label>
+              <StarRating 
+                v-model="rating"
+                :disabled="isSaving"
+              />
+            </div>
+
+            <!-- Notes -->
+            <div class="grid gap-2">
+              <Label for="notes">Notes (optional)</Label>
+              <Textarea
+                id="notes"
+                v-model="notes"
+                :disabled="isSaving"
+                placeholder="Add your thoughts about this visit..."
+                rows="4"
+                :maxlength="500"
+                class="resize-none"
+              />
+              <p class="text-xs text-muted-foreground">
+                {{ notes.length }} / 500
               </p>
             </div>
 
@@ -93,6 +119,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import StarRating from '@/components/StarRating.vue'
 
 interface Pub {
   id: number
@@ -127,6 +155,8 @@ const isRemoving = ref(false)
 const errorMessage = ref('')
 const showRemoveDialog = ref(false)
 const dateInput = ref('')
+const rating = ref<number | undefined>(undefined)
+const notes = ref('')
 
 const isPubClosed = computed(() => {
   const state = props.pub?.openState || 'Open'
@@ -139,24 +169,43 @@ const currentVisit = computed(() => {
 })
 
 const hasChanges = computed(() => {
-  const currentDate = currentVisit.value?.visitedAt
-  if (!currentDate && !dateInput.value) return true // New visit with no date
-  if (!currentDate) return dateInput.value !== '' // New visit with date
+  const visit = currentVisit.value
   
-  const currentDateStr = new Date(currentDate).toISOString().split('T')[0]
-  return currentDateStr !== dateInput.value
+  // For new visits, allow saving if any field is set
+  if (!visit) {
+    return true
+  }
+  
+  // Check date changes
+  const currentDate = visit.visitedAt
+  const currentDateStr = currentDate ? new Date(currentDate).toISOString().split('T')[0] : ''
+  const dateChanged = currentDateStr !== dateInput.value
+  
+  // Check rating changes
+  const ratingChanged = (visit.rating ?? undefined) !== rating.value
+  
+  // Check notes changes
+  const currentNotes = visit.notes ?? ''
+  const notesChanged = currentNotes !== notes.value
+  
+  return dateChanged || ratingChanged || notesChanged
 })
 
-// Initialize date input when pub or visit changes
+// Initialize inputs when pub or visit changes
 watch([() => props.pub, currentVisit], () => {
   if (!props.pub) {
     dateInput.value = ''
+    rating.value = undefined
+    notes.value = ''
     return
   }
   
-  if (currentVisit.value?.visitedAt) {
+  const visit = currentVisit.value
+  
+  // Initialize date
+  if (visit?.visitedAt) {
     try {
-      const date = new Date(currentVisit.value.visitedAt)
+      const date = new Date(visit.visitedAt)
       dateInput.value = date.toISOString().split('T')[0] || ''
     } catch {
       dateInput.value = ''
@@ -168,6 +217,12 @@ watch([() => props.pub, currentVisit], () => {
     // New visit - default to today
     dateInput.value = new Date().toISOString().split('T')[0] || ''
   }
+  
+  // Initialize rating
+  rating.value = visit?.rating ?? undefined
+  
+  // Initialize notes
+  notes.value = visit?.notes ?? ''
 }, { immediate: true })
 
 // Clear error when dialog closes
@@ -186,15 +241,31 @@ const handleSave = async () => {
   try {
     if (isVisited(props.pub.id)) {
       // Update existing visit
-      const updates: { visitedAt: string | null } = {
+      const updates: { visitedAt: string | null, rating?: number | null, notes?: string | null } = {
         visitedAt: dateInput.value ? new Date(dateInput.value).toISOString() : null
+      }
+      if (rating.value !== undefined) {
+        updates.rating = rating.value
+      } else {
+        updates.rating = null
+      }
+      if (notes.value.trim()) {
+        updates.notes = notes.value.trim()
+      } else {
+        updates.notes = null
       }
       await updateVisit(props.pub.id, updates)
     } else {
       // Create new visit
-      const options: { visitedAt?: string } = {}
+      const options: { visitedAt?: string, rating?: number, notes?: string } = {}
       if (dateInput.value) {
         options.visitedAt = new Date(dateInput.value).toISOString()
+      }
+      if (rating.value !== undefined) {
+        options.rating = rating.value
+      }
+      if (notes.value.trim()) {
+        options.notes = notes.value.trim()
       }
       await addVisit(props.pub.id, options, user.value.uid)
     }

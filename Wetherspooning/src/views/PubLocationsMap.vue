@@ -74,7 +74,7 @@ const hasCheckedProximity = ref(false)
 
 // Authentication and visit tracking
 const { user, isAuthenticated } = useAuth()
-const { isVisited, getVisitDate, loadVisits, clearVisits, visitedPubIds, visits, addVisit } = useVisits()
+const { isVisited, getVisit, getVisitDate, loadVisits, clearVisits, visitedPubIds, visits, addVisit } = useVisits()
 const { isDark } = useTheme()
 
 // Watch authentication state to load/clear visit data
@@ -584,10 +584,13 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
     ? `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: hsl(var(--destructive)); color: hsl(var(--destructive-foreground));">Closed</span>`
     : `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #22c55e; color: white;">Open</span>`
   
-  // Visit badge with formatted date
+  // Visit badge with formatted date (without rating stars)
   let visitBadge = ''
+  let ratingDisplay = ''
+  let notesPreview = ''
   if (isAuthenticated.value && visited) {
-    const visitDate = getVisitDate(pub.id)
+    const visit = getVisit(pub.id)
+    const visitDate = visit?.visitedAt
     let formattedDate = ''
     if (visitDate) {
       try {
@@ -601,7 +604,27 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
         console.error('Error formatting visit date:', error)
       }
     }
+    
     visitBadge = `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #22c55e; color: white;">✓ Visited${formattedDate}</span>`
+    
+    // Display rating stars inline with the pub name
+    if (visit?.rating) {
+      const filled = '★'.repeat(visit.rating)
+      const empty = '☆'.repeat(5 - visit.rating)
+      ratingDisplay = `<span style="font-size: 16px; color: #fbbf24; margin-left: 8px;">${filled}${empty}</span>`
+    }
+    
+    // Add notes preview if notes exist (will be placed after website link)
+    if (visit?.notes && visit.notes.trim()) {
+      const truncatedNotes = visit.notes.length > 100 
+        ? visit.notes.substring(0, 100) + '...' 
+        : visit.notes
+      notesPreview = `
+        <div style="background-color: ${isDark.value ? '#292524' : '#f5f5f4'}; border: 1px solid ${isDark.value ? '#44403c' : '#e7e5e4'}; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 12px; color: ${mutedColor};">
+          ${truncatedNotes}
+        </div>
+      `
+    }
   }
   
   // Website link
@@ -677,13 +700,14 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
     </style>
     <div class="iw-card">
       ${imageHtml}
-      <h3 class="iw-title">${pub.name}</h3>
+      <h3 class="iw-title">${pub.name}${ratingDisplay}</h3>
       <div class="iw-badges">
         ${statusBadge}
         ${visitBadge}
       </div>
       <p class="iw-address">${pub.address}</p>
       ${websiteLink}
+      ${notesPreview}
       <button id="${buttonId}" class="iw-button">
         ${buttonText}
       </button>
