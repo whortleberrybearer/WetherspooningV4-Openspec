@@ -145,12 +145,13 @@ export function useVisits() {
   /**
    * Add a visit for a pub, or update if already visited.
    * 
-   * Creates a new visit record in Firestore with optional date and notes.
+   * Creates a new visit record in Firestore with optional date, rating, and notes.
    * If the pub has already been visited, updates the existing visit instead.
    * 
    * @param pubId - The ID of the pub to mark as visited
    * @param options - Optional visit details
    * @param options.visitedAt - ISO date string (defaults to current date if not provided, can be undefined for unknown date)
+   * @param options.rating - Rating 1-5 stars (optional)
    * @param options.notes - Optional notes about the visit
    * @param userId - Firebase UID of the authenticated user
    * @returns Promise that resolves when visit is created/updated
@@ -158,11 +159,16 @@ export function useVisits() {
    */
   const addVisit = async (
     pubId: number, 
-    options: { visitedAt?: string, notes?: string } = {},
+    options: { visitedAt?: string, rating?: number, notes?: string } = {},
     userId: string
   ): Promise<void> => {
     if (!userId) {
       throw new Error('Must be authenticated to add a visit')
+    }
+
+    // Validate rating if provided
+    if (options.rating !== undefined && (options.rating < 1 || options.rating > 5)) {
+      throw new Error('Rating must be between 1 and 5')
     }
 
     try {
@@ -194,6 +200,11 @@ export function useVisits() {
           visitData.visitedAt = options.visitedAt
         }
         
+        // Only add rating if provided
+        if (options.rating !== undefined) {
+          visitData.rating = options.rating
+        }
+        
         // Only add notes if provided
         if (options.notes) {
           visitData.notes = options.notes
@@ -221,12 +232,17 @@ export function useVisits() {
    */
   const updateVisit = async (
     pubId: number,
-    updates: { visitedAt?: string | null, notes?: string, rating?: number }
+    updates: { visitedAt?: string | null, notes?: string | null, rating?: number | null }
   ): Promise<void> => {
     const visit = visitState.visits.find(v => v.pubId === pubId)
     
     if (!visit) {
       throw new Error('Visit not found')
+    }
+
+    // Validate rating if provided
+    if (updates.rating !== undefined && updates.rating !== null && (updates.rating < 1 || updates.rating > 5)) {
+      throw new Error('Rating must be between 1 and 5')
     }
 
     try {
