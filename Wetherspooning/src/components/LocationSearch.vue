@@ -55,8 +55,8 @@ const initAutocompleteWidget = async () => {
     autocompleteWidget.setAttribute('placeholder', 'Search for a location')
 
     // Add event listener for place selection
-    autocompleteWidget.addEventListener('gmp-placeselect', async (event: any) => {
-      const place = event.place
+    autocompleteWidget.addEventListener('gmp-select', async (event: any) => {
+      const place = event.placePrediction.toPlace()
       
       if (!place) {
         console.warn('No place selected')
@@ -66,7 +66,7 @@ const initAutocompleteWidget = async () => {
       try {
         // Fetch place details including geometry
         await place.fetchFields({
-          fields: ['geometry', 'name', 'types'],
+          fields: ['location'],
         })
 
         emit('placeChanged', place.toJSON())
