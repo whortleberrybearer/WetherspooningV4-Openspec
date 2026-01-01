@@ -593,7 +593,7 @@ const initializeClusters = () => {
     visitedClusterer.value = new MarkerClusterer({
       map: map.value,
       markers: visited,
-      renderer: createClusterRenderer('#34a853'),
+      renderer: createClusterRenderer(isDark.value ? '#16a34a' : '#22c55e'),
       algorithmOptions: {
         maxZoom: 12
       }
@@ -602,12 +602,12 @@ const initializeClusters = () => {
     visitedClusterer.value.addMarkers(visited)
   }
   
-  // Create or update unvisited clusterer (red)
+  // Create or update unvisited clusterer (blue)
   if (!unvisitedClusterer.value) {
     unvisitedClusterer.value = new MarkerClusterer({
       map: map.value,
       markers: unvisited,
-      renderer: createClusterRenderer('#ea4335'),
+      renderer: createClusterRenderer(isDark.value ? '#2563eb' : '#3b82f6'),
       algorithmOptions: {
         maxZoom: 12
       }
