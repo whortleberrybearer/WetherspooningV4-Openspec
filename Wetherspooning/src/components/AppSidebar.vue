@@ -281,6 +281,14 @@
       :is-open="showLoginDialog" 
       @close="showLoginDialog = false"
       @open-signup="handleOpenSignup"
+      @open-password-reset="handleOpenPasswordReset"
+    />
+    
+    <!-- Password Reset Dialog -->
+    <PasswordResetDialog
+      :is-open="showPasswordResetDialog"
+      @close="showPasswordResetDialog = false"
+      @open-login="handleOpenLogin"
     />
     
     <!-- Signup Dialog -->
@@ -334,6 +342,7 @@ import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
 import { useTheme } from '@/composables/useTheme'
 import LoginDialog from '@/components/LoginDialog.vue'
+import PasswordResetDialog from '@/components/PasswordResetDialog.vue'
 import SignupDialog from '@/components/SignupDialog.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
 import AccountSettingsDialog from '@/components/AccountSettingsDialog.vue'
@@ -371,6 +380,7 @@ const { user, isAuthenticated, logout } = useAuth()
 const { getGroupCounts, loadVisits, clearVisits, isVisited, getVisitDate } = useVisits()
 const { isDark, toggleTheme } = useTheme()
 const showLoginDialog = ref(false)
+const showPasswordResetDialog = ref(false)
 const showSignupDialog = ref(false)
 const showAccountSettings = ref(false)
 const selectedPubForTracking = ref<Pub | null>(null)
@@ -383,7 +393,13 @@ const handleOpenSignup = () => {
 
 const handleOpenLogin = () => {
   showSignupDialog.value = false
+  showPasswordResetDialog.value = false
   showLoginDialog.value = true
+}
+
+const handleOpenPasswordReset = () => {
+  showLoginDialog.value = false
+  showPasswordResetDialog.value = true
 }
 
 // Watch authentication state to load/clear visit data
