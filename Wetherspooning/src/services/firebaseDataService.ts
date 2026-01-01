@@ -14,6 +14,12 @@ export interface Pub {
   url?: string
   imageUrl?: string
   openState?: string
+  /** Indicates the pub is located within a hotel */
+  isHotel?: boolean
+  /** Indicates the pub is located in an airport */
+  inAirport?: boolean
+  /** Indicates the pub is located in a train station */
+  inTrainStation?: boolean
 }
 
 /**

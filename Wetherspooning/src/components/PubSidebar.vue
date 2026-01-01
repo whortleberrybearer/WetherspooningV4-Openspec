@@ -131,7 +131,12 @@
                   @click="$emit('selectPub', pub)"
                   class="flex-1 text-left"
                 >
-                  <div :class="['text-sm', isPubClosed(pub) ? 'text-muted-foreground' : '']">{{ pub.name }}</div>
+                  <div :class="['text-sm flex items-center gap-1', isPubClosed(pub) ? 'text-muted-foreground' : '']">
+                    <span v-if="pub.isHotel" title="Hotel">🏨</span>
+                    <span v-if="pub.inAirport" title="Airport">✈️</span>
+                    <span v-if="pub.inTrainStation" title="Train Station">🚂</span>
+                    <span>{{ pub.name }}</span>
+                  </div>
                   <div class="text-xs text-muted-foreground">{{ pub.townCity }}</div>
                 </button>
                 
@@ -210,6 +215,9 @@ interface Pub {
   url?: string
   imageUrl?: string
   openState?: string
+  isHotel?: boolean
+  inAirport?: boolean
+  inTrainStation?: boolean
 }
 
 interface Props {
