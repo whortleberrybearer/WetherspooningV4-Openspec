@@ -16,16 +16,19 @@ Currently, users can only navigate the map manually or rely on automatic centeri
 - Navigate to areas where they don't have pubs saved yet
 
 ## Proposed Solution
-Implement a location search feature using Google Places Autocomplete API that:
-1. Displays a search input field in the map UI
-2. Provides autocomplete suggestions as users type
+Implement a location search feature using Google Places Autocomplete widget that:
+1. Embeds the pre-built Autocomplete widget in the map UI
+2. Automatically provides autocomplete suggestions as users type
 3. Centers the map on the selected location with appropriate zoom
 4. Maintains existing functionality (user location centering, pub markers, etc.)
+
+The Autocomplete widget is Google's recommended approach that handles UI, debouncing, session tokens, and accessibility automatically.
 
 ## Rationale
 - **User Need:** Users frequently want to explore pubs in specific areas they plan to visit
 - **Google Places API:** Provides robust, accurate location search with global coverage
-- **UX Consistency:** Autocomplete is a familiar pattern for location search
+- **Autocomplete Widget:** Pre-built component with built-in best practices, accessibility, and optimization
+- **Simpler Implementation:** Widget handles UI, debouncing, session tokens, and keyboard navigation automatically
 - **Non-Disruptive:** Can be integrated without affecting existing map functionality
 
 ## Scope
@@ -34,8 +37,9 @@ This change introduces one new capability:
 
 ## Dependencies
 - Google Maps JavaScript API (already in use)
-- New dependency: Google Places API (Place Autocomplete)
+- Google Places API with Place Autocomplete widget
 - Environment variable: `VITE_GOOGLE_MAPS_API_KEY` (already exists)
+- Note: Widget requires Places library from @googlemaps/js-api-loader
 
 ## Out of Scope
 - Reverse geocoding (showing location name based on map position)
@@ -46,10 +50,10 @@ This change introduces one new capability:
 ## Risks & Mitigations
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Google Places API quota limits | High | Monitor usage, implement debouncing on autocomplete |
+| Google Places API quota limits | High | Widget automatically manages session tokens and debouncing |
 | API key exposure in client | Medium | Already using API key restrictions for Maps API |
-| Mobile UI real estate | Medium | Make search collapsible/hideable on mobile |
-| Search result disambiguation | Low | Use Places API types to prefer geographic results |
+| Mobile UI real estate | Medium | Widget is responsive and adapts to mobile viewports |
+| Widget customization limits | Low | Widget provides sufficient styling options via CSS |
 
 ## Success Criteria
 - Users can type a location name and see autocomplete suggestions

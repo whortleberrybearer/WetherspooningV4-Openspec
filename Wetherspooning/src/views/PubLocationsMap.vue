@@ -14,6 +14,14 @@
         <SidebarTrigger />
       </div>
 
+      <!-- Location Search -->
+      <div class="absolute top-4 left-1/2 -translate-x-1/2 z-10 w-full max-w-md px-4 sm:px-0">
+        <LocationSearch
+          :is-dark="isDark"
+          @place-changed="handlePlaceChanged"
+        />
+      </div>
+
       <Alert v-if="error" variant="destructive" class="absolute top-20 left-1/2 -translate-x-1/2 max-w-md z-[1000]">
         <AlertCircle class="h-4 w-4" />
         <AlertTitle>Error</AlertTitle>
@@ -47,6 +55,7 @@ import { MarkerClusterer } from '@googlemaps/markerclusterer'
 import AppSidebar from '@/components/AppSidebar.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
 import LoginDialog from '@/components/LoginDialog.vue'
+import LocationSearch from '@/components/LocationSearch.vue'
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-vue-next'
@@ -754,10 +763,42 @@ const handlePubSelect = (pub: Pub) => {
   }
 }
 
+const handlePlaceChanged = (place: google.maps.places.PlaceResult) => {
+  if (!map.value) {
+    console.error('Map not initialized')
+    return
+  }
+
+  if (!place.geometry?.location) {
+    console.error('Place has no geometry')
+    return
+  }
+
+  const location = place.geometry.location
+  
+  // Determine zoom level based on place type
+  let zoom = 15 // Default zoom
+  if (place.types) {
+    // Cities/regions get lower zoom (14), addresses/landmarks get higher zoom (16)
+    if (place.types.includes('locality') || place.types.includes('administrative_area_level_2')) {
+      zoom = 14
+    } else if (place.types.includes('street_address') || place.types.includes('premise')) {
+      zoom = 16
+    }
+  }
+
+  // Center map on selected location
+  map.value.panTo(location)
+  map.value.setZoom(zoom)
+  
+  console.log(`Map centered on: ${place.name} (zoom: ${zoom})`)
+}
+
 onMounted(async () => {
   setOptions({ key: import.meta.env.VITE_GOOGLE_MAPS_API_KEY, v: 'weekly' })
   await importLibrary('maps')
   await importLibrary('marker')
+  await importLibrary('places')
 
   initMap()
   await loadPubs()

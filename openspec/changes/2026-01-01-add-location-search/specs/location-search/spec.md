@@ -1,47 +1,47 @@
 # location-search Specification
 
 ## Purpose
-Enable users to search for geographic locations using Google Places Autocomplete and center the map on selected results.
+Enable users to search for geographic locations using Google Places Autocomplete widget and center the map on selected results.
 
 ## ADDED Requirements
 
-### Requirement: Search Input Display (REQ-LS-001)
+### Requirement: Autocomplete Widget Display (REQ-LS-001)
 **Priority:** MUST  
 **Category:** Functional
 
-The map MUST display a search input field that allows users to search for locations.
+The map MUST display a Google Places Autocomplete widget that allows users to search for locations.
 
 **Acceptance Criteria:**
-- Search input is visible on the map view
-- Input field is positioned in a non-obstructive location (top area of map)
-- Input has clear placeholder text indicating its purpose (e.g., "Search for a location")
-- Input is responsive and accessible on mobile devices
-- Input does not obscure map controls or sidebar trigger
-- Input styling is consistent with application theme (light/dark mode)
-- Input is keyboard accessible and supports standard navigation
+- Autocomplete widget is embedded on the map view
+- Widget is positioned in a non-obstructive location (top area of map)
+- Widget has placeholder text indicating its purpose
+- Widget is responsive and accessible on mobile devices
+- Widget does not obscure map controls or sidebar trigger
+- Widget styling integrates with application theme (light/dark mode)
+- Widget is keyboard accessible with standard navigation built-in
 
-#### Scenario: Search Input Visible on Desktop
+#### Scenario: Autocomplete Widget Visible on Desktop
 **Given** the user opens the map view on a desktop browser  
 **When** the map loads  
-**Then** a search input field is displayed at the top-center of the map  
-**And** the input has placeholder text "Search for a location"  
-**And** the input does not overlap the sidebar trigger or map controls  
-**And** the input styling matches the current theme (light or dark)
+**Then** the Google Places Autocomplete widget is displayed at the top-center of the map  
+**And** the widget has placeholder text "Search for a location" or similar  
+**And** the widget does not overlap the sidebar trigger or map controls  
+**And** the widget styling integrates with the current theme (light or dark)
 
-#### Scenario: Search Input Visible on Mobile
+#### Scenario: Autocomplete Widget Visible on Mobile
 **Given** the user opens the map view on a mobile device  
 **When** the map loads  
-**Then** a search input field is displayed at the top of the map  
-**And** the input is appropriately sized for touch interaction  
-**And** the input does not obscure the sidebar trigger  
-**And** the input is horizontally centered or left-aligned with appropriate margins
+**Then** the Autocomplete widget is displayed at the top of the map  
+**And** the widget is appropriately sized for touch interaction  
+**And** the widget does not obscure the sidebar trigger  
+**And** the widget is horizontally centered with appropriate margins
 
-#### Scenario: Search Input Keyboard Accessible
+#### Scenario: Widget Keyboard Accessible
 **Given** the user is navigating via keyboard  
 **When** the user tabs through page elements  
-**Then** the search input receives focus in the correct tab order  
-**And** the user can type into the input when focused  
-**And** pressing Escape clears autocomplete suggestions
+**Then** the widget input receives focus in the correct tab order  
+**And** the widget's built-in keyboard navigation works (arrow keys, Enter, Escape)  
+**And** the user can type and select suggestions using only the keyboard
 
 ---
 
@@ -49,60 +49,47 @@ The map MUST display a search input field that allows users to search for locati
 **Priority:** MUST  
 **Category:** Functional
 
-The search input MUST provide autocomplete suggestions using Google Places Autocomplete API as users type.
+The Autocomplete widget MUST provide suggestions automatically as users type.
 
 **Acceptance Criteria:**
-- Autocomplete requests are triggered after user types at least 3 characters
-- Autocomplete requests are debounced (300ms delay) to avoid excessive API calls
-- Suggestions are displayed in a dropdown below the input field
+- Widget triggers autocomplete requests after user types (managed by widget)
+- Suggestions are displayed in the widget's built-in dropdown
 - Suggestions include location names and addresses
-- Suggestions are styled consistently with application theme
-- Loading state is shown while fetching suggestions
+- Widget handles debouncing automatically
+- Widget manages session tokens automatically
+- Loading state is shown while fetching suggestions (managed by widget)
 - Network errors fail gracefully without crashing the UI
-- User can navigate suggestions via keyboard (arrow keys)
+- User can navigate suggestions via keyboard (handled by widget)
 - User can select a suggestion via click or Enter key
 - Suggestions are cleared when input is cleared
 
-#### Scenario: Autocomplete Shows Suggestions
+#### Scenario: Widget Shows Suggestions
 **Given** the user has the map view open  
-**When** the user types "London" into the search input  
-**Then** a loading indicator is briefly shown  
-**And** a dropdown of location suggestions appears below the input  
+**When** the user types "London" into the widget  
+**Then** the widget's built-in dropdown of location suggestions appears  
 **And** each suggestion shows the location name and additional context (e.g., "London, UK")  
-**And** suggestions are styled to match the current theme
+**And** suggestions integrate with the current theme
 
-#### Scenario: Autocomplete Debounced
-**Given** the user is typing rapidly in the search input  
+#### Scenario: Widget Handles Debouncing
+**Given** the user is typing rapidly in the widget  
 **When** the user types "Man" quickly  
-**Then** no API request is made until 300ms after the last keystroke  
-**And** only one request is made for the complete term  
-**And** previous pending requests are cancelled
+**Then** the widget automatically debounces requests  
+**And** only appropriate requests are made (managed by widget)
 
-#### Scenario: Minimum Character Requirement
-**Given** the user has the map view open  
-**When** the user types "Lo" (2 characters) into the search input  
-**Then** no autocomplete suggestions are shown  
-**And** no API request is made  
-**When** the user types a third character  
-**Then** autocomplete suggestions are fetched and displayed
-
-#### Scenario: Keyboard Navigation
-**Given** autocomplete suggestions are displayed  
+#### Scenario: Widget Keyboard Navigation
+**Given** autocomplete suggestions are displayed in the widget  
 **When** the user presses the Down arrow key  
-**Then** the first suggestion is highlighted  
+**Then** the widget highlights the first suggestion  
 **When** the user presses Down again  
-**Then** the next suggestion is highlighted  
-**When** the user presses Up  
-**Then** the previous suggestion is highlighted  
+**Then** the widget highlights the next suggestion  
 **When** the user presses Enter on a highlighted suggestion  
 **Then** the location is selected and the map centers on it
 
-#### Scenario: Network Error Handling
-**Given** the user types "Paris" into the search input  
+#### Scenario: Widget Network Error Handling
+**Given** the user types "Paris" into the widget  
 **And** the Google Places API request fails due to network error  
 **When** the error occurs  
-**Then** no suggestions are displayed  
-**And** a console warning is logged  
+**Then** the widget handles the error gracefully  
 **And** the UI remains functional (no crash)  
 **And** the user can retry by typing again
 
@@ -151,43 +138,42 @@ When a user selects a location from autocomplete suggestions, the map MUST cente
 
 ---
 
-### Requirement: Google Places API Integration (REQ-LS-004)
+### Requirement: Google Places Widget Integration (REQ-LS-004)
 **Priority:** MUST  
 **Category:** Technical
 
-The implementation MUST use Google Places Autocomplete API correctly and efficiently.
+The implementation MUST use Google Places Autocomplete widget correctly and efficiently.
 
 **Acceptance Criteria:**
-- Uses Google Places Autocomplete (New) API endpoint
+- Uses Google Places Autocomplete widget (PlaceAutocompleteElement)
 - API key is sourced from existing environment variable `VITE_GOOGLE_MAPS_API_KEY`
-- API requests include appropriate region biasing (UK preferred)
-- API requests use appropriate place types (geocode, establishment)
-- Session tokens are used to optimize billing
-- API calls are properly cleaned up to prevent memory leaks
-- Errors from API are caught and logged appropriately
-- Implementation follows Google Places API best practices
+- Widget is configured with appropriate options (componentRestrictions for UK bias)
+- Widget events are properly handled (place_changed event)
+- Widget lifecycle is managed correctly (cleanup on unmount)
+- Errors from widget are caught and logged appropriately
+- Implementation follows Google Places widget best practices
 
-#### Scenario: API Integration with Session Tokens
-**Given** the user starts typing in the search input  
+#### Scenario: Widget Integration with UK Biasing
+**Given** the user starts typing in the widget  
 **When** autocomplete requests are made  
-**Then** a session token is generated for the autocomplete session  
-**And** the same token is reused for all requests in that session  
-**And** a new session token is created when a place is selected  
-**And** this minimizes API billing costs per Google's recommendations
-
-#### Scenario: Region Biasing for UK
-**Given** the application is focused on UK pubs  
-**When** autocomplete requests are made  
-**Then** the API request includes region biasing for UK (componentRestrictions or location bias)  
+**Then** the widget is configured with componentRestrictions for UK  
 **And** UK locations appear first in suggestions  
 **But** users can still search for international locations if needed
 
-#### Scenario: API Error Logging
+#### Scenario: Widget Event Handling
 **Given** the user searches for a location  
-**When** the Google Places API returns an error (e.g., quota exceeded, invalid request)  
+**When** the user selects a place from the widget  
+**Then** the place_changed event is triggered  
+**And** the selected place details are retrieved  
+**And** the map centers on the location  
+**And** appropriate logging occurs
+
+#### Scenario: Widget Error Logging
+**Given** the user searches for a location  
+**When** an error occurs with the widget or API  
 **Then** the error is caught and logged to the console with details  
 **And** the user sees no broken UI  
-**And** the search input remains functional for future attempts
+**And** the widget remains functional for future attempts
 
 ---
 
@@ -195,34 +181,34 @@ The implementation MUST use Google Places Autocomplete API correctly and efficie
 **Priority:** MUST  
 **Category:** Functional
 
-The location search feature MUST work effectively on mobile devices.
+The Autocomplete widget MUST work effectively on mobile devices.
 
 **Acceptance Criteria:**
-- Search input is appropriately sized for touch interaction (minimum 44x44px touch target)
-- Autocomplete dropdown is readable and scrollable on small screens
+- Widget is appropriately sized for touch interaction
+- Widget dropdown is readable and scrollable on small screens
 - Suggestions are touch-friendly (adequate spacing, size)
-- Virtual keyboard does not obscure search input or suggestions
-- Search input can be hidden/minimized to maximize map viewport on mobile
+- Virtual keyboard does not obscure widget or suggestions
+- Widget adapts to mobile viewport automatically
 - Feature works on iOS Safari and Android Chrome
 
 #### Scenario: Mobile Touch Interaction
 **Given** the user opens the map on a mobile device  
-**When** the user taps the search input  
+**When** the user taps the widget input  
 **Then** the virtual keyboard appears  
-**And** the search input remains visible above the keyboard  
+**And** the widget input remains visible above the keyboard  
 **When** autocomplete suggestions appear  
-**Then** the dropdown is positioned to avoid being hidden by the keyboard  
-**And** each suggestion has adequate touch target size (minimum 44px height)  
+**Then** the dropdown is positioned appropriately  
+**And** each suggestion has adequate touch target size  
 **And** the user can tap a suggestion to select it
 
-#### Scenario: Mobile Viewport Management
+#### Scenario: Mobile Viewport Adaptation
 **Given** the user is on a mobile device  
-**When** the search input is not in use  
-**Then** it occupies minimal vertical space  
-**And** the map viewport is maximized  
-**When** the user focuses the search input  
-**Then** the layout adjusts to accommodate keyboard and suggestions  
-**And** the user can still dismiss the keyboard to return to full map view
+**When** the widget is displayed  
+**Then** it adapts to the mobile viewport size  
+**And** the map viewport remains usable  
+**When** the user focuses the widget  
+**Then** the layout adjusts for keyboard and suggestions  
+**And** the user can dismiss the keyboard to return to full map view
 
 ---
 
@@ -230,33 +216,28 @@ The location search feature MUST work effectively on mobile devices.
 **Priority:** MUST  
 **Category:** UI/UX
 
-The search input and autocomplete suggestions MUST match the application's theme (light/dark mode).
+The Autocomplete widget MUST be styled to match the application's theme (light/dark mode).
 
 **Acceptance Criteria:**
-- Search input background and text colors match current theme
-- Autocomplete dropdown background and text match current theme
-- Hover/focus states are visible in both light and dark modes
-- Theme changes are applied immediately to search UI components
+- Widget input background and text colors can be customized
+- Widget dropdown background and text can be styled
+- Theme styles are applied via CSS customization
+- Theme changes are reflected in the widget styling
 
 #### Scenario: Dark Mode Styling
 **Given** the user has dark mode enabled  
-**When** the search input is displayed  
-**Then** the input has a dark background with light text  
-**And** the border/outline is visible against the dark background  
-**When** autocomplete suggestions appear  
-**Then** the dropdown has a dark background with light text  
-**And** hover states use appropriate dark mode colors
+**When** the widget is displayed  
+**Then** custom CSS applies dark mode styling to the widget  
+**And** the widget integrates visually with the dark theme
 
 #### Scenario: Light Mode Styling
 **Given** the user has light mode enabled  
-**When** the search input is displayed  
-**Then** the input has a light background with dark text  
-**When** autocomplete suggestions appear  
-**Then** the dropdown has a light background with dark text  
-**And** all elements are clearly visible
+**When** the widget is displayed  
+**Then** custom CSS applies light mode styling to the widget  
+**And** the widget integrates visually with the light theme
 
 #### Scenario: Theme Toggle
-**Given** the user has the search input open with suggestions visible  
+**Given** the user has the widget displayed  
 **When** the user toggles from light to dark mode  
-**Then** the search input and dropdown immediately update to dark mode styling  
+**Then** the widget styling updates to match the new theme  
 **And** no visual glitches or layout shifts occur
