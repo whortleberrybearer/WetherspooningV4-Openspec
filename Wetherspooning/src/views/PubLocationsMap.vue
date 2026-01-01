@@ -98,10 +98,10 @@ watch(isAuthenticated, async (authenticated) => {
   }
 })
 
-// Watch for changes in visit data to update clusters and info window
+// Watch for changes in visit data to update markers and clusters
 watch([visitedPubIds, visits], () => {
-  // Update clusters to reflect visit status changes
-  updateClusters()
+  // Recreate markers to reflect visit status changes (checkmark icons)
+  createMarkers()
   
   // Update info window if there's a selected pub
   if (selectedPub.value && infoWindow.value) {
