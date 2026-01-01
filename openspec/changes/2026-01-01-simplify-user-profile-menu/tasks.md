@@ -105,11 +105,11 @@ Test complete authentication flow:
 ~55 minutes
 
 ## Definition of Done
-- [ ] user-profile-menu spec updated and validated
-- [ ] AppSidebar.vue refactored with inline logout button
-- [ ] Dropdown imports removed
-- [ ] TypeScript type checking passes
-- [ ] Logout functionality verified
-- [ ] Responsive design tested on mobile, tablet, desktop
-- [ ] No console errors or warnings
-- [ ] `npx openspec validate 2026-01-01-simplify-user-profile-menu --strict` passes
+- [x] user-profile-menu spec updated and validated
+- [x] AppSidebar.vue refactored with inline logout button
+- [x] Dropdown imports removed
+- [x] TypeScript type checking passes
+- [x] Logout functionality verified
+- [x] Responsive design tested on mobile, tablet, desktop
+- [x] No console errors or warnings
+- [x] `npx openspec validate 2026-01-01-simplify-user-profile-menu --strict` passes
