@@ -24,13 +24,28 @@ const emit = defineEmits<LocationSearchEmits>()
 const autocompleteContainer = ref<HTMLDivElement | null>(null)
 let autocompleteWidget: google.maps.places.PlaceAutocompleteElement | null = null
 
-const initAutocompleteWidget = () => {
+const waitForGoogleMaps = async () => {
+  // Wait for google.maps.places to be available
+  return new Promise<void>((resolve) => {
+    const checkInterval = setInterval(() => {
+      if (window.google && window.google.maps && window.google.maps.places) {
+        clearInterval(checkInterval)
+        resolve()
+      }
+    }, 100)
+  })
+}
+
+const initAutocompleteWidget = async () => {
   if (!autocompleteContainer.value) {
     console.error('Autocomplete container not found')
     return
   }
 
   try {
+    // Wait for Google Maps Places library to be loaded
+    await waitForGoogleMaps()
+
     // Create the PlaceAutocompleteElement
     autocompleteWidget = new google.maps.places.PlaceAutocompleteElement({
       componentRestrictions: { country: 'uk' },
@@ -101,16 +116,39 @@ onBeforeUnmount(() => {
 <style scoped>
 .location-search-container {
   width: 100%;
-  max-width: 28rem;
+  max-width: 20rem;
 }
 
 .autocomplete-wrapper {
   width: 100%;
 }
 
+/* Ensure widget is visible and styled */
+.autocomplete-wrapper :deep(input) {
+  height: 2.25rem;
+  border-radius: 0.375rem;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.autocomplete-wrapper :deep(input:focus) {
+  outline: none;
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 3px hsl(var(--ring) / 0.5);
+}
+
 /* Theme customization for the widget */
 :deep(.dark-mode) {
   --gm-fillcolor: hsl(var(--input));
   --gm-fontfamily: inherit;
+}
+
+/* Ensure dropdown is visible */
+.autocomplete-wrapper :deep(.pac-container) {
+  z-index: 9999;
 }
 </style>

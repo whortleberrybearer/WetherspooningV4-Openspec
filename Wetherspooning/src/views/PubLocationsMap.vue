@@ -10,12 +10,9 @@
 
     <!-- Main Content -->
     <SidebarInset class="flex-1 relative">
-      <div class="absolute top-4 left-4 z-10">
+      <div class="absolute top-4 left-4 z-10 flex items-center gap-3">
         <SidebarTrigger />
-      </div>
-
-      <!-- Location Search -->
-      <div class="absolute top-4 left-1/2 -translate-x-1/2 z-10 w-full max-w-md px-4 sm:px-0">
+        <!-- Location Search -->
         <LocationSearch
           :is-dark="isDark"
           @place-changed="handlePlaceChanged"
