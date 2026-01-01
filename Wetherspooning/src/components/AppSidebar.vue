@@ -184,23 +184,30 @@
       <SidebarMenu>
         <!-- Theme Toggle -->
         <SidebarMenuItem>
-          <SidebarMenuButton @click="toggleTheme">
-            <svg v-if="theme === 'light'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="4"></circle>
-              <path d="M12 2v2"></path>
-              <path d="M12 20v2"></path>
-              <path d="m4.93 4.93 1.41 1.41"></path>
-              <path d="m17.66 17.66 1.41 1.41"></path>
-              <path d="M2 12h2"></path>
-              <path d="M20 12h2"></path>
-              <path d="m6.34 17.66-1.41 1.41"></path>
-              <path d="m19.07 4.93-1.41 1.41"></path>
-            </svg>
-            <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
-            </svg>
-            <span>{{ theme === 'light' ? 'Light Mode' : 'Dark Mode' }}</span>
-          </SidebarMenuButton>
+          <div class="flex items-center justify-between gap-2 px-2 py-1.5">
+            <label for="theme-toggle" class="text-sm cursor-pointer flex items-center gap-2 flex-1">
+              <svg v-if="!isDark" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2"></path>
+                <path d="M12 20v2"></path>
+                <path d="m4.93 4.93 1.41 1.41"></path>
+                <path d="m17.66 17.66 1.41 1.41"></path>
+                <path d="M2 12h2"></path>
+                <path d="M20 12h2"></path>
+                <path d="m6.34 17.66-1.41 1.41"></path>
+                <path d="m19.07 4.93-1.41 1.41"></path>
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+              </svg>
+              <span>Theme</span>
+            </label>
+            <Switch 
+              :checked="isDark" 
+              @update:modelValue="toggleTheme"
+              id="theme-toggle"
+            />
+          </div>
         </SidebarMenuItem>
 
         <!-- Account Settings (when authenticated) -->
@@ -360,7 +367,7 @@ defineEmits<{
 
 const { user, isAuthenticated, logout } = useAuth()
 const { getGroupCounts, loadVisits, clearVisits, isVisited, getVisitDate } = useVisits()
-const { theme, toggleTheme } = useTheme()
+const { isDark, toggleTheme } = useTheme()
 const showLoginDialog = ref(false)
 const showSignupDialog = ref(false)
 const showAccountSettings = ref(false)
