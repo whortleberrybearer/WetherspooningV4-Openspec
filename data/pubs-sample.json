@@ -53,7 +53,8 @@
     "lng": -0.1392,
     "url": "https://www.jdwetherspoon.com/pubs/all-pubs/england/greater-london/the-white-swan",
     "imageUrl": "https://www.jdwetherspoon.com/wp-content/uploads/2024/03/246-feature.jpg",
-    "openState": "Open"
+    "openState": "Open",
+    "isHotel": true
   },
   {
     "id": 5,
@@ -67,7 +68,8 @@
     "lng": -1.5424,
     "url": "https://www.jdwetherspoon.com/pubs/all-pubs/england/west-yorkshire/the-opera-house",
     "imageUrl": "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/6255-feature.png",
-    "openState": "Open"
+    "openState": "Open",
+    "inTrainStation": true
   },
   {
     "id": 6,
@@ -81,7 +83,8 @@
     "lng": -3.5538,
     "url": "https://www.jdwetherspoon.com/pubs/all-pubs/england/devon/the-royal-victoria-pavilion",
     "imageUrl": "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7426-feature.png",
-    "openState": "Open"
+    "openState": "Open",
+    "inAirport": true
   },
   {
     "id": 7,
@@ -95,7 +98,8 @@
     "lng": -1.1596,
     "url": "https://www.jdwetherspoon.com/pubs/all-pubs/england/leicestershire/the-golden-lion",
     "imageUrl": "",
-    "openState": "Open"
+    "openState": "Open",
+    "isHotel": true
   },
   {
     "id": 8,
@@ -109,7 +113,8 @@
     "lng": -1.1388,
     "url": "https://www.jdwetherspoon.com/pubs/all-pubs/england/nottinghamshire/the-sir-john-stirling-maxwell",
     "imageUrl": "",
-    "openState": "Closed"
+    "openState": "Closed",
+    "inTrainStation": true
   },
   {
     "id": 9,
@@ -123,7 +128,8 @@
     "lng": -1.479,
     "url": "https://www.jdwetherspoon.com/pubs/all-pubs/england/south-yorkshire/the-robert-pocock",
     "imageUrl": "",
-    "openState": "Open"
+    "openState": "Open",
+    "inAirport": true
   },
   {
     "id": 10,
@@ -137,7 +143,8 @@
     "lng": 1.0971,
     "url": "https://www.jdwetherspoon.com/pubs/all-pubs/england/kent/the-knights-templar",
     "imageUrl": "",
-    "openState": "Open"
+    "openState": "Open",
+    "isHotel": true
   },
   {
     "id": 11,
@@ -147,6 +154,7 @@
     "county": "Norfolk",
     "region": "East of England",
     "country": "England",
+    "inTrainStation": true,
     "lat": 52.6288,
     "lng": 1.2802,
     "url": "https://www.jdwetherspoon.com/pubs/all-pubs/england/norfolk/the-imperial",
