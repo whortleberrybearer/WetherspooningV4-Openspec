@@ -8,6 +8,7 @@ import {
   reauthenticateWithCredential,
   deleteUser,
   updatePassword,
+  sendPasswordResetEmail,
   type User as FirebaseUser
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
@@ -46,7 +47,7 @@ function mapFirebaseError(code: string): string {
     case 'auth/email-already-in-use':
       return 'Email already registered. Please log in.'
     case 'auth/invalid-email':
-      return 'Invalid email address format.'
+      return 'Invalid email address'
     case 'auth/weak-password':
       return 'Password must be at least 8 characters long.'
     case 'auth/user-not-found':
@@ -54,9 +55,11 @@ function mapFirebaseError(code: string): string {
     case 'auth/invalid-credential':
       return 'Invalid email or password'
     case 'auth/too-many-requests':
-      return 'Too many failed attempts. Please try again later.'
+      return 'Too many requests. Please try again later.'
     case 'auth/requires-recent-login':
       return 'Please log in again to complete this action.'
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your connection and try again.'
     default:
       return 'An error occurred. Please try again.'
   }
@@ -283,6 +286,26 @@ export function useAuth() {
     authState.error = null
   }
 
+  /**
+   * Send a password reset email to the specified email address.
+   * Uses Firebase Authentication's password reset flow.
+   * 
+   * @param email - User's email address
+   * @returns Promise that resolves when email is sent
+   * @throws Error with user-friendly message if send fails
+   */
+  const sendPasswordReset = async (email: string): Promise<void> => {
+    try {
+      await sendPasswordResetEmail(auth, email)
+      // Firebase sends the reset email
+      // Note: Firebase doesn't reveal if the email exists or not (security feature)
+    } catch (error: any) {
+      // Map Firebase error to user-friendly message
+      const errorMessage = mapFirebaseError(error.code)
+      throw new Error(errorMessage)
+    }
+  }
+
   return {
     // Readonly state to prevent direct mutations
     user: readonly(toRef(authState, 'user')),
@@ -295,6 +318,7 @@ export function useAuth() {
     reauthenticate,
     deleteAccount,
     changePassword,
+    sendPasswordReset,
     clearError
   }
 }

@@ -28,7 +28,11 @@
         <div class="grid gap-2">
           <div class="flex items-center">
             <Label for="password">Password</Label>
-            <a href="#" class="ml-auto inline-block text-sm underline-offset-4 hover:underline">
+            <a 
+              href="#" 
+              class="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+              @click.prevent="handleForgotPassword"
+            >
               Forgot your password?
             </a>
           </div>
@@ -133,6 +137,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   close: []
   openSignup: []
+  openPasswordReset: []
 }>()
 
 const { login, error: authError, clearError } = useAuth()
@@ -184,6 +189,11 @@ const handleNavigateToSignup = () => {
   handleClose()
   emit('openSignup')
 }
+const handleForgotPassword = () => {
+  handleClose()
+  emit('openPasswordReset')
+}
+
 
 // Focus email input when dialog opens
 watch(() => props.isOpen, async (newValue) => {

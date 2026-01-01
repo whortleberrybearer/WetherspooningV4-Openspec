@@ -41,6 +41,14 @@
     <LoginDialog
       :is-open="showLoginDialog"
       @close="showLoginDialog = false"
+      @open-password-reset="handleOpenPasswordReset"
+    />
+
+    <!-- Password Reset Dialog -->
+    <PasswordResetDialog
+      :is-open="showPasswordResetDialog"
+      @close="showPasswordResetDialog = false"
+      @open-login="handleOpenLogin"
     />
   </div>
 </template>
@@ -52,6 +60,7 @@ import { MarkerClusterer } from '@googlemaps/markerclusterer'
 import AppSidebar from '@/components/AppSidebar.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
 import LoginDialog from '@/components/LoginDialog.vue'
+import PasswordResetDialog from '@/components/PasswordResetDialog.vue'
 import LocationSearch from '@/components/LocationSearch.vue'
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -73,6 +82,7 @@ const showClosedPubs = ref(false)
 const selectedPub = ref<Pub | null>(null)
 const showPubDetail = ref(false)
 const showLoginDialog = ref(false)
+const showPasswordResetDialog = ref(false)
 
 // User location for proximity detection
 const userLocation = ref<{ lat: number; lng: number } | null>(null)
@@ -848,6 +858,16 @@ const handlePubSelect = (pub: Pub) => {
       showPubInfo(pub, marker)
     }
   }
+}
+
+const handleOpenPasswordReset = () => {
+  showLoginDialog.value = false
+  showPasswordResetDialog.value = true
+}
+
+const handleOpenLogin = () => {
+  showPasswordResetDialog.value = false
+  showLoginDialog.value = true
 }
 
 const handlePlaceChanged = (place: google.maps.places.PlaceResult) => {
