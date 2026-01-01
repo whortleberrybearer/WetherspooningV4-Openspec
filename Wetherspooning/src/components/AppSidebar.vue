@@ -206,7 +206,7 @@
                 <path d="m19.07 4.93-1.41 1.41"></path>
               </svg>
               <Switch 
-                :checked="isDark" 
+                :default-value="isDark" 
                 @update:modelValue="toggleTheme"
                 id="theme-toggle"
               />
