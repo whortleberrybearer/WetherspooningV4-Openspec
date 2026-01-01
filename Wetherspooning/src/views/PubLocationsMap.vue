@@ -52,6 +52,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-vue-next'
 import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
+import { useTheme } from '@/composables/useTheme'
 import { getAllPubs, type Pub } from '@/services/firebaseDataService'
 
 const mapContainer = ref<HTMLElement | null>(null)
@@ -74,6 +75,7 @@ const hasCheckedProximity = ref(false)
 // Authentication and visit tracking
 const { user, isAuthenticated } = useAuth()
 const { isVisited, getVisitDate, loadVisits, clearVisits, visitedPubIds, visits, addVisit } = useVisits()
+const { isDark } = useTheme()
 
 // Watch authentication state to load/clear visit data
 watch(isAuthenticated, async (authenticated) => {
@@ -108,6 +110,22 @@ watch([visitedPubIds, visits], () => {
     }
   }
 }, { deep: true })
+
+// Watch for theme changes to update info window
+watch(isDark, () => {
+  // Update info window if there's a selected pub
+  if (selectedPub.value && infoWindow.value) {
+    const marker = markers.value.find(m => {
+      const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
+      const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat
+      const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng
+      return lat === selectedPub.value!.lat && lng === selectedPub.value!.lng
+    })
+    if (marker) {
+      showPubInfo(selectedPub.value, marker)
+    }
+  }
+})
 
 // Filter pubs for map markers only
 const filteredPubsForMap = computed(() => {
@@ -538,11 +556,20 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
   const isClosed = pub.openState?.toLowerCase().includes('closed') || false
   const visited = isVisited(pub.id)
   
+  // Theme-aware colors
+  const bgColor = isDark.value ? '#1c1917' : '#ffffff'
+  const textColor = isDark.value ? '#fafaf9' : '#1f2937'
+  const mutedColor = isDark.value ? '#a8a29e' : '#6b7280'
+  const buttonBg = isDark.value ? '#fafaf9' : '#0f172a'
+  const buttonTextColor = isDark.value ? '#1c1917' : '#f8fafc'
+  const buttonHoverBg = isDark.value ? '#e7e5e4' : '#1e293b'
+  const linkColor = isDark.value ? '#a1a1aa' : 'hsl(var(--primary))'
+  
   // Image section with conditional attribution
   let imageHtml = ''
   if (pub.imageUrl) {
     const attribution = pub.imageUrl.includes('jdwetherspoon.com') 
-      ? '<p style="font-size: 10px; color: #6b7280; margin: 4px 0 0 0;">Image © JD Wetherspoon</p>' 
+      ? `<p style="font-size: 10px; color: ${mutedColor}; margin: 4px 0 0 0;">Image © JD Wetherspoon</p>` 
       : ''
     imageHtml = `
       <div style="margin-bottom: 12px;">
@@ -580,7 +607,7 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
   // Website link
   let websiteLink = ''
   if (pub.url) {
-    websiteLink = `<a href="${pub.url}" target="_blank" rel="noopener noreferrer" style="font-size: 14px; color: hsl(var(--primary)); text-decoration: none; display: block; margin-bottom: 12px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">View on Wetherspoons website</a>`
+    websiteLink = `<a href="${pub.url}" target="_blank" rel="noopener noreferrer" style="font-size: 14px; color: ${linkColor}; text-decoration: none; display: block; margin-bottom: 12px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">View on Wetherspoons website</a>`
   }
   
   // Button text based on authentication state
@@ -600,7 +627,7 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
         min-width: 250px;
         max-width: 400px;
         padding: 16px;
-        background: white;
+        background: ${bgColor};
         border-radius: 12px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
       }
@@ -608,7 +635,7 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
         font-size: 18px;
         font-weight: 600;
         margin: 0 0 8px 0;
-        color: #1f2937;
+        color: ${textColor};
       }
       .iw-badges {
         display: flex;
@@ -618,7 +645,7 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
       }
       .iw-address {
         font-size: 14px;
-        color: #6b7280;
+        color: ${mutedColor};
         margin: 0 0 12px 0;
         line-height: 1.5;
       }
@@ -630,8 +657,8 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
         border-radius: 6px;
         font-size: 14px;
         font-weight: 500;
-        background-color: #0f172a;
-        color: #f8fafc;
+        background-color: ${buttonBg};
+        color: ${buttonTextColor};
         height: 36px;
         padding: 0 16px;
         width: 100%;
@@ -640,7 +667,7 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
         transition: background-color 0.2s;
       }
       .iw-button:hover {
-        background-color: #1e293b;
+        background-color: ${buttonHoverBg};
       }
       @media (max-width: 450px) {
         .iw-card {
