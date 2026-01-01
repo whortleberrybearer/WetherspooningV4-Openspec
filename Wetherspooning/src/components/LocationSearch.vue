@@ -66,10 +66,20 @@ const initAutocompleteWidget = async () => {
       try {
         // Fetch place details including geometry
         await place.fetchFields({
-          fields: ['location'],
+          fields: ['location', 'displayName', 'types'],
         })
 
-        emit('placeChanged', place.toJSON())
+        // Construct PlaceResult compatible object
+        const placeResult: google.maps.places.PlaceResult = {
+          geometry: {
+            location: place.location
+          },
+          name: place.displayName,
+          types: place.types,
+        }
+        
+        console.log('Place selected:', placeResult)
+        emit('placeChanged', placeResult)
       } catch (error) {
         console.error('Error fetching place details:', error)
       }
