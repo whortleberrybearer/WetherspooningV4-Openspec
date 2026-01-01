@@ -101,11 +101,11 @@ The InfoWindow must display status badges (Open/Closed) and visit badges (Visite
 
 ---
 
+## ADDED Requirements
+
 ### Requirement: InfoWindow Layout with Notes (REQ-EID-007)
 **Priority:** MUST  
 **Category:** UI/UX
-
-**NEW REQUIREMENT**
 
 The InfoWindow must maintain clean vertical layout when displaying rating and notes, ensuring content remains readable and not cluttered.
 

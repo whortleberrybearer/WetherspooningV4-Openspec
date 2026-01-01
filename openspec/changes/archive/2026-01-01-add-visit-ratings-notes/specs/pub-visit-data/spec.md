@@ -159,11 +159,11 @@ The system MUST allow authenticated users to update an existing visit record, in
 
 ---
 
+## ADDED Requirements
+
 ### Requirement: Get Visit Details (REQ-PVD-009)
 **Priority:** MUST
 **Category:** Functional
-
-**NEW REQUIREMENT**
 
 The system MUST provide a method to retrieve complete visit details including rating and notes.
 

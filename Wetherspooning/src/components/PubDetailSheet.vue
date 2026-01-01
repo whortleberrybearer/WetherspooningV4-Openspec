@@ -4,7 +4,7 @@
       <DialogHeader>
         <DialogTitle>{{ pub?.name }}</DialogTitle>
         <DialogDescription v-if="pub">
-          {{ pub.address }}, {{ pub.townCity }}, {{ pub.county }}
+          {{ pub.address }}
         </DialogDescription>
       </DialogHeader>
 
