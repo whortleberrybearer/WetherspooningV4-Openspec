@@ -11,6 +11,11 @@ describe('pubScraperService', () => {
     'utf-8'
   );
 
+  const redRocksHtml = fs.readFileSync(
+    path.join(__dirname, '../fixtures/the-red-rocks-exmouth-sample.html'),
+    'utf-8'
+  );
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -353,6 +358,31 @@ describe('pubScraperService', () => {
 
       const result = await scrapePubData(url, imageUrl);
 
+      expect(result?.isHotel).toBe(false);
+      expect(result?.inAirport).toBe(false);
+      expect(result?.inTrainStation).toBe(false);
+    });
+
+    it('should handle pubs without map location (The Red Rocks Exmouth)', async () => {
+      const url = 'https://www.jdwetherspoon.com/pubs/the-red-rocks-exmouth/';
+      const imageUrl = 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/5667-feature.png';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => redRocksHtml,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result).not.toBeNull();
+      expect(result?.id).toBe('the-red-rocks-exmouth');
+      expect(result?.name).toBe('The Red Rocks');
+      expect(result?.url).toBe(url);
+      expect(result?.imageUrl).toBe(imageUrl);
+      expect(result?.townCity).toBe('Exmouth');
+      expect(result?.position).toBeNull(); // This pub does not have a map location in the HTML
+      expect(result?.address).toBe('Haven, Devon Cliffs Holiday Park, Sandy Bay, Exmouth, Devon, EX8 5BT');
+      expect(result?.openState).toBe('Open');
       expect(result?.isHotel).toBe(false);
       expect(result?.inAirport).toBe(false);
       expect(result?.inTrainStation).toBe(false);
