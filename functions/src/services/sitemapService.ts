@@ -1,8 +1,9 @@
 import { XMLParser } from 'fast-xml-parser';
+import { SitemapEntry } from '../types/pub';
 
 const SITEMAP_URL = 'https://www.jdwetherspoon.com/pubs-sitemap.xml';
 
-export async function getSitemapUrls(): Promise<string[]> {
+export async function getSitemapUrls(): Promise<SitemapEntry[]> {
   try {
     const xml = await fetchSitemap();
     return parseSitemapXml(xml);
@@ -22,7 +23,7 @@ async function fetchSitemap(): Promise<string> {
   return response.text();
 }
 
-function parseSitemapXml(xml: string): string[] {
+function parseSitemapXml(xml: string): SitemapEntry[] {
   const parser = new XMLParser();
   const result = parser.parse(xml);
   
@@ -34,5 +35,8 @@ function parseSitemapXml(xml: string): string[] {
     ? result.urlset.url 
     : [result.urlset.url];
   
-  return urls.map((entry: { loc: string }) => entry.loc).filter(Boolean);
+  return urls.map((entry: { loc: string; 'image:image'?: { 'image:loc': string } }) => ({
+    url: entry.loc,
+    imageUrl: entry['image:image']?.['image:loc'] || '',
+  })).filter((entry: SitemapEntry) => entry.url);
 }

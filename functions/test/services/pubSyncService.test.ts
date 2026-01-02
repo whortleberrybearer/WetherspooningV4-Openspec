@@ -23,20 +23,22 @@ describe('pubSyncService', () => {
   describe('syncPubToFirestore', () => {
     it('should write pub data to Firestore', async () => {
       const pubData: ScrapedPubData = {
-        id: 'the-moon-under-water-leicester-square',
-        name: 'The Moon Under Water',
-        url: 'https://www.jdwetherspoon.com/pubs/all-pubs/england/london/the-moon-under-water-leicester-square',
+        id: 'star-light-hounslow',
+        name: 'Star Light',
+        url: 'https://www.jdwetherspoon.com/pubs/star-light-hounslow/',
+        imageUrl: 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7649-feature.png',
       };
 
       await syncPubToFirestore(pubData);
 
       expect(mockCollection).toHaveBeenCalledWith('pubs');
-      expect(mockDoc).toHaveBeenCalledWith('the-moon-under-water-leicester-square');
+      expect(mockDoc).toHaveBeenCalledWith('star-light-hounslow');
       expect(mockSet).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: 'the-moon-under-water-leicester-square',
-          name: 'The Moon Under Water',
+          id: 'star-light-hounslow',
+          name: 'Star Light',
           url: pubData.url,
+          imageUrl: pubData.imageUrl,
           lastSyncedAt: expect.any(Object),
         }),
         { merge: true }
@@ -48,6 +50,7 @@ describe('pubSyncService', () => {
         id: 'test-pub',
         name: 'Test Pub',
         url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
       };
 
       await syncPubToFirestore(pubData);
@@ -63,6 +66,7 @@ describe('pubSyncService', () => {
         id: 'test-pub',
         name: 'Test Pub',
         url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
       };
 
       mockSet.mockRejectedValueOnce(new Error('Firestore error'));
@@ -75,6 +79,7 @@ describe('pubSyncService', () => {
         id: 'test-pub',
         name: 'Test Pub',
         url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
       };
 
       await syncPubToFirestore(pubData);
@@ -82,6 +87,20 @@ describe('pubSyncService', () => {
       const writtenData = mockSet.mock.calls[0][0];
       expect(writtenData.lastSyncedAt).toBeDefined();
       expect(writtenData.lastSyncedAt.seconds).toBe(1234567890);
+    });
+
+    it('should include imageUrl in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.imageUrl).toBe('https://example.com/image.jpg');
     });
   });
 });

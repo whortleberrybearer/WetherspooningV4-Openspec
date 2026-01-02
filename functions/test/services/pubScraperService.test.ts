@@ -7,7 +7,7 @@ global.fetch = jest.fn();
 
 describe('pubScraperService', () => {
   const samplePubHtml = fs.readFileSync(
-    path.join(__dirname, '../fixtures/pub-page-sample.html'),
+    path.join(__dirname, '../fixtures/star-light-hounslow-sample.html'),
     'utf-8'
   );
 
@@ -17,32 +17,65 @@ describe('pubScraperService', () => {
 
   describe('scrapePubData', () => {
     it('should scrape pub name successfully', async () => {
-      const url = 'https://www.jdwetherspoon.com/pubs/all-pubs/england/london/the-moon-under-water-leicester-square';
+      const url = 'https://www.jdwetherspoon.com/pubs/star-light-hounslow/';
+      const imageUrl = 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7649-feature.png';
       
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
         text: async () => samplePubHtml,
       });
 
-      const result = await scrapePubData(url);
+      const result = await scrapePubData(url, imageUrl);
 
       expect(result).not.toBeNull();
-      expect(result?.id).toBe('the-moon-under-water-leicester-square');
-      expect(result?.name).toBe('The Moon Under Water');
+      expect(result?.id).toBe('star-light-hounslow');
+      expect(result?.name).toBe('Star Light');
       expect(result?.url).toBe(url);
+      expect(result?.imageUrl).toBe(imageUrl);
     });
 
     it('should extract ID from URL correctly', async () => {
-      const url = 'https://www.jdwetherspoon.com/pubs/all-pubs/scotland/edinburgh/the-standing-order';
+      const url = 'https://www.jdwetherspoon.com/pubs/the-standing-order/';
+      const imageUrl = 'https://example.com/image.jpg';
       
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
         text: async () => samplePubHtml,
       });
 
-      const result = await scrapePubData(url);
+      const result = await scrapePubData(url, imageUrl);
 
       expect(result?.id).toBe('the-standing-order');
+    });
+
+    it('should handle HTML entities in pub name', async () => {
+      const htmlWithEntities = `<!DOCTYPE html><html><body><h1 class="wp-block-heading">The Cock &#038; Bull</h1></body></html>`;
+      const url = 'https://www.jdwetherspoon.com/pubs/the-cock-and-bull/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithEntities,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result?.name).toBe('The Cock & Bull');
+    });
+
+    it('should handle &amp; HTML entity', async () => {
+      const htmlWithEntities = `<!DOCTYPE html><html><body><h1 class="wp-block-heading">The Crown &amp; Anchor</h1></body></html>`;
+      const url = 'https://www.jdwetherspoon.com/pubs/the-crown-and-anchor/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithEntities,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result?.name).toBe('The Crown & Anchor');
     });
 
     it('should return null when fetch fails', async () => {
@@ -52,18 +85,20 @@ describe('pubScraperService', () => {
         statusText: 'Not Found',
       });
 
-      const result = await scrapePubData('https://example.com/pub');
+      const result = await scrapePubData('https://example.com/pub', 'https://example.com/image.jpg');
 
       expect(result).toBeNull();
     });
 
     it('should return null when name cannot be extracted', async () => {
+      const imageUrl = 'https://example.com/image.jpg';
+      
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
         text: async () => '<html><body><p>No name here</p></body></html>',
       });
 
-      const result = await scrapePubData('https://example.com/pub');
+      const result = await scrapePubData('https://example.com/pub', imageUrl);
 
       expect(result).toBeNull();
     });
@@ -71,22 +106,23 @@ describe('pubScraperService', () => {
     it('should handle network errors gracefully', async () => {
       (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
-      const result = await scrapePubData('https://example.com/pub');
+      const result = await scrapePubData('https://example.com/pub', 'https://example.com/image.jpg');
 
       expect(result).toBeNull();
     });
 
     it('should trim whitespace from pub name', async () => {
-      const htmlWithWhitespace = '<html><body><h1>  The Moon Under Water  </h1></body></html>';
+      const htmlWithWhitespace = '<html><body><h1 class="wp-block-heading">  Star Light  </h1></body></html>';
+      const imageUrl = 'https://example.com/image.jpg';
       
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
         text: async () => htmlWithWhitespace,
       });
 
-      const result = await scrapePubData('https://example.com/pub');
+      const result = await scrapePubData('https://example.com/pub', imageUrl);
 
-      expect(result?.name).toBe('The Moon Under Water');
+      expect(result?.name).toBe('Star Light');
     });
   });
 });

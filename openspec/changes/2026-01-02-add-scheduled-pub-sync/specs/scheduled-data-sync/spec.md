@@ -42,15 +42,16 @@ The system MUST execute a Firebase Cloud Function on a daily schedule to sync pu
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST fetch and parse the Wetherspoon's sitemap XML to extract pub URLs.
+The system MUST fetch and parse the Wetherspoon's sitemap XML to extract pub URLs and image URLs.
 
 **Acceptance Criteria:**
 - Sitemap is fetched from https://www.jdwetherspoon.com/pubs-sitemap.xml
 - HTTP GET request is made using node-fetch or equivalent
 - Response status is checked (200 OK expected)
 - XML content is parsed using fast-xml-parser
-- `<loc>` elements containing URLs are extracted
-- Extracted URLs are returned as an array of strings
+- `<loc>` elements containing pub URLs are extracted
+- `<image:loc>` elements containing image URLs are extracted
+- Extracted data is returned as an array of objects with `url` and `imageUrl` properties
 - HTTP errors are caught and logged
 - Parse errors are caught and logged
 
@@ -61,8 +62,9 @@ The system MUST fetch and parse the Wetherspoon's sitemap XML to extract pub URL
 **And** the response status is 200  
 **And** the response body contains valid XML  
 **And** the XML is parsed successfully  
-**And** all `<loc>` elements are extracted  
-**And** URLs are returned as an array
+**And** all `<loc>` elements are extracted as pub URLs  
+**And** all `<image:loc>` elements are extracted as image URLs  
+**And** data is returned as an array of objects with `url` and `imageUrl` properties
 
 #### Scenario: Sitemap Fetch Failure
 **Given** the Wetherspoon's sitemap is not accessible  
@@ -114,20 +116,28 @@ The system MUST scrape each pub's webpage to extract the pub name.
 **Acceptance Criteria:**
 - For each pub URL, an HTTP GET request is made
 - HTML response is parsed using cheerio
-- Pub name is extracted from an appropriate HTML element (e.g., `<h1>`, title tag, or specific class)
+- Pub name is extracted from `<h1 class="wp-block-heading">` element
+- HTML entities (&#038; and &amp;) are decoded to & character
 - Extracted name is trimmed of leading/trailing whitespace
 - Empty or missing names are handled (logged and skipped)
 - HTTP errors for individual pubs are logged but don't stop processing of other pubs
 - Parse errors are logged but don't stop processing
 
 #### Scenario: Successful Name Extraction
-**Given** a pub URL "https://www.jdwetherspoon.com/pubs/all-pubs/england/london/the-moon-under-water-leicester-square"  
+**Given** a pub URL "https://www.jdwetherspoon.com/pubs/star-light-hounslow/"  
 **When** the function fetches and parses the page  
 **Then** an HTTP GET request is made to the URL  
 **And** the HTML response is parsed  
-**And** the pub name is extracted (e.g., "The Moon Under Water")  
+**And** the pub name is extracted from `<h1 class="wp-block-heading">` element  
+**And** the name is "Star Light"  
 **And** the name is trimmed and returned  
 **And** the name is non-empty
+
+#### Scenario: Name with HTML Entities
+**Given** a pub page with name containing "&#038;" or "&amp;"  
+**When** the function extracts the name  
+**Then** HTML entities are decoded to "&" character  
+**And** the name contains proper ampersand character
 
 #### Scenario: Pub Page Fetch Failure
 **Given** a pub URL that returns a 404 error  
@@ -155,7 +165,8 @@ The system MUST write extracted pub data to the Firestore `pubs` collection.
 
 **Acceptance Criteria:**
 - Document ID is derived from pub URL slug (last segment of path)
-- Document contains fields: `id`, `name`, `url`, `lastSyncedAt`
+- Document contains fields: `id`, `name`, `url`, `imageUrl`, `lastSyncedAt`
+- `imageUrl` field contains the image URL extracted from sitemap
 - `lastSyncedAt` is set to current server timestamp
 - Data is written using `set()` with merge option or upsert equivalent
 - Existing documents are updated (not creating duplicates)
@@ -163,22 +174,26 @@ The system MUST write extracted pub data to the Firestore `pubs` collection.
 - Write errors cause function to fail (critical operation)
 
 #### Scenario: Write New Pub to Firestore
-**Given** a pub named "The Moon Under Water" with URL "https://..."  
+**Given** a pub named "Star Light" with URL "https://www.jdwetherspoon.com/pubs/star-light-hounslow/"  
+**And** imageUrl is "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7649-feature.png"  
 **And** the pub does not exist in Firestore  
 **When** the function writes the pub data  
 **Then** a new document is created in the `pubs` collection  
-**And** the document ID is "the-moon-under-water-leicester-square"  
-**And** the document contains `id`, `name`, `url`, and `lastSyncedAt` fields  
-**And** `name` is "The Moon Under Water"  
+**And** the document ID is "star-light-hounslow"  
+**And** the document contains `id`, `name`, `url`, `imageUrl`, and `lastSyncedAt` fields  
+**And** `name` is "Star Light"  
 **And** `url` is the full source URL  
+**And** `imageUrl` is the image URL from sitemap  
 **And** `lastSyncedAt` is the current timestamp
 
 #### Scenario: Update Existing Pub in Firestore
 **Given** a pub that already exists in Firestore  
-**And** the scraped name is "The Moon Under Water - Updated"  
+**And** the scraped name is "Star Light"  
+**And** the imageUrl is "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7649-feature.png"  
 **When** the function writes the pub data  
 **Then** the existing document is updated  
-**And** the `name` field is set to "The Moon Under Water - Updated"  
+**And** the `name` field is set to "Star Light"  
+**And** the `imageUrl` field is set to the image URL  
 **And** the `lastSyncedAt` field is updated to current timestamp  
 **And** the document ID remains unchanged  
 **And** no duplicate documents are created

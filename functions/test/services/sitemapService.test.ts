@@ -22,11 +22,18 @@ describe('sitemapService', () => {
         text: async () => sampleSitemapXml,
       });
 
-      const urls = await getSitemapUrls();
+      const entries = await getSitemapUrls();
 
-      expect(urls).toHaveLength(10);
-      expect(urls[0]).toBe('https://www.jdwetherspoon.com/pubs/all-pubs/england/london/the-moon-under-water-leicester-square');
-      expect(urls[9]).toBe('https://www.jdwetherspoon.com/pubs/all-pubs/england/nottingham/the-roebuck-inn');
+      // Actual sitemap has 814 entries
+      expect(entries.length).toBeGreaterThan(800);
+      expect(entries[0]).toEqual({
+        url: 'https://www.jdwetherspoon.com/pubs/the-sir-thomas-haggerston-berwick-upon-tweed/',
+        imageUrl: 'https://www.jdwetherspoon.com/wp-content/uploads/2024/12/7906_4.jpg',
+      });
+      expect(entries[5]).toEqual({
+        url: 'https://www.jdwetherspoon.com/pubs/the-falcon-high-wycombe/',
+        imageUrl: 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/167-feature.png',
+      });
     });
 
     it('should throw error when fetch fails', async () => {

@@ -14,26 +14,26 @@ export const scheduledSyncPubs = onSchedule(
     console.log('🚀 Starting scheduled pub sync');
     
     try {
-      // Fetch sitemap URLs
-      const urls = await getSitemapUrls();
-      console.log(`📍 Fetched sitemap: ${urls.length} URLs found`);
+      // Fetch sitemap entries (URLs and image URLs)
+      const entries = await getSitemapUrls();
+      console.log(`📍 Fetched sitemap: ${entries.length} entries found`);
       
       // Limit to first 5 pubs for initial implementation
-      const urlsToProcess = urls.slice(0, 5);
-      console.log(`📋 Processing ${urlsToProcess.length} of ${urls.length} pubs`);
+      const entriesToProcess = entries.slice(0, 5);
+      console.log(`📋 Processing ${entriesToProcess.length} of ${entries.length} pubs`);
       
       let successCount = 0;
       let failureCount = 0;
       
       // Process each pub
-      for (const url of urlsToProcess) {
+      for (const entry of entriesToProcess) {
         try {
-          console.log(`🔍 Processing pub: ${url}`);
+          console.log(`🔍 Processing pub: ${entry.url}`);
           
-          const pubData = await scrapePubData(url);
+          const pubData = await scrapePubData(entry.url, entry.imageUrl);
           
           if (!pubData) {
-            console.warn(`⚠️  Skipping pub (no data extracted): ${url}`);
+            console.warn(`⚠️  Skipping pub (no data extracted): ${entry.url}`);
             failureCount++;
             continue;
           }
@@ -41,7 +41,7 @@ export const scheduledSyncPubs = onSchedule(
           await syncPubToFirestore(pubData);
           successCount++;
         } catch (error) {
-          console.error(`❌ Error processing pub ${url}:`, error);
+          console.error(`❌ Error processing pub ${entry.url}:`, error);
           failureCount++;
         }
       }

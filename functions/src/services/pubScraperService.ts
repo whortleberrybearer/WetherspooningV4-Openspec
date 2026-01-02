@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio';
 import { ScrapedPubData } from '../types/pub';
 
-export async function scrapePubData(url: string): Promise<ScrapedPubData | null> {
+export async function scrapePubData(url: string, imageUrl: string): Promise<ScrapedPubData | null> {
   try {
     const html = await fetchPubPage(url);
     const name = extractPubName(html);
@@ -17,6 +17,7 @@ export async function scrapePubData(url: string): Promise<ScrapedPubData | null>
       id,
       name: name.trim(),
       url,
+      imageUrl,
     };
   } catch (error) {
     console.error(`Error scraping pub ${url}:`, error);
@@ -37,37 +38,25 @@ async function fetchPubPage(url: string): Promise<string> {
 function extractPubName(html: string): string | null {
   const $ = cheerio.load(html);
   
-  // Try multiple selectors to find the pub name
-  const selectors = [
-    'h1.pub-name',
-    'h1',
-    '.pub-details h1',
-    'title',
-  ];
+  // Use the specific selector from the C# function
+  const headingNode = $('h1.wp-block-heading').first();
   
-  for (const selector of selectors) {
-    const element = $(selector).first();
-    if (element.length > 0) {
-      let text = element.text().trim();
-      
-      // If using title tag, clean it up
-      if (selector === 'title') {
-        text = text.replace(/\s*\|\s*JD Wetherspoon.*$/i, '');
-      }
-      
-      if (text) {
-        return text;
-      }
-    }
+  if (headingNode.length === 0) {
+    return null;
   }
   
-  return null;
+  let text = headingNode.text().trim();
+  
+  // Decode HTML entities as per C# function
+  text = text.replace(/&#038;/g, '&').replace(/&amp;/g, '&');
+  
+  return text || null;
 }
 
 function extractIdFromUrl(url: string): string {
   // Extract the last segment of the URL path as the ID
-  // e.g., "https://www.jdwetherspoon.com/pubs/all-pubs/england/london/the-moon-under-water-leicester-square"
-  // becomes "the-moon-under-water-leicester-square"
-  const parts = url.split('/');
+  // e.g., "https://www.jdwetherspoon.com/pubs/star-light-hounslow/"
+  // becomes "star-light-hounslow"
+  const parts = url.replace(/\/$/, '').split('/');
   return parts[parts.length - 1] || parts[parts.length - 2];
 }
