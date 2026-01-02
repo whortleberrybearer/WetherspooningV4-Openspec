@@ -9,6 +9,8 @@ export async function syncPubToFirestore(pubData: ScrapedPubData): Promise<void>
       name: pubData.name,
       url: pubData.url,
       imageUrl: pubData.imageUrl,
+      address: pubData.address,
+      townCity: pubData.townCity,
       lastSyncedAt: Timestamp.now(),
     };
     

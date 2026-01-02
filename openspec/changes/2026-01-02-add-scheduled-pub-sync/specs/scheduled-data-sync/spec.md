@@ -107,11 +107,11 @@ The system MUST initially process only the first 5 pub URLs from the sitemap.
 
 ---
 
-### Requirement: Pub Name Extraction (REQ-SDS-004)
+### Requirement: Pub Data Extraction (REQ-SDS-004)
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST scrape each pub's webpage to extract the pub name.
+The system MUST scrape each pub's webpage to extract the pub name, address, and town/city.
 
 **Acceptance Criteria:**
 - For each pub URL, an HTTP GET request is made
@@ -119,18 +119,24 @@ The system MUST scrape each pub's webpage to extract the pub name.
 - Pub name is extracted from `<h1 class="wp-block-heading">` element
 - HTML entities (&#038; and &amp;) are decoded to & character
 - Extracted name is trimmed of leading/trailing whitespace
+- Address is extracted from `<div class="pub-address-inner"><span>` element
+- Address is trimmed of leading/trailing whitespace
+- Town/city is derived from URL slug by removing the pub name slug and converting to title case
 - Empty or missing names are handled (logged and skipped)
 - HTTP errors for individual pubs are logged but don't stop processing of other pubs
 - Parse errors are logged but don't stop processing
 
-#### Scenario: Successful Name Extraction
+#### Scenario: Successful Data Extraction
 **Given** a pub URL "https://www.jdwetherspoon.com/pubs/star-light-hounslow/"  
 **When** the function fetches and parses the page  
 **Then** an HTTP GET request is made to the URL  
 **And** the HTML response is parsed  
 **And** the pub name is extracted from `<h1 class="wp-block-heading">` element  
 **And** the name is "Star Light"  
-**And** the name is trimmed and returned  
+**And** the address is extracted from `<div class="pub-address-inner"><span>` element  
+**And** the address is "Heathrow Airport, Terminal 4 (after security) , Hounslow, Middlesex, TW6 3XA"  
+**And** the town/city is derived from URL as "Hounslow"  
+**And** all values are trimmed and returned  
 **And** the name is non-empty
 
 #### Scenario: Name with HTML Entities
@@ -165,8 +171,10 @@ The system MUST write extracted pub data to the Firestore `pubs` collection.
 
 **Acceptance Criteria:**
 - Document ID is derived from pub URL slug (last segment of path)
-- Document contains fields: `id`, `name`, `url`, `imageUrl`, `lastSyncedAt`
+- Document contains fields: `id`, `name`, `url`, `imageUrl`, `address`, `townCity`, `lastSyncedAt`
 - `imageUrl` field contains the image URL extracted from sitemap
+- `address` field contains the full address string extracted from HTML
+- `townCity` field contains the town/city derived from URL slug
 - `lastSyncedAt` is set to current server timestamp
 - Data is written using `set()` with merge option or upsert equivalent
 - Existing documents are updated (not creating duplicates)
@@ -176,24 +184,32 @@ The system MUST write extracted pub data to the Firestore `pubs` collection.
 #### Scenario: Write New Pub to Firestore
 **Given** a pub named "Star Light" with URL "https://www.jdwetherspoon.com/pubs/star-light-hounslow/"  
 **And** imageUrl is "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7649-feature.png"  
+**And** address is "Heathrow Airport, Terminal 4 (after security) , Hounslow, Middlesex, TW6 3XA"  
+**And** townCity is "Hounslow"  
 **And** the pub does not exist in Firestore  
 **When** the function writes the pub data  
 **Then** a new document is created in the `pubs` collection  
 **And** the document ID is "star-light-hounslow"  
-**And** the document contains `id`, `name`, `url`, `imageUrl`, and `lastSyncedAt` fields  
+**And** the document contains `id`, `name`, `url`, `imageUrl`, `address`, `townCity`, and `lastSyncedAt` fields  
 **And** `name` is "Star Light"  
 **And** `url` is the full source URL  
 **And** `imageUrl` is the image URL from sitemap  
+**And** `address` is the full address  
+**And** `townCity` is "Hounslow"  
 **And** `lastSyncedAt` is the current timestamp
 
 #### Scenario: Update Existing Pub in Firestore
 **Given** a pub that already exists in Firestore  
 **And** the scraped name is "Star Light"  
 **And** the imageUrl is "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7649-feature.png"  
+**And** the address is "Heathrow Airport, Terminal 4 (after security) , Hounslow, Middlesex, TW6 3XA"  
+**And** the townCity is "Hounslow"  
 **When** the function writes the pub data  
 **Then** the existing document is updated  
 **And** the `name` field is set to "Star Light"  
 **And** the `imageUrl` field is set to the image URL  
+**And** the `address` field is set to the full address  
+**And** the `townCity` field is set to "Hounslow"  
 **And** the `lastSyncedAt` field is updated to current timestamp  
 **And** the document ID remains unchanged  
 **And** no duplicate documents are created

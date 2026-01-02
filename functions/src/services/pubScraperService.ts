@@ -11,13 +11,22 @@ export async function scrapePubData(url: string, imageUrl: string): Promise<Scra
       return null;
     }
     
+    const address = extractAddress(html);
+    if (!address) {
+      console.warn(`Could not extract address from ${url}`);
+      return null;
+    }
+    
     const id = extractIdFromUrl(url);
+    const townCity = extractTownCity(url, name);
     
     return {
       id,
       name: name.trim(),
       url,
       imageUrl,
+      address: address.trim(),
+      townCity,
     };
   } catch (error) {
     console.error(`Error scraping pub ${url}:`, error);
@@ -59,4 +68,43 @@ function extractIdFromUrl(url: string): string {
   // becomes "star-light-hounslow"
   const parts = url.replace(/\/$/, '').split('/');
   return parts[parts.length - 1] || parts[parts.length - 2];
+}
+
+function extractAddress(html: string): string | null {
+  const $ = cheerio.load(html);
+  
+  // Select the address from the pub-address-inner div's span element
+  const addressNode = $('div.pub-address-inner span').first();
+  
+  if (addressNode.length === 0) {
+    return null;
+  }
+  
+  return addressNode.text().trim();
+}
+
+function extractTownCity(url: string, name: string): string {
+  const urlSlug = url.replace(/\/$/, '').split('/').pop() || '';
+  
+  // Generate slug from name (convert to lowercase, replace spaces/special chars with hyphens)
+  const nameSlug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  
+  // Remove the name slug from the URL slug to get the location
+  // Try removing nameSlug with trailing hyphen first, then without
+  let townSlug = urlSlug.replace(nameSlug + '-', '');
+  if (townSlug === urlSlug) {
+    // If that didn't work, try without trailing hyphen
+    townSlug = urlSlug.replace(nameSlug, '');
+  }
+  townSlug = townSlug.replace(/^-+|-+$/g, '');
+  
+  // Convert to title case
+  return townSlug
+    .split('-')
+    .filter(word => word.length > 0)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }

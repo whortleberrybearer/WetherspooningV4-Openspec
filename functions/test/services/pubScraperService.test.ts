@@ -32,6 +32,8 @@ describe('pubScraperService', () => {
       expect(result?.name).toBe('Star Light');
       expect(result?.url).toBe(url);
       expect(result?.imageUrl).toBe(imageUrl);
+      expect(result?.address).toBe('Heathrow Airport, Terminal 4 (after security) , Hounslow, Middlesex, TW6 3XA');
+      expect(result?.townCity).toBe('Hounslow');
     });
 
     it('should extract ID from URL correctly', async () => {
@@ -49,8 +51,11 @@ describe('pubScraperService', () => {
     });
 
     it('should handle HTML entities in pub name', async () => {
-      const htmlWithEntities = `<!DOCTYPE html><html><body><h1 class="wp-block-heading">The Cock &#038; Bull</h1></body></html>`;
-      const url = 'https://www.jdwetherspoon.com/pubs/the-cock-and-bull/';
+      const htmlWithEntities = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">The Cock &#038; Bull</h1>
+        <div class="pub-address-inner"><span>123 Test St, London</span></div>
+      </body></html>`;
+      const url = 'https://www.jdwetherspoon.com/pubs/the-cock-and-bull-london/';
       const imageUrl = 'https://example.com/image.jpg';
       
       (global.fetch as jest.Mock).mockResolvedValue({
@@ -64,8 +69,11 @@ describe('pubScraperService', () => {
     });
 
     it('should handle &amp; HTML entity', async () => {
-      const htmlWithEntities = `<!DOCTYPE html><html><body><h1 class="wp-block-heading">The Crown &amp; Anchor</h1></body></html>`;
-      const url = 'https://www.jdwetherspoon.com/pubs/the-crown-and-anchor/';
+      const htmlWithEntities = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">The Crown &amp; Anchor</h1>
+        <div class="pub-address-inner"><span>456 Test Ave, Manchester</span></div>
+      </body></html>`;
+      const url = 'https://www.jdwetherspoon.com/pubs/the-crown-and-anchor-manchester/';
       const imageUrl = 'https://example.com/image.jpg';
       
       (global.fetch as jest.Mock).mockResolvedValue({
@@ -112,7 +120,10 @@ describe('pubScraperService', () => {
     });
 
     it('should trim whitespace from pub name', async () => {
-      const htmlWithWhitespace = '<html><body><h1 class="wp-block-heading">  Star Light  </h1></body></html>';
+      const htmlWithWhitespace = `<html><body>
+        <h1 class="wp-block-heading">  Star Light  </h1>
+        <div class="pub-address-inner"><span>789 Test Rd, Birmingham</span></div>
+      </body></html>`;
       const imageUrl = 'https://example.com/image.jpg';
       
       (global.fetch as jest.Mock).mockResolvedValue({
@@ -120,9 +131,44 @@ describe('pubScraperService', () => {
         text: async () => htmlWithWhitespace,
       });
 
-      const result = await scrapePubData('https://example.com/pub', imageUrl);
+      const result = await scrapePubData('https://example.com/pubs/star-light-birmingham/', imageUrl);
 
       expect(result?.name).toBe('Star Light');
+    });
+
+    it('should extract townCity by removing name slug from URL', async () => {
+      const htmlWithName = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">Star Light</h1>
+        <div class="pub-address-inner"><span>Heathrow Airport, Terminal 4, Hounslow</span></div>
+      </body></html>`;
+      const url = 'https://www.jdwetherspoon.com/pubs/star-light-hounslow/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithName,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      // URL slug: star-light-hounslow
+      // Name slug: star-light
+      // Town slug: hounslow
+      expect(result?.townCity).toBe('Hounslow');
+    });
+
+    it('should return null when address cannot be extracted', async () => {
+      const htmlWithoutAddress = '<html><body><h1 class="wp-block-heading">Star Light</h1></body></html>';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithoutAddress,
+      });
+
+      const result = await scrapePubData('https://example.com/pub', imageUrl);
+
+      expect(result).toBeNull();
     });
   });
 });

@@ -5,6 +5,8 @@ export interface Pub {
   name: string;
   url: string;
   imageUrl: string;
+  address: string;
+  townCity: string;
   lastSyncedAt: Timestamp;
 }
 
@@ -13,6 +15,8 @@ export interface ScrapedPubData {
   name: string;
   url: string;
   imageUrl: string;
+  address: string;
+  townCity: string;
 }
 
 export interface SitemapEntry {

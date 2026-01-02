@@ -27,6 +27,8 @@ describe('pubSyncService', () => {
         name: 'Star Light',
         url: 'https://www.jdwetherspoon.com/pubs/star-light-hounslow/',
         imageUrl: 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7649-feature.png',
+        address: 'Heathrow Airport, Terminal 4 (after security) , Hounslow, Middlesex, TW6 3XA',
+        townCity: 'Hounslow',
       };
 
       await syncPubToFirestore(pubData);
@@ -39,6 +41,8 @@ describe('pubSyncService', () => {
           name: 'Star Light',
           url: pubData.url,
           imageUrl: pubData.imageUrl,
+          address: pubData.address,
+          townCity: pubData.townCity,
           lastSyncedAt: expect.any(Object),
         }),
         { merge: true }
@@ -51,6 +55,8 @@ describe('pubSyncService', () => {
         name: 'Test Pub',
         url: 'https://example.com/test-pub',
         imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'Test City',
       };
 
       await syncPubToFirestore(pubData);
@@ -67,6 +73,8 @@ describe('pubSyncService', () => {
         name: 'Test Pub',
         url: 'https://example.com/test-pub',
         imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'Test City',
       };
 
       mockSet.mockRejectedValueOnce(new Error('Firestore error'));
@@ -80,6 +88,8 @@ describe('pubSyncService', () => {
         name: 'Test Pub',
         url: 'https://example.com/test-pub',
         imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'Test City',
       };
 
       await syncPubToFirestore(pubData);
@@ -95,12 +105,46 @@ describe('pubSyncService', () => {
         name: 'Test Pub',
         url: 'https://example.com/test-pub',
         imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'Test City',
       };
 
       await syncPubToFirestore(pubData);
 
       const writtenData = mockSet.mock.calls[0][0];
       expect(writtenData.imageUrl).toBe('https://example.com/image.jpg');
+    });
+
+    it('should include address in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street, Test Town, AB1 2CD',
+        townCity: 'Test Town',
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.address).toBe('123 Test Street, Test Town, AB1 2CD');
+    });
+
+    it('should include townCity in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'London',
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.townCity).toBe('London');
     });
   });
 });
