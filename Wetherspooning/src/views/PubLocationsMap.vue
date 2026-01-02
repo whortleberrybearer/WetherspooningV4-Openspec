@@ -119,7 +119,7 @@ watch([visitedPubIds, visits], () => {
       const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
       const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat
       const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng
-      return lat === selectedPub.value!.lat && lng === selectedPub.value!.lng
+      return lat === selectedPub.value!.position?.lat && lng === selectedPub.value!.position?.lng
     })
     if (marker) {
       showPubInfo(selectedPub.value, marker)
@@ -138,7 +138,7 @@ watch(isDark, () => {
       const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
       const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat
       const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng
-      return lat === selectedPub.value!.lat && lng === selectedPub.value!.lng
+      return lat === selectedPub.value!.position?.lat && lng === selectedPub.value!.position?.lng
     })
     if (marker) {
       showPubInfo(selectedPub.value, marker)
@@ -146,16 +146,21 @@ watch(isDark, () => {
   }
 })
 
-// Filter pubs for map markers only
+// Filter pubs for map markers only (must have position data)
 const filteredPubsForMap = computed(() => {
-  if (showClosedPubs.value) {
-    return pubs.value
+  // First filter: only pubs with position
+  let filtered = pubs.value.filter(pub => pub.position !== null)
+  
+  // Second filter: closed pubs if toggle is off
+  if (!showClosedPubs.value) {
+    filtered = filtered.filter(pub => {
+      // Treat missing openState as "Open" (fail-safe)
+      const state = pub.openState || 'Open'
+      return !state.toLowerCase().includes('closed')
+    })
   }
-  return pubs.value.filter(pub => {
-    // Treat missing openState as "Open" (fail-safe)
-    const state = pub.openState || 'Open'
-    return !state.toLowerCase().includes('closed')
-  })
+  
+  return filtered
 })
 
 /**
@@ -271,8 +276,11 @@ const checkProximity = (lat: number, lng: number): Pub | null => {
     return null
   }
 
-  // Filter pubs: open only
+  // Filter pubs: must have position and be open
   const candidatePubs = pubs.value.filter(pub => {
+    // Filter out pubs without position
+    if (!pub.position) return false
+    
     // Filter out closed pubs
     const isClosed = pub.openState?.toLowerCase().includes('closed') || false
     return !isClosed
@@ -287,9 +295,10 @@ const checkProximity = (lat: number, lng: number): Pub | null => {
   let minDistance = Infinity
 
   for (const pub of candidatePubs) {
-    if (!pub.lat || !pub.lng) continue
+    // Position already validated by filter, but TypeScript needs the check
+    if (!pub.position) continue
 
-    const distance = calculateDistance(lat, lng, pub.lat, pub.lng)
+    const distance = calculateDistance(lat, lng, pub.position.lat, pub.position.lng)
     
     if (distance < minDistance) {
       minDistance = distance
@@ -317,9 +326,9 @@ const performProximityCheck = () => {
   
   const nearbyPub = checkProximity(userLocation.value.lat, userLocation.value.lng)
   
-  if (nearbyPub) {
+  if (nearbyPub && nearbyPub.position) {
     // Auto-center on nearby pub
-    map.value!.panTo({ lat: nearbyPub.lat, lng: nearbyPub.lng })
+    map.value!.panTo({ lat: nearbyPub.position.lat, lng: nearbyPub.position.lng })
     map.value!.setZoom(15)
     console.log('Map auto-centered on nearby pub:', nearbyPub.name)
     
@@ -328,7 +337,7 @@ const performProximityCheck = () => {
       const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
       const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat
       const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng
-      return lat === nearbyPub.lat && lng === nearbyPub.lng
+      return lat === nearbyPub.position!.lat && lng === nearbyPub.position!.lng
     })
     
     if (marker) {
@@ -430,8 +439,9 @@ const createMarkers = () => {
   markers.value = []
 
   filteredPubsForMap.value.forEach((pub) => {
-    if (!pub.lat || !pub.lng) {
-      console.warn(`Pub ${pub.name} is missing coordinates`)
+    // Position is guaranteed to exist by filteredPubsForMap filter
+    if (!pub.position) {
+      console.warn(`Pub ${pub.name} is missing position (should have been filtered)`);
       return
     }
 
@@ -518,7 +528,7 @@ const createMarkers = () => {
     `
 
     const marker = new google.maps.marker.AdvancedMarkerElement({
-      position: { lat: pub.lat, lng: pub.lng },
+      position: { lat: pub.position.lat, lng: pub.position.lng },
       map: map.value!,
       title: pub.name,
       content: markerElement,
@@ -840,20 +850,26 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
 }
 
 const handlePubSelect = (pub: Pub) => {
+  // Only handle pubs with position (pubs without position shouldn't be selectable on map)
+  if (!pub.position) {
+    console.warn(`Cannot select pub ${pub.name} - missing position`)
+    return
+  }
+  
   // Find the marker for the selected pub based on position
   const marker = markers.value.find(m => {
     const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
     const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat
     const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng
-    return lat === pub.lat && lng === pub.lng
+    return lat === pub.position!.lat && lng === pub.position!.lng
   })
   
   if (map.value) {
     // Pan map to pub location
-    map.value.panTo({ lat: pub.lat, lng: pub.lng })
+    map.value.panTo({ lat: pub.position.lat, lng: pub.position.lng })
     map.value.setZoom(15)
     
-    // Show info window - marker should always exist since sidebar is filtered same as map
+    // Show info window - marker should exist since pub has position
     if (marker) {
       showPubInfo(pub, marker)
     }

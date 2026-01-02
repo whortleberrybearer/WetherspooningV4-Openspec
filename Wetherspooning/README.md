@@ -11,6 +11,51 @@ A Vue 3 application for exploring Wetherspoons pub locations across the UK using
 - Visit tracking with static JSON data (authentication to be added later)
 - Local Firebase emulator support for development
 
+## Data Structure
+
+### Pub Entity
+
+Pubs are stored with the following structure:
+
+```typescript
+interface Pub {
+  id: string                    // UUID (e.g., "53ab523b-9dbf-4fbc-bdf2-e14c230b24ad")
+  name: string                  // Pub name
+  townCity: string              // Town or city
+  address: string               // Full address
+  county: string                // County
+  region: string                // Region (e.g., "South East England")
+  country: string               // Country (England, Scotland, Wales, Northern Ireland)
+  position: {                   // Geographic coordinates (nullable)
+    lat: number                 // Latitude (-90 to 90)
+    lng: number                 // Longitude (-180 to 180)
+  } | null
+  url?: string                  // JD Wetherspoon website URL
+  imageUrl?: string             // Pub image URL
+  openState?: string            // "Open" or "Closed"
+  isHotel?: boolean             // Whether the pub is a hotel
+  inAirport?: boolean           // Whether the pub is in an airport
+  inTrainStation?: boolean      // Whether the pub is in a train station
+}
+```
+
+**Note:** Pubs without a `position` (where `position` is `null`) will not appear on the map but are still visible in the sidebar. Approximately 10% of the sample data has null positions for testing purposes.
+
+### Visit Entity
+
+Visit tracking uses the following structure:
+
+```typescript
+interface Visit {
+  id: string          // Visit ID
+  userId: string      // User ID
+  pubId: string       // Pub UUID
+  visitedAt: string   // ISO 8601 timestamp
+  rating?: number     // Optional rating (1-5)
+  notes?: string      // Optional notes
+}
+```
+
 ## Prerequisites
 
 - Node.js (^20.19.0 || >=22.12.0)

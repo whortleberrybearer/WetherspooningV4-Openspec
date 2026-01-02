@@ -348,15 +348,17 @@ import PubDetailSheet from '@/components/PubDetailSheet.vue'
 import AccountSettingsDialog from '@/components/AccountSettingsDialog.vue'
 
 interface Pub {
-  id: number
+  id: string
   name: string
   townCity: string
   address: string
   county: string
   region: string
   country: string
-  lat: number
-  lng: number
+  position: {
+    lat: number
+    lng: number
+  } | null
   url?: string
   imageUrl?: string
   openState?: string
