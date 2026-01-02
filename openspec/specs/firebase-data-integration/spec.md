@@ -117,30 +117,93 @@ The system MUST provide methods to retrieve pub data from Firestore with proper 
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST validate pub data retrieved from Firestore against expected schema and handle invalid data gracefully.
+**Changes:**
+- MODIFY: Make `country` and `region` optional in pub validation
+- MODIFY: Update required fields list to exclude country and region
 
-**Acceptance Criteria:**
-- Pub documents are validated for required fields: id, name, lat, lng
-- Optional fields are type-checked if present
-- Invalid documents are logged with document ID
-- Invalid documents are skipped without throwing errors
-- Valid documents from the same query are still returned
+The system SHALL validate pub data with optional country and region fields, treating them as valid when null, undefined, or omitted while still enforcing type checking when values are provided.
 
-#### Scenario: Skip Invalid Pub Missing Required Field
-**Given** a Firestore pub document is missing the `name` field  
-**When** `getAllPubs()` processes the query results  
-**Then** a warning is logged: "Invalid pub document {docId}: missing required field 'name'"  
-**And** the invalid document is excluded from results  
-**And** other valid pubs are returned
+**Updated Acceptance Criteria:**
+- Pub documents SHALL be validated for required fields: id, name, townCity, address, county
+- **REMOVED:** country and region from required fields list
+- **ADDED:** country and region SHALL be optional fields
+- **ADDED:** Optional fields SHALL be allowed as null, undefined, or omitted
+- Optional fields SHALL be type-checked if present (must be string if provided)
+- Invalid documents SHALL be logged with document ID
+- Invalid documents SHALL be skipped without throwing errors
+- Valid documents from the same query SHALL still be returned
 
-#### Scenario: Handle Invalid Data Type
-**Given** a Firestore pub document has `lat` as a string instead of number  
-**When** `getAllPubs()` processes the document  
-**Then** a warning is logged with the document ID and field name  
-**And** the document is skipped  
+#### Scenario: Accept Pub Without Country
+**ADDED:**
+**Given** a Firestore pub document with all required fields except country
+**And** the document structure is:
+```json
+{
+  "id": "abc-123",
+  "name": "The Test Pub",
+  "townCity": "TestCity",
+  "address": "123 Test St",
+  "county": "TestCounty",
+  "region": "Test Region",
+  "position": {"lat": 51.5, "lng": -0.1}
+}
+```
+**When** `getAllPubs()` processes the document
+**Then** the pub is validated successfully
+**And** no warning is logged
+**And** the pub is included in results
+**And** pub.country is undefined
+
+#### Scenario: Accept Pub Without Region
+**ADDED:**
+**Given** a Firestore pub document with all required fields except region
+**And** the document structure is:
+```json
+{
+  "id": "abc-123",
+  "name": "The Test Pub",
+  "townCity": "TestCity",
+  "address": "123 Test St",
+  "county": "TestCounty",
+  "country": "England",
+  "position": {"lat": 51.5, "lng": -0.1}
+}
+```
+**When** `getAllPubs()` processes the document
+**Then** the pub is validated successfully
+**And** no warning is logged
+**And** the pub is included in results
+**And** pub.region is undefined
+
+#### Scenario: Accept Pub Without Both Country and Region
+**ADDED:**
+**Given** a Firestore pub document with all required fields but no country or region
+**And** the document structure is:
+```json
+{
+  "id": "abc-123",
+  "name": "The Test Pub",
+  "townCity": "TestCity",
+  "address": "123 Test St",
+  "county": "TestCounty",
+  "position": {"lat": 51.5, "lng": -0.1}
+}
+```
+**When** `getAllPubs()` processes the document
+**Then** the pub is validated successfully
+**And** no warning is logged
+**And** the pub is included in results
+**And** pub.country is undefined
+**And** pub.region is undefined
+
+#### Scenario: Reject Pub with Invalid Country Type
+**ADDED:**
+**Given** a Firestore pub document with country as a number instead of string
+**And** the document has `"country": 123`
+**When** `getAllPubs()` processes the document
+**Then** a warning is logged with the document ID and field name
+**And** the document is skipped
 **And** the application does not crash
-
----
 
 ### Requirement: Error Handling and Logging (REQ-FDI-004)
 **Priority:** MUST  

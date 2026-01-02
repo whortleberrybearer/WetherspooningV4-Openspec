@@ -1,6 +1,7 @@
 // Generate 100 realistic Wetherspoon pubs for seed data
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 // Sample Wetherspoon pub images
 const wetherspoonImages = [
@@ -168,28 +169,35 @@ const pubNames = [
 
 function generatePubs() {
   const pubs = [];
-  let pubId = 1;
   let imageIndex = 0;
   
   // Generate ~70 pubs for England (spread across locations)
-  for (let i = 0; i < 70 && pubId <= 100; i++) {
+  for (let i = 0; i < 70 && pubs.length < 100; i++) {
     const location = locations[Math.floor(Math.random() * 20)]; // England locations
-    const pubName = pubNames[(pubId - 1) % pubNames.length];
+    const pubName = pubNames[pubs.length % pubNames.length];
     const openState = Math.random() < 0.85 ? "Open" : "Closed"; // 85% open
     const streetNumber = Math.floor(Math.random() * 200) + 1;
     const streetName = ["High Street", "Market Place", "Church Street", "Bridge Street", "Station Road"][Math.floor(Math.random() * 5)];
     const postcode = generatePostcode(location.county);
     
+    // 10% chance of pub having no position (e.g., temporarily closed, under construction)
+    const hasPosition = Math.random() > 0.1;
+    // 12% chance of missing country or region data
+    const hasCountry = Math.random() > 0.12;
+    const hasRegion = Math.random() > 0.12;
+    
     pubs.push({
-      id: pubId++,
+      id: crypto.randomUUID(),
       name: pubName,
       townCity: location.name,
       address: `${streetNumber} ${streetName}, ${location.name}, ${location.county}, ${postcode}`,
       county: location.county,
-      region: location.region,
-      country: location.country,
-      lat: parseFloat((location.lat + (Math.random() - 0.5) * 0.05).toFixed(4)),
-      lng: parseFloat((location.lng + (Math.random() - 0.5) * 0.05).toFixed(4)),
+      ...(hasRegion && { region: location.region }),
+      ...(hasCountry && { country: location.country }),
+      position: hasPosition ? {
+        lat: parseFloat((location.lat + (Math.random() - 0.5) * 0.05).toFixed(4)),
+        lng: parseFloat((location.lng + (Math.random() - 0.5) * 0.05).toFixed(4))
+      } : null,
       url: `https://www.jdwetherspoon.com/pubs/all-pubs/${location.country.toLowerCase().replace(/ /g, '-')}/${location.county.toLowerCase().replace(/ /g, '-')}/${pubName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
       imageUrl: getImageUrl(openState, imageIndex++),
       openState
@@ -197,24 +205,30 @@ function generatePubs() {
   }
   
   // Generate ~15 pubs for Scotland
-  for (let i = 0; i < 15 && pubId <= 100; i++) {
+  for (let i = 0; i < 15 && pubs.length < 100; i++) {
     const location = locations[20 + (i % 5)]; // Scotland locations
-    const pubName = pubNames[(pubId - 1) % pubNames.length];
+    const pubName = pubNames[pubs.length % pubNames.length];
     const openState = Math.random() < 0.85 ? "Open" : "Closed";
     const streetNumber = Math.floor(Math.random() * 200) + 1;
     const streetName = ["George Street", "High Street", "Princes Street", "Union Street"][Math.floor(Math.random() * 4)];
     const postcode = generatePostcode(location.county);
     
+    const hasPosition = Math.random() > 0.1;
+    const hasCountry = Math.random() > 0.12;
+    const hasRegion = Math.random() > 0.12;
+    
     pubs.push({
-      id: pubId++,
+      id: crypto.randomUUID(),
       name: pubName,
       townCity: location.name,
       address: `${streetNumber} ${streetName}, ${location.name}, ${location.county}, ${postcode}`,
       county: location.county,
-      region: location.region,
-      country: location.country,
-      lat: parseFloat((location.lat + (Math.random() - 0.5) * 0.05).toFixed(4)),
-      lng: parseFloat((location.lng + (Math.random() - 0.5) * 0.05).toFixed(4)),
+      ...(hasRegion && { region: location.region }),
+      ...(hasCountry && { country: location.country }),
+      position: hasPosition ? {
+        lat: parseFloat((location.lat + (Math.random() - 0.5) * 0.05).toFixed(4)),
+        lng: parseFloat((location.lng + (Math.random() - 0.5) * 0.05).toFixed(4))
+      } : null,
       url: `https://www.jdwetherspoon.com/pubs/all-pubs/scotland/${location.county.toLowerCase().replace(/ /g, '-')}/${pubName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
       imageUrl: getImageUrl(openState, imageIndex++),
       openState
@@ -222,24 +236,30 @@ function generatePubs() {
   }
   
   // Generate ~10 pubs for Wales
-  for (let i = 0; i < 10 && pubId <= 100; i++) {
+  for (let i = 0; i < 10 && pubs.length < 100; i++) {
     const location = locations[25 + (i % 4)]; // Wales locations
-    const pubName = pubNames[(pubId - 1) % pubNames.length];
+    const pubName = pubNames[pubs.length % pubNames.length];
     const openState = Math.random() < 0.85 ? "Open" : "Closed";
     const streetNumber = Math.floor(Math.random() * 200) + 1;
     const streetName = ["High Street", "St Mary Street", "Queen Street"][Math.floor(Math.random() * 3)];
     const postcode = generatePostcode(location.county);
     
+    const hasPosition = Math.random() > 0.1;
+    const hasCountry = Math.random() > 0.12;
+    const hasRegion = Math.random() > 0.12;
+    
     pubs.push({
-      id: pubId++,
+      id: crypto.randomUUID(),
       name: pubName,
       townCity: location.name,
       address: `${streetNumber} ${streetName}, ${location.name}, ${location.county}, ${postcode}`,
       county: location.county,
-      region: location.region,
-      country: location.country,
-      lat: parseFloat((location.lat + (Math.random() - 0.5) * 0.05).toFixed(4)),
-      lng: parseFloat((location.lng + (Math.random() - 0.5) * 0.05).toFixed(4)),
+      ...(hasRegion && { region: location.region }),
+      ...(hasCountry && { country: location.country }),
+      position: hasPosition ? {
+        lat: parseFloat((location.lat + (Math.random() - 0.5) * 0.05).toFixed(4)),
+        lng: parseFloat((location.lng + (Math.random() - 0.5) * 0.05).toFixed(4))
+      } : null,
       url: `https://www.jdwetherspoon.com/pubs/all-pubs/wales/${location.county.toLowerCase().replace(/ /g, '-')}/${pubName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
       imageUrl: getImageUrl(openState, imageIndex++),
       openState
@@ -247,24 +267,30 @@ function generatePubs() {
   }
   
   // Generate ~5 pubs for Northern Ireland
-  for (let i = 0; i < 5 && pubId <= 100; i++) {
+  for (let i = 0; i < 5 && pubs.length < 100; i++) {
     const location = locations[29 + (i % 2)]; // Northern Ireland locations
-    const pubName = pubNames[(pubId - 1) % pubNames.length];
+    const pubName = pubNames[pubs.length % pubNames.length];
     const openState = Math.random() < 0.85 ? "Open" : "Closed";
     const streetNumber = Math.floor(Math.random() * 200) + 1;
     const streetName = ["High Street", "Royal Avenue", "Donegall Place"][Math.floor(Math.random() * 3)];
     const postcode = generatePostcode(location.county);
     
+    const hasPosition = Math.random() > 0.1;
+    const hasCountry = Math.random() > 0.12;
+    const hasRegion = Math.random() > 0.12;
+    
     pubs.push({
-      id: pubId++,
+      id: crypto.randomUUID(),
       name: pubName,
       townCity: location.name,
       address: `${streetNumber} ${streetName}, ${location.name}, ${location.county}, ${postcode}`,
       county: location.county,
-      region: location.region,
-      country: location.country,
-      lat: parseFloat((location.lat + (Math.random() - 0.5) * 0.05).toFixed(4)),
-      lng: parseFloat((location.lng + (Math.random() - 0.5) * 0.05).toFixed(4)),
+      ...(hasRegion && { region: location.region }),
+      ...(hasCountry && { country: location.country }),
+      position: hasPosition ? {
+        lat: parseFloat((location.lat + (Math.random() - 0.5) * 0.05).toFixed(4)),
+        lng: parseFloat((location.lng + (Math.random() - 0.5) * 0.05).toFixed(4))
+      } : null,
       url: `https://www.jdwetherspoon.com/pubs/all-pubs/northern-ireland/${location.county.toLowerCase().replace(/ /g, '-')}/${pubName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
       imageUrl: getImageUrl(openState, imageIndex++),
       openState
@@ -278,6 +304,16 @@ function generatePubs() {
 const pubs = generatePubs();
 const outputPath = path.join(__dirname, '../data/pubs-sample.json');
 fs.writeFileSync(outputPath, JSON.stringify(pubs, null, 2));
+
+const withCountry = pubs.filter(p => p.country).length;
+const withoutCountry = pubs.length - withCountry;
+const withRegion = pubs.filter(p => p.region).length;
+const withoutRegion = pubs.length - withRegion;
+
 console.log(`✅ Generated ${pubs.length} pubs to ${outputPath}`);
-console.log(`   Open: ${pubs.filter(p => p.openState === 'Open').length}`);
-console.log(`   Closed: ${pubs.filter(p => p.openState === 'Closed').length}`);
+console.log(`   Open: ${pubs.filter(p => p.openState === 'Open').length}, Closed: ${pubs.filter(p => p.openState === 'Closed').length}`);
+console.log(`   With position: ${pubs.filter(p => p.position !== null).length}, Without position: ${pubs.filter(p => p.position === null).length}`);
+console.log(`   With country: ${withCountry}, Without country: ${withoutCountry}`);
+console.log(`   With region: ${withRegion}, Without region: ${withoutRegion}`);
+console.log(`   With position: ${pubs.filter(p => p.position !== null).length}`);
+console.log(`   Without position: ${pubs.filter(p => p.position === null).length}`);
