@@ -7,31 +7,28 @@ TBD - created by archiving change add-pub-navigation-sidebar. Update Purpose aft
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST display a sidebar showing all pub locations in a hierarchical structure organized by country, then county.
+**Changes:**
+- MODIFY: Display "Unknown" for missing country in grouping hierarchy
 
-**Acceptance Criteria:**
+The system SHALL display "Unknown" as a country group when pubs have null, undefined, or empty string country fields, ensuring all pubs are visible in the sidebar hierarchy.
+
+**Updated Acceptance Criteria:**
 - Sidebar displays all pubs from the data source
 - Pubs are grouped first by country, then by county
+- **MODIFIED:** Country grouping SHALL use "Unknown" for null, undefined, or empty country values
 - Countries are sorted alphabetically
 - Counties within each country are sorted alphabetically
 - Pubs within each county are sorted alphabetically by town/city
 - Each grouping level shows the count of pubs it contains
 
-#### Scenario: View Sidebar with Multiple Countries
-**Given** the pub data includes pubs from England, Scotland, and Wales  
-**When** the sidebar is displayed  
-**Then** countries appear in alphabetical order (England, Scotland, Wales)  
-**And** each country shows the total number of pubs in that country  
-**And** counties within each country are sorted alphabetically  
-**And** each county shows the number of pubs in that county
-
-#### Scenario: View Pubs Within County
-**Given** a county group contains multiple pubs  
-**When** the county is expanded  
-**Then** pubs are displayed sorted alphabetically by town/city  
-**And** each pub shows its name and town/city
-
----
+#### Scenario: Group Pubs with Missing Country
+**ADDED:**
+**Given** some pubs in the data have null or undefined country fields
+**When** the sidebar is displayed
+**Then** those pubs appear in an "Unknown" country group
+**And** the "Unknown" group is sorted alphabetically with other countries
+**And** pubs within "Unknown" are still grouped by county
+**And** all pubs are visible in the sidebar
 
 ### Requirement: Group Expansion (REQ-PNS-002)
 **Priority:** MUST  

@@ -182,6 +182,9 @@ function generatePubs() {
     
     // 10% chance of pub having no position (e.g., temporarily closed, under construction)
     const hasPosition = Math.random() > 0.1;
+    // 12% chance of missing country or region data
+    const hasCountry = Math.random() > 0.12;
+    const hasRegion = Math.random() > 0.12;
     
     pubs.push({
       id: crypto.randomUUID(),
@@ -189,8 +192,8 @@ function generatePubs() {
       townCity: location.name,
       address: `${streetNumber} ${streetName}, ${location.name}, ${location.county}, ${postcode}`,
       county: location.county,
-      region: location.region,
-      country: location.country,
+      ...(hasRegion && { region: location.region }),
+      ...(hasCountry && { country: location.country }),
       position: hasPosition ? {
         lat: parseFloat((location.lat + (Math.random() - 0.5) * 0.05).toFixed(4)),
         lng: parseFloat((location.lng + (Math.random() - 0.5) * 0.05).toFixed(4))
@@ -211,6 +214,8 @@ function generatePubs() {
     const postcode = generatePostcode(location.county);
     
     const hasPosition = Math.random() > 0.1;
+    const hasCountry = Math.random() > 0.12;
+    const hasRegion = Math.random() > 0.12;
     
     pubs.push({
       id: crypto.randomUUID(),
@@ -218,8 +223,8 @@ function generatePubs() {
       townCity: location.name,
       address: `${streetNumber} ${streetName}, ${location.name}, ${location.county}, ${postcode}`,
       county: location.county,
-      region: location.region,
-      country: location.country,
+      ...(hasRegion && { region: location.region }),
+      ...(hasCountry && { country: location.country }),
       position: hasPosition ? {
         lat: parseFloat((location.lat + (Math.random() - 0.5) * 0.05).toFixed(4)),
         lng: parseFloat((location.lng + (Math.random() - 0.5) * 0.05).toFixed(4))
@@ -240,6 +245,8 @@ function generatePubs() {
     const postcode = generatePostcode(location.county);
     
     const hasPosition = Math.random() > 0.1;
+    const hasCountry = Math.random() > 0.12;
+    const hasRegion = Math.random() > 0.12;
     
     pubs.push({
       id: crypto.randomUUID(),
@@ -247,8 +254,8 @@ function generatePubs() {
       townCity: location.name,
       address: `${streetNumber} ${streetName}, ${location.name}, ${location.county}, ${postcode}`,
       county: location.county,
-      region: location.region,
-      country: location.country,
+      ...(hasRegion && { region: location.region }),
+      ...(hasCountry && { country: location.country }),
       position: hasPosition ? {
         lat: parseFloat((location.lat + (Math.random() - 0.5) * 0.05).toFixed(4)),
         lng: parseFloat((location.lng + (Math.random() - 0.5) * 0.05).toFixed(4))
@@ -269,6 +276,8 @@ function generatePubs() {
     const postcode = generatePostcode(location.county);
     
     const hasPosition = Math.random() > 0.1;
+    const hasCountry = Math.random() > 0.12;
+    const hasRegion = Math.random() > 0.12;
     
     pubs.push({
       id: crypto.randomUUID(),
@@ -276,8 +285,8 @@ function generatePubs() {
       townCity: location.name,
       address: `${streetNumber} ${streetName}, ${location.name}, ${location.county}, ${postcode}`,
       county: location.county,
-      region: location.region,
-      country: location.country,
+      ...(hasRegion && { region: location.region }),
+      ...(hasCountry && { country: location.country }),
       position: hasPosition ? {
         lat: parseFloat((location.lat + (Math.random() - 0.5) * 0.05).toFixed(4)),
         lng: parseFloat((location.lng + (Math.random() - 0.5) * 0.05).toFixed(4))
@@ -295,8 +304,16 @@ function generatePubs() {
 const pubs = generatePubs();
 const outputPath = path.join(__dirname, '../data/pubs-sample.json');
 fs.writeFileSync(outputPath, JSON.stringify(pubs, null, 2));
+
+const withCountry = pubs.filter(p => p.country).length;
+const withoutCountry = pubs.length - withCountry;
+const withRegion = pubs.filter(p => p.region).length;
+const withoutRegion = pubs.length - withRegion;
+
 console.log(`✅ Generated ${pubs.length} pubs to ${outputPath}`);
-console.log(`   Open: ${pubs.filter(p => p.openState === 'Open').length}`);
-console.log(`   Closed: ${pubs.filter(p => p.openState === 'Closed').length}`);
+console.log(`   Open: ${pubs.filter(p => p.openState === 'Open').length}, Closed: ${pubs.filter(p => p.openState === 'Closed').length}`);
+console.log(`   With position: ${pubs.filter(p => p.position !== null).length}, Without position: ${pubs.filter(p => p.position === null).length}`);
+console.log(`   With country: ${withCountry}, Without country: ${withoutCountry}`);
+console.log(`   With region: ${withRegion}, Without region: ${withoutRegion}`);
 console.log(`   With position: ${pubs.filter(p => p.position !== null).length}`);
 console.log(`   Without position: ${pubs.filter(p => p.position === null).length}`);

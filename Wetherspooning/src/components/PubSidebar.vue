@@ -208,8 +208,8 @@ interface Pub {
   townCity: string
   address: string
   county: string
-  region: string
-  country: string
+  region?: string
+  country?: string
   position: {
     lat: number
     lng: number

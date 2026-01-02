@@ -8,8 +8,10 @@ export interface Pub {
   townCity: string
   address: string
   county: string
-  region: string
-  country: string
+  /** Region (optional - may be unknown for some pubs) */
+  region?: string
+  /** Country (optional - may be unknown for some pubs) */
+  country?: string
   /** Geographic position (optional - some pubs may not have location data) */
   position: {
     lat: number
