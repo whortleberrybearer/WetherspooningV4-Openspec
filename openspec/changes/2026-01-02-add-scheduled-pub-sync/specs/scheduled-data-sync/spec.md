@@ -125,7 +125,7 @@ The system MUST scrape each pub's webpage to extract the pub name, address, town
 - Position (lat/lng) is extracted from `<img class="pub-map">` src attribute center parameter
 - Open state is extracted from `<p class="open-status">` element with logic for "Opening soon", "Closed temporarily", or "Open"
 - isHotel is extracted by checking if facilities list contains "Accommodation"
-- inAirport is extracted by checking if facilities list contains "Airport Pub"
+- inAirport is extracted by checking if address contains "Airport" OR facilities list contains "Airport Pub" OR "Airport after security"
 - inTrainStation is extracted by checking if facilities list contains "Train Station"
 - Facilities are extracted from `<div class="pub-facilities-list">` span elements
 - Empty or missing names are handled (logged and skipped)

@@ -22,7 +22,7 @@ export async function scrapePubData(url: string, imageUrl: string): Promise<Scra
     const position = extractPosition(html);
     const openState = extractOpenState(html);
     const isHotel = extractIsHotel(html);
-    const inAirport = extractInAirport(html);
+    const inAirport = extractInAirport(html, address);
     const inTrainStation = extractInTrainStation(html);
     
     return {
@@ -203,15 +203,20 @@ function extractIsHotel(html: string): boolean {
   return false;
 }
 
-function extractInAirport(html: string): boolean {
+function extractInAirport(html: string, address: string): boolean {
   const $ = cheerio.load(html);
   
-  // Select all facility spans and check for "Airport Pub"
+  // Check if address contains "Airport"
+  if (address.toLowerCase().includes('airport')) {
+    return true;
+  }
+  
+  // Select all facility spans and check for "Airport Pub" or "Airport after security"
   const facilityNodes = $('div.pub-facilities-list span');
   
   for (let i = 0; i < facilityNodes.length; i++) {
-    const text = $(facilityNodes[i]).text().trim();
-    if (text.toLowerCase() === 'airport pub') {
+    const text = $(facilityNodes[i]).text().trim().toLowerCase();
+    if (text === 'airport pub' || text === 'airport after security') {
       return true;
     }
   }

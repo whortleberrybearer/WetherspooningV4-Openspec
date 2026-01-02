@@ -37,7 +37,7 @@ describe('pubScraperService', () => {
       expect(result?.position).toEqual({ lat: 51.46148, lng: -0.44538 });
       expect(result?.openState).toBe('Open');
       expect(result?.isHotel).toBe(false);
-      expect(result?.inAirport).toBe(false);
+      expect(result?.inAirport).toBe(true); // Address contains 'Heathrow Airport'
       expect(result?.inTrainStation).toBe(false);
     });
 
@@ -297,7 +297,7 @@ describe('pubScraperService', () => {
     it('should extract inAirport as true when Airport Pub facility exists', async () => {
       const htmlWithAirport = `<!DOCTYPE html><html><body>
         <h1 class="wp-block-heading">Test Pub</h1>
-        <div class="pub-address-inner"><span>123 Test St</span></div>
+        <div class="pub-address-inner"><span>123 Test St, London</span></div>
         <div class="pub-facilities-list">
           <span>Airport Pub</span>
           <span>Wi-Fi</span>

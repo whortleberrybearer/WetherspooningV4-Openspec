@@ -32,7 +32,7 @@ describe('pubSyncService', () => {
         position: { lat: 51.46148, lng: -0.44538 },
         openState: 'Open',
         isHotel: false,
-        inAirport: false,
+        inAirport: true, // Address contains 'Heathrow Airport'
         inTrainStation: false,
       };
 
