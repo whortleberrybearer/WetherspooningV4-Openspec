@@ -36,6 +36,9 @@ describe('pubScraperService', () => {
       expect(result?.townCity).toBe('Hounslow');
       expect(result?.position).toEqual({ lat: 51.46148, lng: -0.44538 });
       expect(result?.openState).toBe('Open');
+      expect(result?.isHotel).toBe(false);
+      expect(result?.inAirport).toBe(false);
+      expect(result?.inTrainStation).toBe(false);
     });
 
     it('should extract ID from URL correctly', async () => {
@@ -267,6 +270,92 @@ describe('pubScraperService', () => {
       const result = await scrapePubData(url, imageUrl);
 
       expect(result?.openState).toBe('Temporary Closed');
+    });
+
+    it('should extract isHotel as true when Accommodation facility exists', async () => {
+      const htmlWithHotel = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">Test Pub</h1>
+        <div class="pub-address-inner"><span>123 Test St</span></div>
+        <div class="pub-facilities-list">
+          <span>Accommodation</span>
+          <span>Beer Garden</span>
+        </div>
+      </body></html>`;
+      const url = 'https://example.com/pubs/test-pub/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithHotel,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result?.isHotel).toBe(true);
+    });
+
+    it('should extract inAirport as true when Airport Pub facility exists', async () => {
+      const htmlWithAirport = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">Test Pub</h1>
+        <div class="pub-address-inner"><span>123 Test St</span></div>
+        <div class="pub-facilities-list">
+          <span>Airport Pub</span>
+          <span>Wi-Fi</span>
+        </div>
+      </body></html>`;
+      const url = 'https://example.com/pubs/test-pub/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithAirport,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result?.inAirport).toBe(true);
+    });
+
+    it('should extract inTrainStation as true when Train Station facility exists', async () => {
+      const htmlWithTrainStation = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">Test Pub</h1>
+        <div class="pub-address-inner"><span>123 Test St</span></div>
+        <div class="pub-facilities-list">
+          <span>Train Station</span>
+          <span>Parking</span>
+        </div>
+      </body></html>`;
+      const url = 'https://example.com/pubs/test-pub/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithTrainStation,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result?.inTrainStation).toBe(true);
+    });
+
+    it('should extract all facility flags as false when no facilities exist', async () => {
+      const htmlWithoutFacilities = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">Test Pub</h1>
+        <div class="pub-address-inner"><span>123 Test St</span></div>
+      </body></html>`;
+      const url = 'https://example.com/pubs/test-pub/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithoutFacilities,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result?.isHotel).toBe(false);
+      expect(result?.inAirport).toBe(false);
+      expect(result?.inTrainStation).toBe(false);
     });
   });
 });

@@ -14,6 +14,9 @@ export interface Pub {
   townCity: string;
   position: Position | null;
   openState: string;
+  isHotel: boolean;
+  inAirport: boolean;
+  inTrainStation: boolean;
   lastSyncedAt: Timestamp;
 }
 
@@ -26,6 +29,9 @@ export interface ScrapedPubData {
   townCity: string;
   position: Position | null;
   openState: string;
+  isHotel: boolean;
+  inAirport: boolean;
+  inTrainStation: boolean;
 }
 
 export interface SitemapEntry {

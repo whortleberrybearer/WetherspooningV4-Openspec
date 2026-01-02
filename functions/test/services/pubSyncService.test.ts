@@ -31,6 +31,9 @@ describe('pubSyncService', () => {
         townCity: 'Hounslow',
         position: { lat: 51.46148, lng: -0.44538 },
         openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
       };
 
       await syncPubToFirestore(pubData);
@@ -47,6 +50,9 @@ describe('pubSyncService', () => {
           townCity: pubData.townCity,
           position: pubData.position,
           openState: pubData.openState,
+          isHotel: pubData.isHotel,
+          inAirport: pubData.inAirport,
+          inTrainStation: pubData.inTrainStation,
           lastSyncedAt: expect.any(Object),
         }),
         { merge: true }
@@ -63,6 +69,9 @@ describe('pubSyncService', () => {
         townCity: 'Test City',
         position: { lat: 51.5, lng: -0.1 },
         openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
       };
 
       await syncPubToFirestore(pubData);
@@ -83,6 +92,9 @@ describe('pubSyncService', () => {
         townCity: 'Test City',
         position: { lat: 51.5, lng: -0.1 },
         openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
       };
 
       mockSet.mockRejectedValueOnce(new Error('Firestore error'));
@@ -100,6 +112,9 @@ describe('pubSyncService', () => {
         townCity: 'Test City',
         position: { lat: 51.5, lng: -0.1 },
         openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
       };
 
       await syncPubToFirestore(pubData);
@@ -119,6 +134,9 @@ describe('pubSyncService', () => {
         townCity: 'Test City',
         position: { lat: 51.5, lng: -0.1 },
         openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
       };
 
       await syncPubToFirestore(pubData);
@@ -137,6 +155,9 @@ describe('pubSyncService', () => {
         townCity: 'Test Town',
         position: { lat: 51.5, lng: -0.1 },
         openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
       };
 
       await syncPubToFirestore(pubData);
@@ -155,6 +176,9 @@ describe('pubSyncService', () => {
         townCity: 'London',
         position: { lat: 51.5, lng: -0.1 },
         openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
       };
 
       await syncPubToFirestore(pubData);
@@ -173,6 +197,9 @@ describe('pubSyncService', () => {
         townCity: 'London',
         position: { lat: 51.5074, lng: -0.1278 },
         openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
       };
 
       await syncPubToFirestore(pubData);
@@ -191,6 +218,9 @@ describe('pubSyncService', () => {
         townCity: 'London',
         position: null,
         openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
       };
 
       await syncPubToFirestore(pubData);
@@ -209,12 +239,78 @@ describe('pubSyncService', () => {
         townCity: 'London',
         position: { lat: 51.5, lng: -0.1 },
         openState: 'Opening Soon',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
       };
 
       await syncPubToFirestore(pubData);
 
       const writtenData = mockSet.mock.calls[0][0];
       expect(writtenData.openState).toBe('Opening Soon');
+    });
+
+    it('should include isHotel in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'London',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
+        isHotel: true,
+        inAirport: false,
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.isHotel).toBe(true);
+    });
+
+    it('should include inAirport in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'London',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
+        isHotel: false,
+        inAirport: true,
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.inAirport).toBe(true);
+    });
+
+    it('should include inTrainStation in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'London',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: true,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.inTrainStation).toBe(true);
     });
   });
 });

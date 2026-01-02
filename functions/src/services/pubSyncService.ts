@@ -13,6 +13,9 @@ export async function syncPubToFirestore(pubData: ScrapedPubData): Promise<void>
       townCity: pubData.townCity,
       position: pubData.position,
       openState: pubData.openState,
+      isHotel: pubData.isHotel,
+      inAirport: pubData.inAirport,
+      inTrainStation: pubData.inTrainStation,
       lastSyncedAt: Timestamp.now(),
     };
     

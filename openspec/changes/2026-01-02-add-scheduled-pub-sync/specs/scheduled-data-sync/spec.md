@@ -111,7 +111,7 @@ The system MUST initially process only the first 5 pub URLs from the sitemap.
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST scrape each pub's webpage to extract the pub name, address, town/city, position, and open state.
+The system MUST scrape each pub's webpage to extract the pub name, address, town/city, position, open state, and facilities (hotel, airport, train station).
 
 **Acceptance Criteria:**
 - For each pub URL, an HTTP GET request is made
@@ -124,6 +124,10 @@ The system MUST scrape each pub's webpage to extract the pub name, address, town
 - Town/city is derived from URL slug by removing the pub name slug and converting to title case
 - Position (lat/lng) is extracted from `<img class="pub-map">` src attribute center parameter
 - Open state is extracted from `<p class="open-status">` element with logic for "Opening soon", "Closed temporarily", or "Open"
+- isHotel is extracted by checking if facilities list contains "Accommodation"
+- inAirport is extracted by checking if facilities list contains "Airport Pub"
+- inTrainStation is extracted by checking if facilities list contains "Train Station"
+- Facilities are extracted from `<div class="pub-facilities-list">` span elements
 - Empty or missing names are handled (logged and skipped)
 - HTTP errors for individual pubs are logged but don't stop processing of other pubs
 - Parse errors are logged but don't stop processing
@@ -140,6 +144,10 @@ The system MUST scrape each pub's webpage to extract the pub name, address, town
 **And** the town/city is derived from URL as "Hounslow"  
 **And** the position is extracted from map image as lat: 51.46148, lng: -0.44538  
 **And** the open state is extracted as "Open"  
+**And** facilities are extracted from pub-facilities-list  
+**And** isHotel is checked for "Accommodation" facility  
+**And** inAirport is checked for "Airport Pub" facility  
+**And** inTrainStation is checked for "Train Station" facility  
 **And** all values are trimmed and returned  
 **And** the name is non-empty
 
@@ -175,12 +183,15 @@ The system MUST write extracted pub data to the Firestore `pubs` collection.
 
 **Acceptance Criteria:**
 - Document ID is derived from pub URL slug (last segment of path)
-- Document contains fields: `id`, `name`, `url`, `imageUrl`, `address`, `townCity`, `position`, `openState`, `lastSyncedAt`
+- Document contains fields: `id`, `name`, `url`, `imageUrl`, `address`, `townCity`, `position`, `openState`, `isHotel`, `inAirport`, `inTrainStation`, `lastSyncedAt`
 - `imageUrl` field contains the image URL extracted from sitemap
 - `address` field contains the full address string extracted from HTML
 - `townCity` field contains the town/city derived from URL slug
 - `position` field contains an object with `lat` and `lng` numbers
 - `openState` field contains the open state string ("Open", "Opening dd/MM/yyyy", "Opening Soon", "Temporary Closed")
+- `isHotel` field contains boolean indicating if pub has accommodation
+- `inAirport` field contains boolean indicating if pub is in an airport
+- `inTrainStation` field contains boolean indicating if pub is in a train station
 - `lastSyncedAt` is set to current server timestamp
 - Data is written using `set()` with merge option or upsert equivalent
 - Existing documents are updated (not creating duplicates)
@@ -194,6 +205,9 @@ The system MUST write extracted pub data to the Firestore `pubs` collection.
 **And** townCity is "Hounslow"  
 **And** position is lat: 51.46148, lng: -0.44538  
 **And** openState is "Open"  
+**And** isHotel is false  
+**And** inAirport is true  
+**And** inTrainStation is false  
 **And** the pub does not exist in Firestore  
 **When** the function writes the pub data  
 **Then** a new document is created in the `pubs` collection  

@@ -21,6 +21,9 @@ export async function scrapePubData(url: string, imageUrl: string): Promise<Scra
     const townCity = extractTownCity(url, name);
     const position = extractPosition(html);
     const openState = extractOpenState(html);
+    const isHotel = extractIsHotel(html);
+    const inAirport = extractInAirport(html);
+    const inTrainStation = extractInTrainStation(html);
     
     return {
       id,
@@ -31,6 +34,9 @@ export async function scrapePubData(url: string, imageUrl: string): Promise<Scra
       townCity,
       position,
       openState,
+      isHotel,
+      inAirport,
+      inTrainStation,
     };
   } catch (error) {
     console.error(`Error scraping pub ${url}:`, error);
@@ -179,4 +185,52 @@ function extractOpenState(html: string): string {
   
   // Default to Open for all other cases
   return 'Open';
+}
+
+function extractIsHotel(html: string): boolean {
+  const $ = cheerio.load(html);
+  
+  // Select all facility spans and check for "Accommodation"
+  const facilityNodes = $('div.pub-facilities-list span');
+  
+  for (let i = 0; i < facilityNodes.length; i++) {
+    const text = $(facilityNodes[i]).text().trim();
+    if (text.toLowerCase() === 'accommodation') {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+function extractInAirport(html: string): boolean {
+  const $ = cheerio.load(html);
+  
+  // Select all facility spans and check for "Airport Pub"
+  const facilityNodes = $('div.pub-facilities-list span');
+  
+  for (let i = 0; i < facilityNodes.length; i++) {
+    const text = $(facilityNodes[i]).text().trim();
+    if (text.toLowerCase() === 'airport pub') {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+function extractInTrainStation(html: string): boolean {
+  const $ = cheerio.load(html);
+  
+  // Select all facility spans and check for "Train Station"
+  const facilityNodes = $('div.pub-facilities-list span');
+  
+  for (let i = 0; i < facilityNodes.length; i++) {
+    const text = $(facilityNodes[i]).text().trim();
+    if (text.toLowerCase() === 'train station') {
+      return true;
+    }
+  }
+  
+  return false;
 }
