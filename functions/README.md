@@ -55,6 +55,60 @@ npm install
 
 ## Development
 
+### Running the Pub Sync Locally
+
+The pub sync service has been refactored to allow independent execution. You can run it locally in several ways:
+
+#### Prerequisites
+Make sure the Firebase emulator is running first (in a separate terminal):
+```bash
+# From the project root
+npm run emulator
+```
+
+Or run without the emulator by setting environment variables (not recommended for testing):
+```bash
+export USE_PRODUCTION=true  # Linux/Mac
+$env:USE_PRODUCTION = "true"  # Windows PowerShell
+```
+
+#### Option 1: Using npm script (recommended)
+```bash
+# From the functions directory
+npm run sync:pubs
+
+# With a custom limit (e.g., process 10 pubs)
+npm run sync:pubs 10
+
+# Process all pubs (use 0)
+npm run sync:pubs 0
+```
+
+#### Option 2: Direct execution with ts-node
+```bash
+# From the functions directory
+npx ts-node src/scripts/runPubSync.ts
+
+# With a custom limit
+npx ts-node src/scripts/runPubSync.ts 10
+```
+
+#### Option 3: Using the function programmatically
+```typescript
+import { runPubSync } from './scheduled/syncPubs';
+
+// Run sync with default limit (5 pubs)
+const result = await runPubSync();
+
+// Run sync with custom limit
+const result = await runPubSync(10);
+
+// Run sync for all pubs
+const result = await runPubSync(0);
+
+console.log(`Success: ${result.successCount}, Failed: ${result.failureCount}`);
+```
+
 ### Build
 
 Compile TypeScript to JavaScript:
