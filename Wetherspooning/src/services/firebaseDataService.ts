@@ -2,15 +2,21 @@ import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, 
 import { db } from '@/lib/firebase'
 
 export interface Pub {
-  id: number
+  /** Unique identifier (UUID format) */
+  id: string
   name: string
   townCity: string
   address: string
   county: string
-  region: string
-  country: string
-  lat: number
-  lng: number
+  /** Region (optional - may be unknown for some pubs) */
+  region?: string
+  /** Country (optional - may be unknown for some pubs) */
+  country?: string
+  /** Geographic position (optional - some pubs may not have location data) */
+  position: {
+    lat: number
+    lng: number
+  } | null
   url?: string
   imageUrl?: string
   openState?: string
@@ -33,8 +39,8 @@ export interface Visit {
   id: string
   /** Firebase UID of the user who made the visit */
   userId: string
-  /** Numeric ID of the pub that was visited */
-  pubId: number
+  /** GUID of the pub that was visited */
+  pubId: string
   /** ISO 8601 timestamp of when the pub was visited (optional) */
   visitedAt?: string
   /** User's rating of the visit, 1-5 stars (optional) */
@@ -47,7 +53,7 @@ export interface Visit {
  * Validate a pub document from Firestore
  */
 function validatePub(docId: string, data: any): data is Pub {
-  const requiredFields = ['id', 'name', 'lat', 'lng']
+  const requiredFields = ['id', 'name']
   
   for (const field of requiredFields) {
     if (!(field in data)) {
@@ -56,9 +62,38 @@ function validatePub(docId: string, data: any): data is Pub {
     }
   }
   
-  if (typeof data.lat !== 'number' || typeof data.lng !== 'number') {
-    console.warn(`Invalid pub document ${docId}: lat/lng must be numbers`)
+  // Validate ID is a non-empty string
+  if (typeof data.id !== 'string' || data.id.trim() === '') {
+    console.warn(`Invalid pub document ${docId}: id must be a non-empty string`)
     return false
+  }
+  
+  // Validate position if present
+  if (data.position !== null && data.position !== undefined) {
+    if (typeof data.position !== 'object') {
+      console.warn(`Invalid pub document ${docId}: position must be an object or null`)
+      return false
+    }
+    
+    if (!('lat' in data.position) || !('lng' in data.position)) {
+      console.warn(`Invalid pub document ${docId}: position must have both lat and lng`)
+      return false
+    }
+    
+    if (typeof data.position.lat !== 'number' || typeof data.position.lng !== 'number') {
+      console.warn(`Invalid pub document ${docId}: position lat/lng must be numbers`)
+      return false
+    }
+    
+    if (data.position.lat < -90 || data.position.lat > 90) {
+      console.warn(`Invalid pub document ${docId}: position lat must be between -90 and 90`)
+      return false
+    }
+    
+    if (data.position.lng < -180 || data.position.lng > 180) {
+      console.warn(`Invalid pub document ${docId}: position lng must be between -180 and 180`)
+      return false
+    }
   }
   
   return true
@@ -116,18 +151,18 @@ export async function getAllPubs(): Promise<Pub[]> {
 
 /**
  * Get a single pub by ID from Firestore
- * @param pubId - The numeric ID of the pub
+ * @param pubId - The GUID of the pub
  * @returns Promise resolving to Pub object or null if not found
  * @throws Error if network fails or timeout occurs
  */
-export async function getPubById(pubId: number): Promise<Pub | null> {
+export async function getPubById(pubId: string): Promise<Pub | null> {
   try {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Firestore operation timed out: getPubById')), 10000)
     })
     
     const fetchPromise = async () => {
-      const docRef = doc(db, 'pubs', pubId.toString())
+      const docRef = doc(db, 'pubs', pubId)
       const docSnap = await getDoc(docRef)
       
       if (!docSnap.exists()) {
@@ -176,9 +211,9 @@ function validateVisit(docId: string, data: any): data is Visit {
     return false
   }
   
-  // Validate pubId is positive number
-  if (typeof data.pubId !== 'number' || data.pubId <= 0) {
-    console.warn(`Invalid visit document ${docId}: pubId must be a positive number`)
+  // Validate pubId is non-empty string (UUID)
+  if (typeof data.pubId !== 'string' || data.pubId.trim() === '') {
+    console.warn(`Invalid visit document ${docId}: pubId must be a non-empty string (UUID)`)
     return false
   }
   
@@ -311,8 +346,8 @@ function validateVisitMutation(data: any, isUpdate: boolean = false): void {
       throw new Error('userId must be a non-empty string')
     }
     
-    if (!data.pubId || typeof data.pubId !== 'number' || data.pubId <= 0) {
-      throw new Error('pubId must be a positive number')
+    if (!data.pubId || typeof data.pubId !== 'string' || data.pubId.trim() === '') {
+      throw new Error('pubId must be a non-empty string (UUID)')
     }
   }
   

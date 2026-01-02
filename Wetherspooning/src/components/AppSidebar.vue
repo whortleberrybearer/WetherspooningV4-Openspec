@@ -348,15 +348,17 @@ import PubDetailSheet from '@/components/PubDetailSheet.vue'
 import AccountSettingsDialog from '@/components/AccountSettingsDialog.vue'
 
 interface Pub {
-  id: number
+  id: string
   name: string
   townCity: string
   address: string
   county: string
-  region: string
-  country: string
-  lat: number
-  lng: number
+  region?: string
+  country?: string
+  position: {
+    lat: number
+    lng: number
+  } | null
   url?: string
   imageUrl?: string
   openState?: string
@@ -433,13 +435,16 @@ const groupedPubs = computed(() => {
   const grouped: Record<string, Record<string, Pub[]>> = {}
 
   filteredPubs.value.forEach((pub) => {
-    if (!grouped[pub.country]) {
-      grouped[pub.country] = {}
+    const country = pub.country || 'Unknown'
+    const county = pub.county || 'Unknown'
+    
+    if (!grouped[country]) {
+      grouped[country] = {}
     }
-    if (!grouped[pub.country]![pub.county]) {
-      grouped[pub.country]![pub.county] = []
+    if (!grouped[country]![county]) {
+      grouped[country]![county] = []
     }
-    grouped[pub.country]![pub.county]!.push(pub)
+    grouped[country]![county]!.push(pub)
   })
 
   const sortedCountries: Record<string, Record<string, Pub[]>> = {}

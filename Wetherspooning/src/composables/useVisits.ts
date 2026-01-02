@@ -7,7 +7,7 @@ import { getUserVisits, createVisit, updateVisit as updateVisitService, deleteVi
 export interface Visit {
   id: string  // Firestore auto-generated ID
   userId: string  // Firebase UID
-  pubId: number
+  pubId: string  // Pub GUID
   visitedAt?: string  // ISO date string
   rating?: number     // 1-5
   notes?: string
@@ -17,7 +17,8 @@ export interface Visit {
  * Pub interface (minimal, matching existing Pub type)
  */
 interface Pub {
-  id: number
+  id: string
+  position: { lat: number; lng: number } | null
   [key: string]: any
 }
 
@@ -25,7 +26,7 @@ interface Pub {
  * Visit state management
  */
 interface VisitState {
-  visitedPubIds: Set<number>
+  visitedPubIds: Set<string>
   visits: Visit[]  // Store full visit data for date retrieval
   isLoading: boolean
   error: string | null
@@ -100,10 +101,10 @@ export function useVisits() {
    * Check if a specific pub has been visited by the current user.
    * Uses O(1) Set lookup for performance.
    * 
-   * @param pubId - The ID of the pub to check
+   * @param pubId - The GUID of the pub to check
    * @returns true if the pub has been visited, false otherwise
    */
-  const isVisited = (pubId: number): boolean => {
+  const isVisited = (pubId: string): boolean => {
     return visitState.visitedPubIds.has(pubId)
   }
 
@@ -124,10 +125,10 @@ export function useVisits() {
   /**
    * Get the visit date for a specific pub.
    * 
-   * @param pubId - The ID of the pub to get visit date for
+   * @param pubId - The GUID of the pub to get visit date for
    * @returns ISO date string if pub is visited and has a date, null otherwise
    */
-  const getVisitDate = (pubId: number): string | null => {
+  const getVisitDate = (pubId: string): string | null => {
     const visit = visitState.visits.find(v => v.pubId === pubId)
     return visit?.visitedAt || null
   }
@@ -148,7 +149,7 @@ export function useVisits() {
    * Creates a new visit record in Firestore with optional date, rating, and notes.
    * If the pub has already been visited, updates the existing visit instead.
    * 
-   * @param pubId - The ID of the pub to mark as visited
+   * @param pubId - The GUID of the pub to mark as visited
    * @param options - Optional visit details
    * @param options.visitedAt - ISO date string (defaults to current date if not provided, can be undefined for unknown date)
    * @param options.rating - Rating 1-5 stars (optional)
@@ -158,7 +159,7 @@ export function useVisits() {
    * @throws Error if user is not authenticated or operation fails
    */
   const addVisit = async (
-    pubId: number, 
+    pubId: string, 
     options: { visitedAt?: string, rating?: number, notes?: string } = {},
     userId: string
   ): Promise<void> => {
@@ -225,13 +226,13 @@ export function useVisits() {
   /**
    * Update an existing visit's details.
    * 
-   * @param pubId - The ID of the pub whose visit to update
+   * @param pubId - The GUID of the pub whose visit to update
    * @param updates - Partial visit data to update (visitedAt, notes, rating)
    * @returns Promise that resolves when visit is updated
    * @throws Error if visit doesn't exist or operation fails
    */
   const updateVisit = async (
-    pubId: number,
+    pubId: string,
     updates: { visitedAt?: string | null, notes?: string | null, rating?: number | null }
   ): Promise<void> => {
     const visit = visitState.visits.find(v => v.pubId === pubId)
@@ -280,11 +281,11 @@ export function useVisits() {
    * Deletes the visit record from Firestore and updates local state.
    * Operation is idempotent - succeeds even if visit doesn't exist.
    * 
-   * @param pubId - The ID of the pub whose visit to remove
+   * @param pubId - The GUID of the pub whose visit to remove
    * @returns Promise that resolves when visit is removed
    * @throws Error if operation fails
    */
-  const removeVisit = async (pubId: number): Promise<void> => {
+  const removeVisit = async (pubId: string): Promise<void> => {
     const visit = visitState.visits.find(v => v.pubId === pubId)
     
     // If visit doesn't exist, operation succeeds (idempotent)
@@ -307,10 +308,10 @@ export function useVisits() {
   /**
    * Get full visit details for a specific pub.
    * 
-   * @param pubId - The ID of the pub
+   * @param pubId - The GUID of the pub
    * @returns Visit object if found, null otherwise
    */
-  const getVisit = (pubId: number): Visit | null => {
+  const getVisit = (pubId: string): Visit | null => {
     return visitState.visits.find(v => v.pubId === pubId) || null
   }
 

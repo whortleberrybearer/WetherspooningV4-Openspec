@@ -32,9 +32,9 @@ Wetherspooning is a website that displays the locations of Wetherspoons pubs and
 
 ## Domain Context
 - Entities:
-  - **Pub:** Id, Name, TownCity, Address, County, Region, Country, Position (Lat, Lng), Url, ImageUrl, OpenState
+  - **Pub:** Id (string/UUID), Name, TownCity, Address, County, Region, Country, Position ({ lat, lng } | null), Url, ImageUrl, OpenState
   - **User:** Id, Username, Email
-  - **Visit:** Id, UserId, PubId, VisitedAt (date, optional), Rating (1–5, optional), Notes (optional)
+  - **Visit:** Id, UserId, PubId (string/UUID), VisitedAt (date, optional), Rating (1–5, optional), Notes (optional)
 
 ## Important Constraints
 [List any technical, business, or regulatory constraints]
