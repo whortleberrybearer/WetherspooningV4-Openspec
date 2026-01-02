@@ -29,6 +29,8 @@ describe('pubSyncService', () => {
         imageUrl: 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7649-feature.png',
         address: 'Heathrow Airport, Terminal 4 (after security) , Hounslow, Middlesex, TW6 3XA',
         townCity: 'Hounslow',
+        position: { lat: 51.46148, lng: -0.44538 },
+        openState: 'Open',
       };
 
       await syncPubToFirestore(pubData);
@@ -43,6 +45,8 @@ describe('pubSyncService', () => {
           imageUrl: pubData.imageUrl,
           address: pubData.address,
           townCity: pubData.townCity,
+          position: pubData.position,
+          openState: pubData.openState,
           lastSyncedAt: expect.any(Object),
         }),
         { merge: true }
@@ -57,6 +61,8 @@ describe('pubSyncService', () => {
         imageUrl: 'https://example.com/image.jpg',
         address: '123 Test Street',
         townCity: 'Test City',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
       };
 
       await syncPubToFirestore(pubData);
@@ -75,6 +81,8 @@ describe('pubSyncService', () => {
         imageUrl: 'https://example.com/image.jpg',
         address: '123 Test Street',
         townCity: 'Test City',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
       };
 
       mockSet.mockRejectedValueOnce(new Error('Firestore error'));
@@ -90,6 +98,8 @@ describe('pubSyncService', () => {
         imageUrl: 'https://example.com/image.jpg',
         address: '123 Test Street',
         townCity: 'Test City',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
       };
 
       await syncPubToFirestore(pubData);
@@ -107,6 +117,8 @@ describe('pubSyncService', () => {
         imageUrl: 'https://example.com/image.jpg',
         address: '123 Test Street',
         townCity: 'Test City',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
       };
 
       await syncPubToFirestore(pubData);
@@ -123,6 +135,8 @@ describe('pubSyncService', () => {
         imageUrl: 'https://example.com/image.jpg',
         address: '123 Test Street, Test Town, AB1 2CD',
         townCity: 'Test Town',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
       };
 
       await syncPubToFirestore(pubData);
@@ -139,12 +153,68 @@ describe('pubSyncService', () => {
         imageUrl: 'https://example.com/image.jpg',
         address: '123 Test Street',
         townCity: 'London',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
       };
 
       await syncPubToFirestore(pubData);
 
       const writtenData = mockSet.mock.calls[0][0];
       expect(writtenData.townCity).toBe('London');
+    });
+
+    it('should include position in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'London',
+        position: { lat: 51.5074, lng: -0.1278 },
+        openState: 'Open',
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.position).toEqual({ lat: 51.5074, lng: -0.1278 });
+    });
+
+    it('should include null position when not available', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'London',
+        position: null,
+        openState: 'Open',
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.position).toBeNull();
+    });
+
+    it('should include openState in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'London',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Opening Soon',
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.openState).toBe('Opening Soon');
     });
   });
 });

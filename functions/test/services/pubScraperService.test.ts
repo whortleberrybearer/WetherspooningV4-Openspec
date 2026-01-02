@@ -34,6 +34,8 @@ describe('pubScraperService', () => {
       expect(result?.imageUrl).toBe(imageUrl);
       expect(result?.address).toBe('Heathrow Airport, Terminal 4 (after security) , Hounslow, Middlesex, TW6 3XA');
       expect(result?.townCity).toBe('Hounslow');
+      expect(result?.position).toEqual({ lat: 51.46148, lng: -0.44538 });
+      expect(result?.openState).toBe('Open');
     });
 
     it('should extract ID from URL correctly', async () => {
@@ -169,6 +171,102 @@ describe('pubScraperService', () => {
       const result = await scrapePubData('https://example.com/pub', imageUrl);
 
       expect(result).toBeNull();
+    });
+
+    it('should extract position from map image', async () => {
+      const htmlWithMap = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">Test Pub</h1>
+        <div class="pub-address-inner"><span>123 Test St</span></div>
+        <img class="pub-map" src="https://snapshot.apple-mapkit.com/api/v1/snapshot?center=51.5074,-0.1278&#038;z=13" />
+        <p class="open-status">Open</p>
+      </body></html>`;
+      const url = 'https://example.com/pubs/test-pub-london/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithMap,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result?.position).toEqual({ lat: 51.5074, lng: -0.1278 });
+    });
+
+    it('should return null position when map not found', async () => {
+      const htmlWithoutMap = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">Test Pub</h1>
+        <div class="pub-address-inner"><span>123 Test St</span></div>
+        <p class="open-status">Open</p>
+      </body></html>`;
+      const url = 'https://example.com/pubs/test-pub/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithoutMap,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result?.position).toBeNull();
+    });
+
+    it('should extract openState as Open', async () => {
+      const htmlWithOpen = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">Test Pub</h1>
+        <div class="pub-address-inner"><span>123 Test St</span></div>
+        <p class="open-status">Open</p>
+      </body></html>`;
+      const url = 'https://example.com/pubs/test-pub/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithOpen,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result?.openState).toBe('Open');
+    });
+
+    it('should extract openState as Opening Soon', async () => {
+      const htmlWithOpeningSoon = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">Test Pub</h1>
+        <div class="pub-address-inner"><span>123 Test St</span></div>
+        <p class="open-status">Opening soon</p>
+      </body></html>`;
+      const url = 'https://example.com/pubs/test-pub/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithOpeningSoon,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result?.openState).toBe('Opening Soon');
+    });
+
+    it('should extract openState as Temporary Closed', async () => {
+      const htmlWithClosed = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">Test Pub</h1>
+        <div class="pub-address-inner"><span>123 Test St</span></div>
+        <p class="open-status">Closed temporarily</p>
+      </body></html>`;
+      const url = 'https://example.com/pubs/test-pub/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithClosed,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result?.openState).toBe('Temporary Closed');
     });
   });
 });

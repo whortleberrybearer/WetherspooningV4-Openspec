@@ -111,7 +111,7 @@ The system MUST initially process only the first 5 pub URLs from the sitemap.
 **Priority:** MUST  
 **Category:** Functional
 
-The system MUST scrape each pub's webpage to extract the pub name, address, and town/city.
+The system MUST scrape each pub's webpage to extract the pub name, address, town/city, position, and open state.
 
 **Acceptance Criteria:**
 - For each pub URL, an HTTP GET request is made
@@ -122,6 +122,8 @@ The system MUST scrape each pub's webpage to extract the pub name, address, and 
 - Address is extracted from `<div class="pub-address-inner"><span>` element
 - Address is trimmed of leading/trailing whitespace
 - Town/city is derived from URL slug by removing the pub name slug and converting to title case
+- Position (lat/lng) is extracted from `<img class="pub-map">` src attribute center parameter
+- Open state is extracted from `<p class="open-status">` element with logic for "Opening soon", "Closed temporarily", or "Open"
 - Empty or missing names are handled (logged and skipped)
 - HTTP errors for individual pubs are logged but don't stop processing of other pubs
 - Parse errors are logged but don't stop processing
@@ -136,6 +138,8 @@ The system MUST scrape each pub's webpage to extract the pub name, address, and 
 **And** the address is extracted from `<div class="pub-address-inner"><span>` element  
 **And** the address is "Heathrow Airport, Terminal 4 (after security) , Hounslow, Middlesex, TW6 3XA"  
 **And** the town/city is derived from URL as "Hounslow"  
+**And** the position is extracted from map image as lat: 51.46148, lng: -0.44538  
+**And** the open state is extracted as "Open"  
 **And** all values are trimmed and returned  
 **And** the name is non-empty
 
@@ -171,10 +175,12 @@ The system MUST write extracted pub data to the Firestore `pubs` collection.
 
 **Acceptance Criteria:**
 - Document ID is derived from pub URL slug (last segment of path)
-- Document contains fields: `id`, `name`, `url`, `imageUrl`, `address`, `townCity`, `lastSyncedAt`
+- Document contains fields: `id`, `name`, `url`, `imageUrl`, `address`, `townCity`, `position`, `openState`, `lastSyncedAt`
 - `imageUrl` field contains the image URL extracted from sitemap
 - `address` field contains the full address string extracted from HTML
 - `townCity` field contains the town/city derived from URL slug
+- `position` field contains an object with `lat` and `lng` numbers
+- `openState` field contains the open state string ("Open", "Opening dd/MM/yyyy", "Opening Soon", "Temporary Closed")
 - `lastSyncedAt` is set to current server timestamp
 - Data is written using `set()` with merge option or upsert equivalent
 - Existing documents are updated (not creating duplicates)
@@ -186,16 +192,20 @@ The system MUST write extracted pub data to the Firestore `pubs` collection.
 **And** imageUrl is "https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7649-feature.png"  
 **And** address is "Heathrow Airport, Terminal 4 (after security) , Hounslow, Middlesex, TW6 3XA"  
 **And** townCity is "Hounslow"  
+**And** position is lat: 51.46148, lng: -0.44538  
+**And** openState is "Open"  
 **And** the pub does not exist in Firestore  
 **When** the function writes the pub data  
 **Then** a new document is created in the `pubs` collection  
 **And** the document ID is "star-light-hounslow"  
-**And** the document contains `id`, `name`, `url`, `imageUrl`, `address`, `townCity`, and `lastSyncedAt` fields  
+**And** the document contains `id`, `name`, `url`, `imageUrl`, `address`, `townCity`, `position`, `openState`, and `lastSyncedAt` fields  
 **And** `name` is "Star Light"  
 **And** `url` is the full source URL  
 **And** `imageUrl` is the image URL from sitemap  
 **And** `address` is the full address  
 **And** `townCity` is "Hounslow"  
+**And** `position` is {lat: 51.46148, lng: -0.44538}  
+**And** `openState` is "Open"  
 **And** `lastSyncedAt` is the current timestamp
 
 #### Scenario: Update Existing Pub in Firestore

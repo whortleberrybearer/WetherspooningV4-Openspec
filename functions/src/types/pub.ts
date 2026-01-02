@@ -1,5 +1,10 @@
 import { Timestamp } from 'firebase-admin/firestore';
 
+export interface Position {
+  lat: number;
+  lng: number;
+}
+
 export interface Pub {
   id: string;
   name: string;
@@ -7,6 +12,8 @@ export interface Pub {
   imageUrl: string;
   address: string;
   townCity: string;
+  position: Position | null;
+  openState: string;
   lastSyncedAt: Timestamp;
 }
 
@@ -17,6 +24,8 @@ export interface ScrapedPubData {
   imageUrl: string;
   address: string;
   townCity: string;
+  position: Position | null;
+  openState: string;
 }
 
 export interface SitemapEntry {

@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio';
-import { ScrapedPubData } from '../types/pub';
+import { ScrapedPubData, Position } from '../types/pub';
 
 export async function scrapePubData(url: string, imageUrl: string): Promise<ScrapedPubData | null> {
   try {
@@ -19,6 +19,8 @@ export async function scrapePubData(url: string, imageUrl: string): Promise<Scra
     
     const id = extractIdFromUrl(url);
     const townCity = extractTownCity(url, name);
+    const position = extractPosition(html);
+    const openState = extractOpenState(html);
     
     return {
       id,
@@ -27,6 +29,8 @@ export async function scrapePubData(url: string, imageUrl: string): Promise<Scra
       imageUrl,
       address: address.trim(),
       townCity,
+      position,
+      openState,
     };
   } catch (error) {
     console.error(`Error scraping pub ${url}:`, error);
@@ -107,4 +111,72 @@ function extractTownCity(url: string, name: string): string {
     .filter(word => word.length > 0)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+}
+
+function extractPosition(html: string): Position | null {
+  const $ = cheerio.load(html);
+  
+  // Select the map image and extract the center parameter from src
+  const mapNode = $('img.pub-map').first();
+  
+  if (mapNode.length === 0) {
+    console.warn('Map node not found in HTML document');
+    return null;
+  }
+  
+  const src = mapNode.attr('src');
+  if (!src) {
+    return null;
+  }
+  
+  // Extract center parameter: center=51.46148,-0.44538
+  // Handle both regular & and &#038; encoded ampersands
+  const centerMatch = src.match(/center=([0-9.-]+),([0-9.-]+)/);
+  
+  if (!centerMatch) {
+    return null;
+  }
+  
+  return {
+    lat: parseFloat(centerMatch[1]),
+    lng: parseFloat(centerMatch[2]),
+  };
+}
+
+function extractOpenState(html: string): string {
+  const $ = cheerio.load(html);
+  
+  // Select the open status paragraph
+  const openStatusNode = $('p.open-status').first();
+  
+  if (openStatusNode.length === 0) {
+    console.warn('Open status node not found in HTML document');
+    return 'Unknown';
+  }
+  
+  const statusText = openStatusNode.text().trim();
+  
+  if (statusText.toLowerCase() === 'opening soon') {
+    // Look for opening date in sibling paragraph
+    const openingDateNode = $('p.opening-closing-time').not('.open-status').first();
+    
+    if (openingDateNode.length > 0) {
+      const dateText = openingDateNode.text().trim();
+      // Try to parse the date
+      const date = new Date(dateText);
+      if (!isNaN(date.getTime())) {
+        // Format as dd/MM/yyyy
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `Opening ${day}/${month}/${year}`;
+      }
+    }
+    return 'Opening Soon';
+  } else if (statusText.toLowerCase() === 'closed temporarily') {
+    return 'Temporary Closed';
+  }
+  
+  // Default to Open for all other cases
+  return 'Open';
 }
