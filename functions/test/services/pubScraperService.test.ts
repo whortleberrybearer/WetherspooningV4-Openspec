@@ -116,6 +116,35 @@ describe('pubScraperService', () => {
       expect(result?.townCity).toBe('Hounslow');
     });
 
+    it('should handle pubs with fullstops in name (J.J. Moon\'s, Wembley)', async () => {
+      const url = 'https://www.jdwetherspoon.com/pubs/j-j-moons-wembley/';
+      const imageUrl = 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/1234-feature.png';
+      const jjMoonsHtml = fs.readFileSync(
+        path.join(__dirname, '../fixtures/j-j-moons-wembley-sample.html'),
+        'utf-8'
+      );
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => jjMoonsHtml,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result).not.toBeNull();
+      expect(result?.id).toBe('j-j-moons-wembley');
+      expect(result?.name).toBe('J.J. Moon\'s');
+      expect(result?.townCity).toBe('Wembley');
+      expect(result?.url).toBe(url);
+      expect(result?.imageUrl).toBe(imageUrl);
+      expect(result?.address).toBe('397 High Road, Wembley, Middlesex, HA9 6AA');
+      expect(result?.position).toEqual({ lat: 51.5525, lng: -0.2962 });
+      expect(result?.openState).toBe('Open');
+      expect(result?.isHotel).toBe(false);
+      expect(result?.inAirport).toBe(false);
+      expect(result?.inTrainStation).toBe(false);
+    });
+
     it('should return null when fetch fails', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,

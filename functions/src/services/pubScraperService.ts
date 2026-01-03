@@ -129,12 +129,15 @@ function extractTownCity(url: string, name: string): string {
     baseName = name.split(',')[0].trim();
   }
   
-  // Generate slug from name (remove non-alphanumeric except spaces, then replace spaces with hyphens)
-  // This matches how URLs are typically created (apostrophes removed, not replaced)
+  // Generate slug from name to match URL format
+  // Process: fullstops -> hyphens, other special chars removed, spaces -> hyphens, collapse multiple hyphens
+  // e.g., "J.J. Moon's" -> "j.j. moon's" -> "j-j- moon-s" -> "j-j-moons" -> "j-j-moons"
   const nameSlug = baseName
     .toLowerCase()
-    .replace(/[^a-z0-9 ]/g, '')  // Remove all non-alphanumeric characters except spaces
+    .replace(/\./g, '-')          // Replace fullstops with hyphens first
+    .replace(/[^a-z0-9 -]/g, '')  // Remove all non-alphanumeric characters except spaces and hyphens
     .replace(/\s+/g, '-')         // Replace spaces with hyphens
+    .replace(/-+/g, '-')          // Collapse multiple consecutive hyphens into one
     .replace(/^-+|-+$/g, '');     // Trim hyphens from start/end
   
   // Remove the name slug from the URL slug to get the location
