@@ -145,6 +145,35 @@ describe('pubScraperService', () => {
       expect(result?.inTrainStation).toBe(false);
     });
 
+    it('should handle pubs with trailing numbers in URL (Emersons Green, Bristol)', async () => {
+      const url = 'https://www.jdwetherspoon.com/pubs/emersons-green-bristol-2/';
+      const imageUrl = 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/5678-feature.png';
+      const emersonsGreenHtml = fs.readFileSync(
+        path.join(__dirname, '../fixtures/emersons-green-bristol-sample.html'),
+        'utf-8'
+      );
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => emersonsGreenHtml,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result).not.toBeNull();
+      expect(result?.id).toBe('emersons-green-bristol-2');
+      expect(result?.name).toBe('Emersons Green');
+      expect(result?.townCity).toBe('Bristol');
+      expect(result?.url).toBe(url);
+      expect(result?.imageUrl).toBe(imageUrl);
+      expect(result?.address).toBe('Westerleigh Road, Emersons Green, Bristol, BS16 7AN');
+      expect(result?.position).toEqual({ lat: 51.5092, lng: -2.4918 });
+      expect(result?.openState).toBe('Open');
+      expect(result?.isHotel).toBe(false);
+      expect(result?.inAirport).toBe(false);
+      expect(result?.inTrainStation).toBe(false);
+    });
+
     it('should return null when fetch fails', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,

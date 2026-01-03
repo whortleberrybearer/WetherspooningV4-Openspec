@@ -120,7 +120,10 @@ function extractAddress(html: string): string | null {
 }
 
 function extractTownCity(url: string, name: string): string {
-  const urlSlug = url.replace(/\/$/, '').split('/').pop() || '';
+  let urlSlug = url.replace(/\/$/, '').split('/').pop() || '';
+  
+  // Remove trailing numbers and hyphens from URL slug (e.g., "emersons-green-bristol-2" -> "emersons-green-bristol")
+  urlSlug = urlSlug.replace(/-\d+$/, '');
   
   // If name contains a comma, use only the part before the comma for slug generation
   // e.g., "The Moon Under Water, Hounslow" -> "The Moon Under Water"
