@@ -174,6 +174,86 @@ describe('pubScraperService', () => {
       expect(result?.inTrainStation).toBe(false);
     });
 
+    it('should handle townCity with "under" (Ashton-under-Lyne)', async () => {
+      const url = 'https://www.jdwetherspoon.com/pubs/the-ash-tree-ashton-under-lyne/';
+      const imageUrl = 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/9012-feature.png';
+      const ashtonUnderLyneHtml = fs.readFileSync(
+        path.join(__dirname, '../fixtures/the-ash-tree-ashton-under-lyne-sample.html'),
+        'utf-8'
+      );
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => ashtonUnderLyneHtml,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result).not.toBeNull();
+      expect(result?.name).toBe('The Ash Tree');
+      expect(result?.townCity).toBe('Ashton-under-Lyne');
+    });
+
+    it('should handle townCity with "of" (City of London)', async () => {
+      const url = 'https://www.jdwetherspoon.com/pubs/the-crosse-keys-city-of-london/';
+      const imageUrl = 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/3456-feature.png';
+      const cityOfLondonHtml = fs.readFileSync(
+        path.join(__dirname, '../fixtures/the-crosse-keys-city-of-london-sample.html'),
+        'utf-8'
+      );
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => cityOfLondonHtml,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result).not.toBeNull();
+      expect(result?.name).toBe('The Crosse Keys');
+      expect(result?.townCity).toBe('City of London');
+    });
+
+    it('should handle townCity with "upon" (Kingston upon Thames)', async () => {
+      const url = 'https://www.jdwetherspoon.com/pubs/the-druids-head-kingston-upon-thames/';
+      const imageUrl = 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7890-feature.png';
+      const kingstonUponThamesHtml = fs.readFileSync(
+        path.join(__dirname, '../fixtures/the-druids-head-kingston-upon-thames-sample.html'),
+        'utf-8'
+      );
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => kingstonUponThamesHtml,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result).not.toBeNull();
+      expect(result?.name).toBe('The Druid\'s Head');
+      expect(result?.townCity).toBe('Kingston upon Thames');
+    });
+
+    it('should handle townCity with "on" (Stockton-on-Tees)', async () => {
+      const url = 'https://www.jdwetherspoon.com/pubs/the-thomas-sheraton-stockton-on-tees/';
+      const imageUrl = 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/1357-feature.png';
+      const stocktonOnTeesHtml = fs.readFileSync(
+        path.join(__dirname, '../fixtures/the-thomas-sheraton-stockton-on-tees-sample.html'),
+        'utf-8'
+      );
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => stocktonOnTeesHtml,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result).not.toBeNull();
+      expect(result?.name).toBe('The Thomas Sheraton');
+      expect(result?.townCity).toBe('Stockton-on-Tees');
+    });
+
     it('should return null when fetch fails', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
@@ -265,7 +345,7 @@ describe('pubScraperService', () => {
       // Name slug should be: luthers-bar
       // Town slug: newcastle-upon-tyne
       expect(result?.name).toBe("Luther's Bar");
-      expect(result?.townCity).toBe('Newcastle Upon Tyne');
+      expect(result?.townCity).toBe('Newcastle upon Tyne');
     });
 
     it('should return null when address cannot be extracted', async () => {

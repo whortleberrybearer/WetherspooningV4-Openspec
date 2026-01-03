@@ -152,12 +152,49 @@ function extractTownCity(url: string, name: string): string {
   }
   townSlug = townSlug.replace(/^-+|-+$/g, '');
   
-  // Convert to title case
-  return townSlug
-    .split('-')
-    .filter(word => word.length > 0)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+  // Convert to proper case with special handling for certain prepositions
+  // Words like "under" and "on" keep their hyphens (e.g., "Ashton-under-Lyne", "Stockton-on-Tees")
+  // Words like "of" and "upon" are lowercase with spaces (e.g., "City of London", "Kingston upon Thames")
+  const parts = townSlug.split('-');
+  const formattedParts: string[] = [];
+  
+  for (let i = 0; i < parts.length; i++) {
+    const word = parts[i];
+    
+    // Skip empty parts
+    if (word.length === 0) continue;
+    
+    // Check if this word should be special-cased
+    if (word === 'under' || word === 'on') {
+      // These words stay lowercase and keep hyphens around them
+      formattedParts.push('HYPHEN', word, 'HYPHEN');
+    } else if (word === 'of' || word === 'upon') {
+      // These words stay lowercase but use spaces
+      formattedParts.push(word);
+    } else {
+      // Title case for all other words
+      formattedParts.push(word.charAt(0).toUpperCase() + word.slice(1));
+    }
+  }
+  
+  // Join parts and replace markers with appropriate separators
+  let result = '';
+  for (let i = 0; i < formattedParts.length; i++) {
+    const part = formattedParts[i];
+    
+    if (part === 'HYPHEN') {
+      // Add hyphen without spaces
+      result += '-';
+    } else {
+      // Add the word
+      if (result.length > 0 && !result.endsWith('-')) {
+        result += ' ';
+      }
+      result += part;
+    }
+  }
+  
+  return result;
 }
 
 function extractPosition(html: string): Position | null {
