@@ -4,82 +4,82 @@
 
 ### 1. Setup and Configuration
 - [ ] Add `GOOGLE_GEOCODING_API_KEY` to Firebase Functions environment configuration
-- [ ] Add `GOOGLE_GEOCODING_API_KEY` to `.env.example` with documentation
-- [ ] Update project.md to document Google Geocoding API as external dependency
+- [x] Add `GOOGLE_GEOCODING_API_KEY` to `.env.example` with documentation
+- [x] Update project.md to document Google Geocoding API as external dependency
 - [ ] Verify Google Cloud billing account is configured for Geocoding API access
 
 ### 2. Create Geocoding Service
-- [ ] Create `functions/src/services/geocodingService.ts`
-- [ ] Define `GeocodeResult` interface with country and region fields
-- [ ] Define `GoogleGeocodeResponse` interface for API response typing
-- [ ] Implement `geocodePostcode(postcode: string)` function
-- [ ] Add HTTP client code to call Google Geocoding API
-- [ ] Implement `parseAddressComponents()` helper function
-- [ ] Add logic to extract country from address components
-- [ ] Add UK-specific logic: country = admin_level_1, region = admin_level_2 or postal_town
-- [ ] Add non-UK logic: country = country, region = admin_level_1
-- [ ] Add error handling for API failures (return null)
-- [ ] Add error handling for invalid/empty responses (return null)
-- [ ] Add timeout handling (5 second timeout)
+- [x] Create `functions/src/services/geocodingService.ts`
+- [x] Define `GeocodeResult` interface with country and region fields
+- [x] Define `GoogleGeocodeResponse` interface for API response typing
+- [x] Implement `geocodePostcode(postcode: string)` function
+- [x] Add HTTP client code to call Google Geocoding API
+- [x] Implement `parseAddressComponents()` helper function
+- [x] Add logic to extract country from address components
+- [x] Add UK-specific logic: country = admin_level_1, region = admin_level_2 or postal_town
+- [x] Add non-UK logic: country = country, region = admin_level_1
+- [x] Add error handling for API failures (return null)
+- [x] Add error handling for invalid/empty responses (return null)
+- [x] Add timeout handling (5 second timeout)
 
 ### 3. Update Pub Scraper Service
-- [ ] Add `extractPostcode(address: string)` function to pubScraperService.ts
-- [ ] Implement postcode extraction: split address by comma, return last component
-- [ ] Handle edge cases: empty address, no commas, whitespace trimming
-- [ ] Import geocodingService into pubScraperService
-- [ ] Modify `scrapePubData()` to call extractPostcode() after address extraction
-- [ ] Call `geocodePostcode()` with extracted postcode
-- [ ] Add country and region from geocode result to ScrapedPubData
-- [ ] Ensure geocoding failures don't block scraping (graceful degradation)
-- [ ] Add console logging for geocoding failures (warning level)
+- [x] Add `extractPostcode(address: string)` function to pubScraperService.ts
+- [x] Implement postcode extraction: split address by comma, return last component
+- [x] Handle edge cases: empty address, no commas, whitespace trimming
+- [x] Import geocodingService into pubScraperService
+- [x] Modify `scrapePubData()` to call extractPostcode() after address extraction
+- [x] Call `geocodePostcode()` with extracted postcode
+- [x] Add country and region from geocode result to ScrapedPubData
+- [x] Ensure geocoding failures don't block scraping (graceful degradation)
+- [x] Add console logging for geocoding failures (warning level)
 
 ### 4. Update Type Definitions
-- [ ] Add `country?: string` to ScrapedPubData interface in pub.ts
-- [ ] Add `region?: string` to ScrapedPubData interface in pub.ts
-- [ ] Add `country?: string` to Pub interface in pub.ts (if needed)
-- [ ] Add `region?: string` to Pub interface in pub.ts (if needed)
-- [ ] Verify type changes don't break existing code (TypeScript compilation)
+- [x] Add `country?: string` to ScrapedPubData interface in pub.ts
+- [x] Add `region?: string` to ScrapedPubData interface in pub.ts
+- [x] Add `country?: string` to Pub interface in pub.ts (if needed)
+- [x] Add `region?: string` to Pub interface in pub.ts (if needed)
+- [x] Verify type changes don't break existing code (TypeScript compilation)
 
 ### 5. Unit Tests - Geocoding Service
-- [ ] Create `functions/test/services/geocodingService.test.ts`
-- [ ] Test `geocodePostcode()` with mocked successful API response
-- [ ] Test `geocodePostcode()` with mocked API error
-- [ ] Test `geocodePostcode()` with mocked empty results
-- [ ] Test `geocodePostcode()` with mocked timeout
-- [ ] Test `parseAddressComponents()` with UK address components
-- [ ] Test UK: admin_level_1 extracted as country
-- [ ] Test UK: admin_level_2 extracted as region
-- [ ] Test UK: postal_town fallback when admin_level_2 missing
-- [ ] Test non-UK: country extracted as country
-- [ ] Test non-UK: admin_level_1 extracted as region
-- [ ] Test with missing country component (returns undefined)
-- [ ] Test with missing region component (returns undefined)
+- [x] Create `functions/test/services/geocodingService.test.ts`
+- [x] Test `geocodePostcode()` with mocked successful API response
+- [x] Test `geocodePostcode()` with mocked API error
+- [x] Test `geocodePostcode()` with mocked empty results
+- [x] Test `geocodePostcode()` with mocked timeout
+- [x] Test `parseAddressComponents()` with UK address components
+- [x] Test UK: admin_level_1 extracted as country
+- [x] Test UK: admin_level_2 extracted as region
+- [x] Test UK: postal_town fallback when admin_level_2 missing
+- [x] Test non-UK: country extracted as country
+- [x] Test non-UK: admin_level_1 extracted as region
+- [x] Test with missing country component (returns undefined)
+- [x] Test with missing region component (returns undefined)
 
 ### 6. Unit Tests - Postcode Extraction
-- [ ] Add tests to `pubScraperService.test.ts` for `extractPostcode()`
-- [ ] Test standard UK address format (e.g., "123 Street, City, POSTCODE")
-- [ ] Test address with multiple commas
-- [ ] Test address without commas (return null)
-- [ ] Test empty string (return null)
-- [ ] Test address with trailing whitespace
-- [ ] Test address ending with comma (return null)
+- [x] Add tests to `pubScraperService.test.ts` for `extractPostcode()`
+- [x] Test standard UK address format (e.g., "123 Street, City, POSTCODE")
+- [x] Test address with multiple commas
+- [x] Test address without commas (return null)
+- [x] Test empty string (return null)
+- [x] Test address with trailing whitespace
+- [x] Test address ending with comma (return null)
 
 ### 7. Integration Tests
-- [ ] Add integration test for full scraping workflow with geocoding
-- [ ] Mock Google Geocoding API responses in integration test
-- [ ] Verify country and region populated in ScrapedPubData
-- [ ] Verify graceful handling when geocoding unavailable
-- [ ] Test with both UK and non-UK sample responses
+- [x] Add integration test for full scraping workflow with geocoding
+- [x] Mock Google Geocoding API responses in integration test
+- [x] Verify country and region populated in ScrapedPubData
+- [x] Verify graceful handling when geocoding unavailable
+- [x] Test with both UK and non-UK sample responses
 
 ### 8. Documentation
-- [ ] Add JSDoc comments to geocoding service functions
-- [ ] Document expected address format in extractPostcode()
-- [ ] Add comments explaining UK vs non-UK logic in parseAddressComponents()
+- [x] Add JSDoc comments to geocoding service functions
+- [x] Document expected address format in extractPostcode()
+- [x] Add comments explaining UK vs non-UK logic in parseAddressComponents()
 - [ ] Update README with Google Geocoding API setup instructions (if applicable)
 
 ### 9. Validation and Deployment
-- [ ] Run all tests locally and verify 100% pass
-- [ ] Verify TypeScript compilation succeeds
+- [x] Run all tests locally and verify 100% pass
+- [x] Verify TypeScript compilation succeeds
 - [ ] Run `openspec validate 2026-01-03-add-pub-geocoding --strict`
 - [ ] Fix any validation issues
 - [ ] Deploy functions to Firebase staging environment (if applicable)

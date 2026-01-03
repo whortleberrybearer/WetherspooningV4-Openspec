@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio';
 import { ScrapedPubData, Position } from '../types/pub';
+import { geocodePostcode } from './geocodingService';
 
 export async function scrapePubData(url: string, imageUrl: string): Promise<ScrapedPubData | null> {
   try {
@@ -30,6 +31,23 @@ export async function scrapePubData(url: string, imageUrl: string): Promise<Scra
     const inAirport = extractInAirport(html, address);
     const inTrainStation = extractInTrainStation(html);
     
+    // Extract country and region via geocoding
+    let country: string | undefined;
+    let region: string | undefined;
+    
+    const postcode = extractPostcode(address);
+    if (postcode) {
+      const geocodeResult = await geocodePostcode(postcode);
+      if (geocodeResult) {
+        country = geocodeResult.country;
+        region = geocodeResult.region;
+      } else {
+        console.warn(`Failed to geocode postcode: ${postcode}`);
+      }
+    } else {
+      console.warn(`No postcode found in address: ${address}`);
+    }
+    
     return {
       id,
       name: name.trim(),
@@ -37,6 +55,8 @@ export async function scrapePubData(url: string, imageUrl: string): Promise<Scra
       imageUrl,
       address: address.trim(),
       townCity,
+      country,
+      region,
       position,
       openState,
       isHotel,
@@ -117,6 +137,27 @@ function extractAddress(html: string): string | null {
   }
   
   return addressNode.text().trim();
+}
+
+/**
+ * Extracts the postcode from an address string.
+ * Assumes the postcode is the last component when split by commas.
+ * 
+ * @param address - The full address string (e.g., "123 High Street, London, SW1A 1AA")
+ * @returns The extracted postcode or null if not found
+ */
+export function extractPostcode(address: string): string | null {
+  if (!address) {
+    return null;
+  }
+  
+  const parts = address.split(',');
+  if (parts.length === 0) {
+    return null;
+  }
+  
+  const lastPart = parts[parts.length - 1].trim();
+  return lastPart || null;
 }
 
 function extractTownCity(url: string, name: string, address: string): string {

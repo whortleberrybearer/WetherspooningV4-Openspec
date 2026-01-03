@@ -1,9 +1,13 @@
-import { scrapePubData } from '../../src/services/pubScraperService';
+import { scrapePubData, extractPostcode } from '../../src/services/pubScraperService';
+import * as geocodingService from '../../src/services/geocodingService';
 import * as fs from 'fs';
 import * as path from 'path';
 
 // Mock fetch globally
 global.fetch = jest.fn();
+
+// Mock the geocoding service
+jest.mock('../../src/services/geocodingService');
 
 describe('pubScraperService', () => {
   const samplePubHtml = fs.readFileSync(
@@ -30,6 +34,9 @@ describe('pubScraperService', () => {
         text: async () => samplePubHtml,
       });
 
+      // Mock geocoding to return null (API not configured or failed)
+      (geocodingService.geocodePostcode as jest.Mock).mockResolvedValue(null);
+
       const result = await scrapePubData(url, imageUrl);
 
       expect(result).not.toBeNull();
@@ -44,6 +51,56 @@ describe('pubScraperService', () => {
       expect(result?.isHotel).toBe(false);
       expect(result?.inAirport).toBe(true); // Address contains 'Heathrow Airport'
       expect(result?.inTrainStation).toBe(false);
+      expect(result?.country).toBeUndefined();
+      expect(result?.region).toBeUndefined();
+    });
+
+    it('should include country and region when geocoding succeeds', async () => {
+      const url = 'https://www.jdwetherspoon.com/pubs/star-light-hounslow/';
+      const imageUrl = 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7649-feature.png';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => samplePubHtml,
+      });
+
+      // Mock successful geocoding
+      (geocodingService.geocodePostcode as jest.Mock).mockResolvedValue({
+        country: 'England',
+        region: 'Greater London',
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result).not.toBeNull();
+      expect(result?.country).toBe('England');
+      expect(result?.region).toBe('Greater London');
+      expect(geocodingService.geocodePostcode).toHaveBeenCalledWith('TW6 3XA');
+    });
+
+    it('should handle gracefully when geocoding fails', async () => {
+      const htmlWithAddress = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">Test Pub</h1>
+        <div class="pub-address-inner"><span>123 Test Street, Test City, XX9 9XX</span></div>
+      </body></html>`;
+      const url = 'https://www.jdwetherspoon.com/pubs/test-pub/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithAddress,
+      });
+
+      // Mock geocoding to fail
+      (geocodingService.geocodePostcode as jest.Mock).mockResolvedValue(null);
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result).not.toBeNull();
+      expect(result?.country).toBeUndefined();
+      expect(result?.region).toBeUndefined();
+      // Geocoding should be called but return null
+      expect(geocodingService.geocodePostcode).toHaveBeenCalledWith('XX9 9XX');
     });
 
     it('should extract ID from URL correctly', async () => {
@@ -607,6 +664,68 @@ describe('pubScraperService', () => {
       expect(result?.isHotel).toBe(false);
       expect(result?.inAirport).toBe(false);
       expect(result?.inTrainStation).toBe(false);
+    });
+  });
+
+  describe('extractPostcode', () => {
+    it('should extract postcode from standard UK address', () => {
+      const address = '123 High Street, London, SW1A 1AA';
+      const result = extractPostcode(address);
+      expect(result).toBe('SW1A 1AA');
+    });
+
+    it('should extract postcode from address with multiple commas', () => {
+      const address = 'Heathrow Airport, Terminal 4 (after security), Hounslow, Middlesex, TW6 3XA';
+      const result = extractPostcode(address);
+      expect(result).toBe('TW6 3XA');
+    });
+
+    it('should return null for address without commas', () => {
+      const address = 'SingleLineAddress';
+      const result = extractPostcode(address);
+      expect(result).toBe('SingleLineAddress');
+    });
+
+    it('should return null for empty address', () => {
+      const address = '';
+      const result = extractPostcode(address);
+      expect(result).toBeNull();
+    });
+
+    it('should handle address with trailing whitespace', () => {
+      const address = '123 High Street, London,  SW1A 1AA  ';
+      const result = extractPostcode(address);
+      expect(result).toBe('SW1A 1AA');
+    });
+
+    it('should handle address with single comma', () => {
+      const address = '123 High Street, SW1A 1AA';
+      const result = extractPostcode(address);
+      expect(result).toBe('SW1A 1AA');
+    });
+
+    it('should handle address ending with comma', () => {
+      const address = '123 High Street,';
+      const result = extractPostcode(address);
+      expect(result).toBeNull();
+    });
+
+    it('should extract postcode from real example (Star Light Hounslow)', () => {
+      const address = 'Heathrow Airport, Terminal 4 (after security) , Hounslow, Middlesex, TW6 3XA';
+      const result = extractPostcode(address);
+      expect(result).toBe('TW6 3XA');
+    });
+
+    it('should extract postcode from real example (J.J. Moon\'s Wembley)', () => {
+      const address = '397 High Road, Wembley, Middlesex, HA9 6AA';
+      const result = extractPostcode(address);
+      expect(result).toBe('HA9 6AA');
+    });
+
+    it('should extract postcode from real example (The Red Rocks Exmouth)', () => {
+      const address = 'Haven, Devon Cliffs Holiday Park, Sandy Bay, Exmouth, Devon, EX8 5BT';
+      const result = extractPostcode(address);
+      expect(result).toBe('EX8 5BT');
     });
   });
 });

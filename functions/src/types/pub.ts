@@ -12,6 +12,8 @@ export interface Pub {
   imageUrl: string;
   address: string;
   townCity: string;
+  country?: string;
+  region?: string;
   position: Position | null;
   openState: string;
   isHotel: boolean;
@@ -27,6 +29,8 @@ export interface ScrapedPubData {
   imageUrl: string;
   address: string;
   townCity: string;
+  country?: string;
+  region?: string;
   position: Position | null;
   openState: string;
   isHotel: boolean;
