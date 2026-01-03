@@ -1,6 +1,22 @@
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { ScrapedPubData, Pub } from '../types/pub';
 
+export async function getExistingPub(pubId: string): Promise<Pub | null> {
+  try {
+    const db = getFirestore();
+    const docSnapshot = await db.collection('pubs').doc(pubId).get();
+    
+    if (!docSnapshot.exists) {
+      return null;
+    }
+    
+    return docSnapshot.data() as Pub;
+  } catch (error) {
+    console.error(`Error fetching existing pub ${pubId}:`, error);
+    return null;
+  }
+}
+
 export async function syncPubToFirestore(pubData: ScrapedPubData): Promise<void> {
   try {
     const db = getFirestore();
@@ -11,6 +27,8 @@ export async function syncPubToFirestore(pubData: ScrapedPubData): Promise<void>
       imageUrl: pubData.imageUrl,
       address: pubData.address,
       townCity: pubData.townCity,
+      country: pubData.country,
+      region: pubData.region,
       position: pubData.position,
       openState: pubData.openState,
       isHotel: pubData.isHotel,

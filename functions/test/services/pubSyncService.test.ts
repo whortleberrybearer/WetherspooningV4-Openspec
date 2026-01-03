@@ -1,9 +1,10 @@
-import { syncPubToFirestore } from '../../src/services/pubSyncService';
+import { syncPubToFirestore, getExistingPub } from '../../src/services/pubSyncService';
 import { ScrapedPubData } from '../../src/types/pub';
 
 // Mock Firestore
 const mockSet = jest.fn().mockResolvedValue(undefined);
-const mockDoc = jest.fn().mockReturnValue({ set: mockSet });
+const mockGet = jest.fn();
+const mockDoc = jest.fn().mockReturnValue({ set: mockSet, get: mockGet });
 const mockCollection = jest.fn().mockReturnValue({ doc: mockDoc });
 
 jest.mock('firebase-admin/firestore', () => ({
@@ -311,6 +312,71 @@ describe('pubSyncService', () => {
 
       const writtenData = mockSet.mock.calls[0][0];
       expect(writtenData.inTrainStation).toBe(true);
+    });
+
+    it('should include country and region in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street, London, SW1A 1AA',
+        townCity: 'London',
+        country: 'England',
+        region: 'Greater London',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.country).toBe('England');
+      expect(writtenData.region).toBe('Greater London');
+    });
+  });
+
+  describe('getExistingPub', () => {
+    it('should return existing pub data', async () => {
+      const existingData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        country: 'England',
+        region: 'Greater London',
+        lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 },
+      };
+
+      mockGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => existingData,
+      });
+
+      const result = await getExistingPub('test-pub');
+
+      expect(mockCollection).toHaveBeenCalledWith('pubs');
+      expect(mockDoc).toHaveBeenCalledWith('test-pub');
+      expect(result).toEqual(existingData);
+    });
+
+    it('should return null when pub does not exist', async () => {
+      mockGet.mockResolvedValueOnce({
+        exists: false,
+      });
+
+      const result = await getExistingPub('non-existent-pub');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null on error', async () => {
+      mockGet.mockRejectedValueOnce(new Error('Firestore error'));
+
+      const result = await getExistingPub('test-pub');
+
+      expect(result).toBeNull();
     });
   });
 });

@@ -1,7 +1,7 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { getSitemapUrls } from '../services/sitemapService';
 import { scrapePubData } from '../services/pubScraperService';
-import { syncPubToFirestore } from '../services/pubSyncService';
+import { syncPubToFirestore, getExistingPub } from '../services/pubSyncService';
 
 /**
  * Core pub sync function that can be run independently
@@ -28,7 +28,13 @@ export async function runPubSync(count?: number, start: number = 0): Promise<{ s
     for (const entry of entriesToProcess) {
       try {
         console.log(`🔍 Processing pub: ${entry.url}`);
-        const pubData = await scrapePubData(entry.url, entry.imageUrl);
+        
+        // Extract pub ID from URL to check for existing record
+        const urlParts = entry.url.replace(/\/$/, '').split('/');
+        const pubId = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
+        const existingPub = await getExistingPub(pubId);
+        
+        const pubData = await scrapePubData(entry.url, entry.imageUrl, existingPub);
         if (!pubData) {
           console.warn(`⚠️  Skipping pub (no data extracted): ${entry.url}`);
           failureCount++;
