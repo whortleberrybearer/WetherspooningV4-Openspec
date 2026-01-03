@@ -18,8 +18,8 @@ export async function scrapePubData(url: string, imageUrl: string): Promise<Scra
     }
     
     const id = extractIdFromUrl(url);
-    // Extract townCity first, passing the raw name
-    const townCity = extractTownCity(url, name);
+    // Extract townCity first, passing the raw name and address
+    const townCity = extractTownCity(url, name, address);
     
     // Clean the name by removing location suffix if it matches townCity
     name = cleanPubName(name, townCity);
@@ -119,7 +119,7 @@ function extractAddress(html: string): string | null {
   return addressNode.text().trim();
 }
 
-function extractTownCity(url: string, name: string): string {
+function extractTownCity(url: string, name: string, address: string): string {
   let urlSlug = url.replace(/\/$/, '').split('/').pop() || '';
   
   // Remove trailing numbers and hyphens from URL slug (e.g., "emersons-green-bristol-2" -> "emersons-green-bristol")
@@ -152,49 +152,29 @@ function extractTownCity(url: string, name: string): string {
   }
   townSlug = townSlug.replace(/^-+|-+$/g, '');
   
-  // Convert to proper case with special handling for certain prepositions
-  // Words like "under", "on", "in", and "cum" keep their hyphens (e.g., "Ashton-under-Lyne", "Stockton-on-Tees", "Barrow-in-Furness", "Chorlton-cum-Hardy")
-  // Words like "of" and "upon" are lowercase with spaces (e.g., "City of London", "Kingston upon Thames")
-  const parts = townSlug.split('-');
-  const formattedParts: string[] = [];
-  
-  for (let i = 0; i < parts.length; i++) {
-    const word = parts[i];
+  // For multi-word town names (with hyphens), use address-based matching
+  // to get the exact formatting with proper hyphenation and capitalization
+  if (townSlug.includes('-')) {
+    // Split address by commas to get parts
+    const addressParts = address.split(',').map(p => p.trim());
     
-    // Skip empty parts
-    if (word.length === 0) continue;
+    // Remove all hyphens from townSlug for matching
+    const townSlugNoHyphens = townSlug.replace(/-/g, '').toLowerCase();
     
-    // Check if this word should be special-cased
-    if (word === 'under' || word === 'on' || word === 'in' || word === 'cum') {
-      // These words stay lowercase and keep hyphens around them
-      formattedParts.push('HYPHEN', word, 'HYPHEN');
-    } else if (word === 'of' || word === 'upon') {
-      // These words stay lowercase but use spaces
-      formattedParts.push(word);
-    } else {
-      // Title case for all other words
-      formattedParts.push(word.charAt(0).toUpperCase() + word.slice(1));
-    }
-  }
-  
-  // Join parts and replace markers with appropriate separators
-  let result = '';
-  for (let i = 0; i < formattedParts.length; i++) {
-    const part = formattedParts[i];
-    
-    if (part === 'HYPHEN') {
-      // Add hyphen without spaces
-      result += '-';
-    } else {
-      // Add the word
-      if (result.length > 0 && !result.endsWith('-')) {
-        result += ' ';
+    // Search each address part for a match
+    for (const part of addressParts) {
+      // Remove hyphens and spaces from the address part for comparison
+      const partNormalized = part.replace(/[-\s]/g, '').toLowerCase();
+      
+      // If the slug matches this part (ignoring hyphens and spaces), use the original part
+      if (partNormalized === townSlugNoHyphens) {
+        return part;
       }
-      result += part;
     }
   }
   
-  return result;
+  // For single-word town names, just convert to title case
+  return townSlug.charAt(0).toUpperCase() + townSlug.slice(1);
 }
 
 function extractPosition(html: string): Position | null {
