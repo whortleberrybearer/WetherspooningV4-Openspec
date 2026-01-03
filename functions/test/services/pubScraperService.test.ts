@@ -167,6 +167,29 @@ describe('pubScraperService', () => {
       expect(result?.townCity).toBe('Hounslow');
     });
 
+    it('should extract townCity when pub name contains apostrophe', async () => {
+      const htmlWithApostrophe = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">Luther's Bar</h1>
+        <div class="pub-address-inner"><span>123 Grey Street, Newcastle upon Tyne</span></div>
+      </body></html>`;
+      const url = 'https://www.jdwetherspoon.com/pubs/luthers-bar-newcastle-upon-tyne/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithApostrophe,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      // URL slug: luthers-bar-newcastle-upon-tyne
+      // Name: Luther's Bar (apostrophe is removed in URL, not replaced)
+      // Name slug should be: luthers-bar
+      // Town slug: newcastle-upon-tyne
+      expect(result?.name).toBe("Luther's Bar");
+      expect(result?.townCity).toBe('Newcastle Upon Tyne');
+    });
+
     it('should return null when address cannot be extracted', async () => {
       const htmlWithoutAddress = '<html><body><h1 class="wp-block-heading">Star Light</h1></body></html>';
       const imageUrl = 'https://example.com/image.jpg';

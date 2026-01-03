@@ -96,11 +96,13 @@ function extractAddress(html: string): string | null {
 function extractTownCity(url: string, name: string): string {
   const urlSlug = url.replace(/\/$/, '').split('/').pop() || '';
   
-  // Generate slug from name (convert to lowercase, replace spaces/special chars with hyphens)
+  // Generate slug from name (remove non-alphanumeric except spaces, then replace spaces with hyphens)
+  // This matches how URLs are typically created (apostrophes removed, not replaced)
   const nameSlug = name
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/[^a-z0-9 ]/g, '')  // Remove all non-alphanumeric characters except spaces
+    .replace(/\s+/g, '-')         // Replace spaces with hyphens
+    .replace(/^-+|-+$/g, '');     // Trim hyphens from start/end
   
   // Remove the name slug from the URL slug to get the location
   // Try removing nameSlug with trailing hyphen first, then without
