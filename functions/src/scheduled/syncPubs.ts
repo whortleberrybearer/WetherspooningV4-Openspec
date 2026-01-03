@@ -34,12 +34,20 @@ export async function runPubSync(count?: number, start: number = 0): Promise<{ s
         const pubId = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
         const existingPub = await getExistingPub(pubId);
         
-        const pubData = await scrapePubData(entry.url, entry.imageUrl, existingPub);
+        const pubData = await scrapePubData(entry.url, entry.imageUrl);
         if (!pubData) {
           console.warn(`⚠️  Skipping pub (no data extracted): ${entry.url}`);
           failureCount++;
           continue;
         }
+        
+        // Reuse existing country/region data if scraping didn't provide it
+        if (existingPub?.country && existingPub?.region && !pubData.country && !pubData.region) {
+          pubData.country = existingPub.country;
+          pubData.region = existingPub.region;
+          console.log(`📍 Reusing existing geocode data for ${pubId}: ${existingPub.country}, ${existingPub.region}`);
+        }
+        
         await syncPubToFirestore(pubData);
         successCount++;
       } catch (error) {

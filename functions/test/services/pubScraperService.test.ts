@@ -1,6 +1,5 @@
 import { scrapePubData, extractPostcode } from '../../src/services/pubScraperService';
 import * as geocodingService from '../../src/services/geocodingService';
-import { Pub } from '../../src/types/pub';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -102,61 +101,6 @@ describe('pubScraperService', () => {
       expect(result?.region).toBeUndefined();
       // Geocoding should be called but return null
       expect(geocodingService.geocodePostcode).toHaveBeenCalledWith('XX9 9XX');
-    });
-
-    it('should reuse existing country and region data instead of geocoding', async () => {
-      const url = 'https://www.jdwetherspoon.com/pubs/star-light-hounslow/';
-      const imageUrl = 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7649-feature.png';
-      
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        text: async () => samplePubHtml,
-      });
-
-      const existingPub: Partial<Pub> = {
-        id: 'star-light-hounslow',
-        name: 'Star Light',
-        country: 'England',
-        region: 'Greater London',
-      };
-
-      const result = await scrapePubData(url, imageUrl, existingPub as Pub);
-
-      expect(result).not.toBeNull();
-      expect(result?.country).toBe('England');
-      expect(result?.region).toBe('Greater London');
-      // Geocoding should NOT be called when existing data is available
-      expect(geocodingService.geocodePostcode).not.toHaveBeenCalled();
-    });
-
-    it('should geocode when existing record has no country/region data', async () => {
-      const url = 'https://www.jdwetherspoon.com/pubs/star-light-hounslow/';
-      const imageUrl = 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7649-feature.png';
-      
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        text: async () => samplePubHtml,
-      });
-
-      const existingPub: Partial<Pub> = {
-        id: 'star-light-hounslow',
-        name: 'Star Light',
-        // No country/region fields
-      };
-
-      // Mock successful geocoding
-      (geocodingService.geocodePostcode as jest.Mock).mockResolvedValue({
-        country: 'England',
-        region: 'Greater London',
-      });
-
-      const result = await scrapePubData(url, imageUrl, existingPub as Pub);
-
-      expect(result).not.toBeNull();
-      expect(result?.country).toBe('England');
-      expect(result?.region).toBe('Greater London');
-      // Geocoding SHOULD be called when existing record has no country/region
-      expect(geocodingService.geocodePostcode).toHaveBeenCalledWith('TW6 3XA');
     });
 
     it('should extract ID from URL correctly', async () => {

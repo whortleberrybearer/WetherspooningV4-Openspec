@@ -1,8 +1,8 @@
 import * as cheerio from 'cheerio';
-import { ScrapedPubData, Position, Pub } from '../types/pub';
+import { ScrapedPubData, Position } from '../types/pub';
 import { geocodePostcode } from './geocodingService';
 
-export async function scrapePubData(url: string, imageUrl: string, existingPub?: Pub | null): Promise<ScrapedPubData | null> {
+export async function scrapePubData(url: string, imageUrl: string): Promise<ScrapedPubData | null> {
   try {
     const html = await fetchPubPage(url);
     let name = extractPubName(html);
@@ -35,27 +35,17 @@ export async function scrapePubData(url: string, imageUrl: string, existingPub?:
     let country: string | undefined;
     let region: string | undefined;
     
-    // Only geocode if existing record doesn't have country/region data
-    if (existingPub?.country && existingPub?.region) {
-      // Use existing geocoded data
-      country = existingPub.country;
-      region = existingPub.region;
-      console.log(`Using existing geocode data for ${id}: ${country}, ${region}`);
-    } else {
-      // Geocode the postcode
-      const postcode = extractPostcode(address);
-      if (postcode) {
-        const geocodeResult = await geocodePostcode(postcode);
-        if (geocodeResult) {
-          country = geocodeResult.country;
-          region = geocodeResult.region;
-          console.log(`Geocoded ${id}: ${country}, ${region}`);
-        } else {
-          console.warn(`Failed to geocode postcode: ${postcode}`);
-        }
+    const postcode = extractPostcode(address);
+    if (postcode) {
+      const geocodeResult = await geocodePostcode(postcode);
+      if (geocodeResult) {
+        country = geocodeResult.country;
+        region = geocodeResult.region;
       } else {
-        console.warn(`No postcode found in address: ${address}`);
+        console.warn(`Failed to geocode postcode: ${postcode}`);
       }
+    } else {
+      console.warn(`No postcode found in address: ${address}`);
     }
     
     return {
