@@ -153,7 +153,7 @@ function extractTownCity(url: string, name: string): string {
   townSlug = townSlug.replace(/^-+|-+$/g, '');
   
   // Convert to proper case with special handling for certain prepositions
-  // Words like "under", "on", and "in" keep their hyphens (e.g., "Ashton-under-Lyne", "Stockton-on-Tees", "Barrow-in-Furness")
+  // Words like "under", "on", "in", and "cum" keep their hyphens (e.g., "Ashton-under-Lyne", "Stockton-on-Tees", "Barrow-in-Furness", "Chorlton-cum-Hardy")
   // Words like "of" and "upon" are lowercase with spaces (e.g., "City of London", "Kingston upon Thames")
   const parts = townSlug.split('-');
   const formattedParts: string[] = [];
@@ -165,7 +165,7 @@ function extractTownCity(url: string, name: string): string {
     if (word.length === 0) continue;
     
     // Check if this word should be special-cased
-    if (word === 'under' || word === 'on' || word === 'in') {
+    if (word === 'under' || word === 'on' || word === 'in' || word === 'cum') {
       // These words stay lowercase and keep hyphens around them
       formattedParts.push('HYPHEN', word, 'HYPHEN');
     } else if (word === 'of' || word === 'upon') {

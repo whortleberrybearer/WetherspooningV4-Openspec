@@ -564,6 +564,26 @@ describe('pubScraperService', () => {
       expect(result?.inTrainStation).toBe(false);
     });
 
+    it('should handle special townCity case with "cum" (Chorlton-cum-Hardy)', async () => {
+      const url = 'https://www.jdwetherspoon.com/pubs/the-royal-oak-chorlton-cum-hardy/';
+      const imageUrl = 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/1234-feature.png';
+      const chorltonCumHardyHtml = await fs.promises.readFile(
+        path.join(__dirname, '../fixtures/the-royal-oak-chorlton-cum-hardy-sample.html'),
+        'utf-8'
+      );
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => chorltonCumHardyHtml,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result).not.toBeNull();
+      expect(result?.townCity).toBe('Chorlton-cum-Hardy');
+      expect(result?.name).toBe('The Royal Oak');
+    });
+
     it('should handle pubs without map location (The Red Rocks Exmouth)', async () => {
       const url = 'https://www.jdwetherspoon.com/pubs/the-red-rocks-exmouth/';
       const imageUrl = 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/5667-feature.png';
