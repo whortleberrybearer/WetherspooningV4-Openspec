@@ -37,7 +37,12 @@ export async function syncPubToFirestore(pubData: ScrapedPubData): Promise<void>
       lastSyncedAt: Timestamp.now(),
     };
     
-    await db.collection('pubs').doc(pubData.id).set(pubDoc, { merge: true });
+    // Remove undefined values to avoid Firestore errors
+    const cleanedDoc = Object.fromEntries(
+      Object.entries(pubDoc).filter(([_, value]) => value !== undefined)
+    );
+    
+    await db.collection('pubs').doc(pubData.id).set(cleanedDoc, { merge: true });
     
     console.log(`✓ Synced pub to Firestore: ${pubData.id}`);
   } catch (error) {

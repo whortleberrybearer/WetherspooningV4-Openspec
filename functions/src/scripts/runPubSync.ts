@@ -9,7 +9,11 @@
  * - USE_PRODUCTION: Set to "true" to use production Firestore (requires credentials)
  */
 
+import dotenv from 'dotenv';
 import * as admin from 'firebase-admin';
+
+// Load environment variables from .env file
+dotenv.config();
 import { runPubSync } from '../scheduled/syncPubs';
 
 // Simple argument parser for --count and --start
