@@ -12,34 +12,55 @@
 import * as admin from 'firebase-admin';
 import { runPubSync } from '../scheduled/syncPubs';
 
+// Simple argument parser for --count and --start
+function parseArgs() {
+  const args = process.argv.slice(2);
+  let count: number | undefined;
+  let start = 0;
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--count' && args[i + 1]) {
+      count = parseInt(args[i + 1], 10);
+      i++;
+    } else if (args[i] === '--start' && args[i + 1]) {
+      start = parseInt(args[i + 1], 10);
+      i++;
+    } else if (!isNaN(Number(args[i]))) {
+      if (count === undefined) {
+        count = parseInt(args[i], 10);
+      } else {
+        start = parseInt(args[i], 10);
+      }
+    }
+  }
+  return { count, start };
+}
+
 async function main() {
-  // Initialize Firebase Admin for local execution
   if (!admin.apps.length) {
     const useProduction = process.env.USE_PRODUCTION === 'true';
-    
     if (!useProduction) {
-      // Use emulator by default
       process.env.FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || 'localhost:8080';
       console.log(`🔧 Using Firestore Emulator at ${process.env.FIRESTORE_EMULATOR_HOST}`);
     }
-    
-    admin.initializeApp({
-      projectId: 'demo-wetherspooning',
-    });
+    admin.initializeApp({ projectId: 'demo-wetherspooning' });
   }
-  
-  // Get limit from command line args, default to 5
-  const limit = process.argv[2] ? parseInt(process.argv[2], 10) : 5;
-  
-  if (isNaN(limit) || limit < 0) {
-    console.error('❌ Invalid limit. Please provide a positive number or 0 for all pubs.');
+
+  const { count, start } = parseArgs();
+
+  if (count !== undefined && (isNaN(count) || count < 0)) {
+    console.error('❌ Invalid count. Please provide a positive number or omit for all pubs.');
     process.exit(1);
   }
-  
-  console.log(`Running pub sync with limit: ${limit === 0 ? 'all pubs' : limit}`);
-  
+  if (isNaN(start) || start < 0) {
+    console.error('❌ Invalid start. Please provide a positive number or 0.');
+    process.exit(1);
+  }
+
+  console.log(`Running pub sync with count: ${count ?? 'all'}, start: ${start}`);
+
   try {
-    const result = await runPubSync(limit);
+    const result = await runPubSync(count, start);
     console.log('\n📊 Final Results:');
     console.log(`   ✅ Successful: ${result.successCount}`);
     console.log(`   ❌ Failed: ${result.failureCount}`);
