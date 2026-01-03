@@ -42,8 +42,10 @@ Currently, pub data only includes townCity and address fields but lacks standard
 ## Objectives
 1. Integrate Google Geocoding API to retrieve geographic metadata for pub addresses
 2. Extract postcode from pub address to use as geocoding query parameter
-3. Parse geocoding API response to extract country and county components
-4. Apply county extraction logic based on country (UK vs non-UK)
+3. Parse geocoding API response to extract country component
+4. Apply county extraction logic:
+   - If geocoding returns "Greater London", set county to "London"
+   - Otherwise, extract county from the penultimate (second-to-last) part of the address
 5. Store country and county in pub data model (as optional fields)
 6. Handle cases where geocoding fails or returns no valid results gracefully
 
@@ -89,10 +91,41 @@ Currently, pub data only includes townCity and address fields but lacks standard
 
 ## Success Criteria
 - Postcode extraction correctly identifies last address component
+- County extraction from address correctly identifies penultimate (second-to-last) component
 - Google Geocoding API is called with postcode parameter
 - API response is parsed successfully to extract address components
-- Country and county are correctly extracted for UK addresses
-- Country and county are correctly extracted for non-UK addresses
-- Geocoding failures leave country and county as undefined
-- Unit tests validate postcode extraction and response parsing
-- Integration tests verify end-to-end geocoding workflow
+- Special case: "Greater London" from geocoding is converted to "London"
+- For all other cases: County is extracted from penultimate part of address
+- Country is correctly extracted from geocoding for UK addresses
+- Country is correctly extracted from geocoding for non-UK addresses
+- Geocoding failures fall back to address parsing for county extraction
+- Unit tests validate postcode and county extraction logic
+- Integration tests verify end-to-end geocoding workflow with both API and fallback paths
+
+## Implementation Notes
+
+### County Extraction Logic
+The implementation uses a hybrid approach combining geocoding API results with address parsing:
+
+1. **Extract postcode** from the address (last comma-separated component)
+2. **Call Google Geocoding API** with the postcode
+3. **Determine county** using this logic:
+   - If geocoding succeeds and returns "Greater London" → use "London"
+   - If geocoding succeeds with any other value → extract county from penultimate address part
+   - If geocoding fails → extract county from penultimate address part
+
+**Examples:**
+- Address: "283–288 High Holborn, Holborn, Camden, WC1V 7HP"
+  - Geocode returns: "Greater London"
+  - Result: County = "London"
+
+- Address: "59 Lagland Street, Poole, Dorset, BH15 1QD"
+  - Geocode returns: "Bournemouth, Christchurch and Poole"
+  - Penultimate part: "Dorset"
+  - Result: County = "Dorset"
+
+### Fallback Behavior
+When geocoding fails (API error, timeout, invalid postcode):
+- Country remains undefined (no fallback)
+- County falls back to penultimate part of address
+- Warnings are logged for monitoring purposes

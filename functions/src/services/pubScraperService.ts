@@ -31,7 +31,7 @@ export async function scrapePubData(url: string, imageUrl: string): Promise<Scra
     const inAirport = extractInAirport(html, address);
     const inTrainStation = extractInTrainStation(html);
     
-    // Extract country and county via geocoding
+    // Extract country and county
     let country: string | undefined;
     let county: string | undefined;
     
@@ -40,12 +40,23 @@ export async function scrapePubData(url: string, imageUrl: string): Promise<Scra
       const geocodeResult = await geocodePostcode(postcode);
       if (geocodeResult) {
         country = geocodeResult.country;
-        county = geocodeResult.county;
+        
+        // Special case: "Greater London" -> "London"
+        if (geocodeResult.county === 'Greater London') {
+          county = 'London';
+        } else {
+          // For other cases, use penultimate part of address
+          county = extractCountyFromAddress(address) || undefined;
+        }
       } else {
         console.warn(`Failed to geocode postcode: ${postcode}`);
+        // Fallback to address parsing if geocoding fails
+        county = extractCountyFromAddress(address) || undefined;
       }
     } else {
       console.warn(`No postcode found in address: ${address}`);
+      // Fallback to address parsing if no postcode
+      county = extractCountyFromAddress(address) || undefined;
     }
     
     return {
@@ -158,6 +169,32 @@ export function extractPostcode(address: string): string | null {
   
   const lastPart = parts[parts.length - 1].trim();
   return lastPart || null;
+}
+
+/**
+ * Extracts the county from an address by taking the penultimate (second-to-last) part.
+ * Address parts are separated by commas.
+ * 
+ * Example: "59 Lagland Street, Poole, Dorset, BH15 1QD" -> "Dorset"
+ * Example: "283–288 High Holborn, Holborn, Camden, WC1V 7HP" -> "Camden"
+ * 
+ * @param address - Full address string
+ * @returns County name or null if address doesn't have enough parts
+ */
+export function extractCountyFromAddress(address: string): string | null {
+  if (!address) {
+    return null;
+  }
+  
+  const parts = address.split(',').map(p => p.trim()).filter(p => p.length > 0);
+  
+  // Need at least 2 parts to get penultimate
+  if (parts.length < 2) {
+    return null;
+  }
+  
+  // Return second-to-last part
+  return parts[parts.length - 2];
 }
 
 function extractTownCity(url: string, name: string, address: string): string {

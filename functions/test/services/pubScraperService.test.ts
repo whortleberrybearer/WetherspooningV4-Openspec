@@ -1,4 +1,4 @@
-import { scrapePubData, extractPostcode } from '../../src/services/pubScraperService';
+import { scrapePubData, extractPostcode, extractCountyFromAddress } from '../../src/services/pubScraperService';
 import * as geocodingService from '../../src/services/geocodingService';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -52,7 +52,8 @@ describe('pubScraperService', () => {
       expect(result?.inAirport).toBe(true); // Address contains 'Heathrow Airport'
       expect(result?.inTrainStation).toBe(false);
       expect(result?.country).toBeUndefined();
-      expect(result?.county).toBeUndefined();
+      // Fallback to address parsing: penultimate part is "Middlesex"
+      expect(result?.county).toBe('Middlesex');
     });
 
     it('should include country and county when geocoding succeeds', async () => {
@@ -74,7 +75,8 @@ describe('pubScraperService', () => {
 
       expect(result).not.toBeNull();
       expect(result?.country).toBe('England');
-      expect(result?.county).toBe('Greater London');
+      // Greater London -> London per spec
+      expect(result?.county).toBe('London');
       expect(geocodingService.geocodePostcode).toHaveBeenCalledWith('TW6 3XA');
     });
 
@@ -98,7 +100,8 @@ describe('pubScraperService', () => {
 
       expect(result).not.toBeNull();
       expect(result?.country).toBeUndefined();
-      expect(result?.county).toBeUndefined();
+      // Fallback to address parsing: "123 Test Street, Test City, XX9 9XX" -> "Test City"
+      expect(result?.county).toBe('Test City');
       // Geocoding should be called but return null
       expect(geocodingService.geocodePostcode).toHaveBeenCalledWith('XX9 9XX');
     });
@@ -726,6 +729,62 @@ describe('pubScraperService', () => {
       const address = 'Haven, Devon Cliffs Holiday Park, Sandy Bay, Exmouth, Devon, EX8 5BT';
       const result = extractPostcode(address);
       expect(result).toBe('EX8 5BT');
+    });
+  });
+
+  describe('extractCountyFromAddress', () => {
+    it('should extract county from standard 4-part address (example from spec)', () => {
+      const address = '59 Lagland Street, Poole, Dorset, BH15 1QD';
+      const result = extractCountyFromAddress(address);
+      expect(result).toBe('Dorset');
+    });
+
+    it('should extract county from 5-part address (example from spec)', () => {
+      const address = '283–288 High Holborn, Holborn, Camden, WC1V 7HP';
+      const result = extractCountyFromAddress(address);
+      expect(result).toBe('Camden');
+    });
+
+    it('should extract county from Heathrow address', () => {
+      const address = 'Heathrow Airport, Terminal 4 (after security), Hounslow, Middlesex, TW6 3XA';
+      const result = extractCountyFromAddress(address);
+      expect(result).toBe('Middlesex');
+    });
+
+    it('should extract county from Devon address', () => {
+      const address = 'Haven, Devon Cliffs Holiday Park, Sandy Bay, Exmouth, Devon, EX8 5BT';
+      const result = extractCountyFromAddress(address);
+      expect(result).toBe('Devon');
+    });
+
+    it('should return null for single-part address', () => {
+      const address = 'OnePart';
+      const result = extractCountyFromAddress(address);
+      expect(result).toBeNull();
+    });
+
+    it('should return first part for 2-part address', () => {
+      const address = 'Town, Postcode';
+      const result = extractCountyFromAddress(address);
+      expect(result).toBe('Town');
+    });
+
+    it('should return null for empty address', () => {
+      const address = '';
+      const result = extractCountyFromAddress(address);
+      expect(result).toBeNull();
+    });
+
+    it('should handle address with extra whitespace', () => {
+      const address = ' Street , Town , County , Postcode ';
+      const result = extractCountyFromAddress(address);
+      expect(result).toBe('County');
+    });
+
+    it('should filter out empty parts from consecutive commas', () => {
+      const address = 'Street,, Town, County, Postcode';
+      const result = extractCountyFromAddress(address);
+      expect(result).toBe('County');
     });
   });
 });

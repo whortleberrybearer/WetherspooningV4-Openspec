@@ -97,6 +97,9 @@ export async function geocodePostcode(postcode: string): Promise<GeocodeResult |
  * - country = country component
  * - county = administrative_area_level_1
  * 
+ * Note: The county value is used for special case detection (e.g., "Greater London")
+ * but the final county value may be overridden by address parsing logic in the scraper.
+ * 
  * @param addressComponents - Array of address components from Google Geocoding API
  * @returns GeocodeResult with extracted country and county
  */
