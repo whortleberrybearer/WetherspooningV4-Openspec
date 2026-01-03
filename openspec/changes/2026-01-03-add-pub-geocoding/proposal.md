@@ -44,7 +44,7 @@ Currently, pub data only includes townCity and address fields but lacks standard
 2. Extract postcode from pub address to use as geocoding query parameter
 3. Parse geocoding API response to extract country component
 4. Apply county extraction logic:
-   - If geocoding returns "Greater London", set county to "London"
+   - If geocoding returns "Greater London" or "Greater Manchester", use that as the county
    - Otherwise, extract county from the penultimate (second-to-last) part of the address
 5. Store country and county in pub data model (as optional fields)
 6. Handle cases where geocoding fails or returns no valid results gracefully
@@ -110,14 +110,19 @@ The implementation uses a hybrid approach combining geocoding API results with a
 1. **Extract postcode** from the address (last comma-separated component)
 2. **Call Google Geocoding API** with the postcode
 3. **Determine county** using this logic:
-   - If geocoding succeeds and returns "Greater London" → use "London"
+   - If geocoding succeeds and returns "Greater London" → use "Greater London"
+   - If geocoding succeeds and returns "Greater Manchester" → use "Greater Manchester"
    - If geocoding succeeds with any other value → extract county from penultimate address part
    - If geocoding fails → extract county from penultimate address part
 
 **Examples:**
 - Address: "283–288 High Holborn, Holborn, Camden, WC1V 7HP"
   - Geocode returns: "Greater London"
-  - Result: County = "London"
+  - Result: County = "Greater London"
+
+- Address: "123 Deansgate, Manchester, Greater Manchester, M3 2BQ"
+  - Geocode returns: "Greater Manchester"
+  - Result: County = "Greater Manchester"
 
 - Address: "59 Lagland Street, Poole, Dorset, BH15 1QD"
   - Geocode returns: "Bournemouth, Christchurch and Poole"

@@ -42,9 +42,9 @@ export async function scrapePubData(url: string, imageUrl: string): Promise<Scra
       if (geocodeResult) {
         country = geocodeResult.country;
         
-        // Special case: "Greater London" -> "London"
-        if (geocodeResult.county === 'Greater London') {
-          county = 'London';
+        // Special cases: Use geocoding result for Greater London and Greater Manchester
+        if (geocodeResult.county === 'Greater London' || geocodeResult.county === 'Greater Manchester') {
+          county = geocodeResult.county;
         } else {
           // For other cases, use penultimate part of address
           county = extractCountyFromAddress(address) || undefined;

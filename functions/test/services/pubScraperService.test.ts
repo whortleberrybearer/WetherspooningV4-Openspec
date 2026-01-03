@@ -75,8 +75,8 @@ describe('pubScraperService', () => {
 
       expect(result).not.toBeNull();
       expect(result?.country).toBe('England');
-      // Greater London -> London per spec
-      expect(result?.county).toBe('London');
+      // Greater London kept as-is per spec
+      expect(result?.county).toBe('Greater London');
       expect(geocodingService.geocodePostcode).toHaveBeenCalledWith('TW6 3XA');
     });
 
