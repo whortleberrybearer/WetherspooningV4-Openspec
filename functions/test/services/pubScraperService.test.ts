@@ -254,6 +254,26 @@ describe('pubScraperService', () => {
       expect(result?.townCity).toBe('Stockton-on-Tees');
     });
 
+    it('should handle townCity with "in" (Barrow-in-Furness)', async () => {
+      const url = 'https://www.jdwetherspoon.com/pubs/the-furness-railway-barrow-in-furness/';
+      const imageUrl = 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/2468-feature.png';
+      const barrowInFurnessHtml = fs.readFileSync(
+        path.join(__dirname, '../fixtures/the-furness-railway-barrow-in-furness-sample.html'),
+        'utf-8'
+      );
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => barrowInFurnessHtml,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result).not.toBeNull();
+      expect(result?.name).toBe('The Furness Railway');
+      expect(result?.townCity).toBe('Barrow-in-Furness');
+    });
+
     it('should return null when fetch fails', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
