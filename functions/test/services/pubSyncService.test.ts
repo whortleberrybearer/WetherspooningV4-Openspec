@@ -23,8 +23,9 @@ describe('pubSyncService', () => {
 
   describe('syncPubToFirestore', () => {
     it('should write pub data to Firestore', async () => {
+      const testUuid = '550e8400-e29b-41d4-a716-446655440000';
       const pubData: ScrapedPubData = {
-        id: 'star-light-hounslow',
+        id: testUuid,
         name: 'Star Light',
         url: 'https://www.jdwetherspoon.com/pubs/star-light-hounslow/',
         imageUrl: 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7649-feature.png',
@@ -40,10 +41,10 @@ describe('pubSyncService', () => {
       await syncPubToFirestore(pubData);
 
       expect(mockCollection).toHaveBeenCalledWith('pubs');
-      expect(mockDoc).toHaveBeenCalledWith('star-light-hounslow');
+      expect(mockDoc).toHaveBeenCalledWith(testUuid);
       expect(mockSet).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: 'star-light-hounslow',
+          id: testUuid,
           name: 'Star Light',
           url: pubData.url,
           imageUrl: pubData.imageUrl,

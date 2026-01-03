@@ -1,7 +1,7 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { getSitemapUrls } from '../services/sitemapService';
 import { scrapePubData } from '../services/pubScraperService';
-import { syncPubToFirestore, getExistingPub } from '../services/pubSyncService';
+import { syncPubToFirestore, getExistingPubByUrl } from '../services/pubSyncService';
 
 /**
  * Core pub sync function that can be run independently
@@ -29,10 +29,8 @@ export async function runPubSync(count?: number, start: number = 0): Promise<{ s
       try {
         console.log(`🔍 Processing pub: ${entry.url}`);
         
-        // Extract pub ID from URL to check for existing record
-        const urlParts = entry.url.replace(/\/$/, '').split('/');
-        const pubId = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
-        const existingPub = await getExistingPub(pubId);
+        // Check for existing pub by URL
+        const existingPub = await getExistingPubByUrl(entry.url);
         
         const pubData = await scrapePubData(entry.url, entry.imageUrl);
         if (!pubData) {
@@ -41,11 +39,16 @@ export async function runPubSync(count?: number, start: number = 0): Promise<{ s
           continue;
         }
         
-        // Reuse existing country/county data if scraping didn't provide it
-        if (existingPub?.country && existingPub?.county && !pubData.country && !pubData.county) {
-          pubData.country = existingPub.country;
-          pubData.county = existingPub.county;
-          console.log(`📍 Reusing existing geocode data for ${pubId}: ${existingPub.country}, ${existingPub.county}`);
+        // If pub already exists, reuse its ID
+        if (existingPub) {
+          pubData.id = existingPub.id;
+          
+          // Reuse existing country/county data if scraping didn't provide it
+          if (existingPub.country && existingPub.county && !pubData.country && !pubData.county) {
+            pubData.country = existingPub.country;
+            pubData.county = existingPub.county;
+            console.log(`📍 Reusing existing geocode data for ${existingPub.id}: ${existingPub.country}, ${existingPub.county}`);
+          }
         }
         
         await syncPubToFirestore(pubData);

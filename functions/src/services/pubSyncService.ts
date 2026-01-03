@@ -17,6 +17,22 @@ export async function getExistingPub(pubId: string): Promise<Pub | null> {
   }
 }
 
+export async function getExistingPubByUrl(url: string): Promise<Pub | null> {
+  try {
+    const db = getFirestore();
+    const querySnapshot = await db.collection('pubs').where('url', '==', url).limit(1).get();
+    
+    if (querySnapshot.empty) {
+      return null;
+    }
+    
+    return querySnapshot.docs[0].data() as Pub;
+  } catch (error) {
+    console.error(`Error fetching existing pub by URL ${url}:`, error);
+    return null;
+  }
+}
+
 export async function syncPubToFirestore(pubData: ScrapedPubData): Promise<void> {
   try {
     const db = getFirestore();

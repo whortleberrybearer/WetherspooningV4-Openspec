@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import { randomUUID } from 'crypto';
 import { ScrapedPubData, Position } from '../types/pub';
 import { geocodePostcode } from './geocodingService';
 
@@ -18,7 +19,7 @@ export async function scrapePubData(url: string, imageUrl: string): Promise<Scra
       return null;
     }
     
-    const id = extractIdFromUrl(url);
+    const id = generatePubId();
     // Extract townCity first, passing the raw name and address
     const townCity = extractTownCity(url, name, address);
     
@@ -129,12 +130,9 @@ function cleanPubName(name: string, townCity: string): string {
   return name;
 }
 
-function extractIdFromUrl(url: string): string {
-  // Extract the last segment of the URL path as the ID
-  // e.g., "https://www.jdwetherspoon.com/pubs/star-light-hounslow/"
-  // becomes "star-light-hounslow"
-  const parts = url.replace(/\/$/, '').split('/');
-  return parts[parts.length - 1] || parts[parts.length - 2];
+function generatePubId(): string {
+  // Generate a unique GUID for the pub
+  return randomUUID();
 }
 
 function extractAddress(html: string): string | null {

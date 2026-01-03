@@ -40,7 +40,7 @@ describe('pubScraperService', () => {
       const result = await scrapePubData(url, imageUrl);
 
       expect(result).not.toBeNull();
-      expect(result?.id).toBe('star-light-hounslow');
+      expect(result?.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i); // UUID format
       expect(result?.name).toBe('Star Light');
       expect(result?.url).toBe(url);
       expect(result?.imageUrl).toBe(imageUrl);
@@ -117,7 +117,7 @@ describe('pubScraperService', () => {
 
       const result = await scrapePubData(url, imageUrl);
 
-      expect(result?.id).toBe('the-standing-order');
+      expect(result?.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i); // UUID format
     });
 
     it('should handle HTML entities in pub name', async () => {
@@ -192,7 +192,7 @@ describe('pubScraperService', () => {
       const result = await scrapePubData(url, imageUrl);
 
       expect(result).not.toBeNull();
-      expect(result?.id).toBe('j-j-moons-wembley');
+      expect(result?.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i); // UUID format
       expect(result?.name).toBe('J.J. Moon\'s');
       expect(result?.townCity).toBe('Wembley');
       expect(result?.url).toBe(url);
@@ -221,7 +221,7 @@ describe('pubScraperService', () => {
       const result = await scrapePubData(url, imageUrl);
 
       expect(result).not.toBeNull();
-      expect(result?.id).toBe('emersons-green-bristol-2');
+      expect(result?.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i); // UUID format
       expect(result?.name).toBe('Emersons Green');
       expect(result?.townCity).toBe('Bristol');
       expect(result?.url).toBe(url);
@@ -656,7 +656,7 @@ describe('pubScraperService', () => {
       const result = await scrapePubData(url, imageUrl);
 
       expect(result).not.toBeNull();
-      expect(result?.id).toBe('the-red-rocks-exmouth');
+      expect(result?.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i); // UUID format
       expect(result?.name).toBe('The Red Rocks');
       expect(result?.url).toBe(url);
       expect(result?.imageUrl).toBe(imageUrl);
