@@ -4,7 +4,7 @@ import { ScrapedPubData, Position } from '../types/pub';
 export async function scrapePubData(url: string, imageUrl: string): Promise<ScrapedPubData | null> {
   try {
     const html = await fetchPubPage(url);
-    const name = extractPubName(html);
+    let name = extractPubName(html);
     
     if (!name) {
       console.warn(`Could not extract pub name from ${url}`);
@@ -18,7 +18,12 @@ export async function scrapePubData(url: string, imageUrl: string): Promise<Scra
     }
     
     const id = extractIdFromUrl(url);
+    // Extract townCity first, passing the raw name
     const townCity = extractTownCity(url, name);
+    
+    // Clean the name by removing location suffix if it matches townCity
+    name = cleanPubName(name, townCity);
+    
     const position = extractPosition(html);
     const openState = extractOpenState(html);
     const isHotel = extractIsHotel(html);
@@ -72,6 +77,27 @@ function extractPubName(html: string): string | null {
   return text || null;
 }
 
+function cleanPubName(name: string, townCity: string): string {
+  // Some pub names include the location as a suffix separated by comma
+  // e.g., "The Moon Under Water, Hounslow"
+  // If the name contains a comma, check if the part after the comma matches townCity
+  if (name.includes(',')) {
+    const parts = name.split(',').map(part => part.trim());
+    if (parts.length === 2) {
+      // Compare ignoring case
+      const suffix = parts[1].toLowerCase();
+      const town = townCity.toLowerCase();
+      
+      // If the suffix matches the town/city, use only the first part
+      if (suffix === town) {
+        return parts[0];
+      }
+    }
+  }
+  
+  return name;
+}
+
 function extractIdFromUrl(url: string): string {
   // Extract the last segment of the URL path as the ID
   // e.g., "https://www.jdwetherspoon.com/pubs/star-light-hounslow/"
@@ -96,9 +122,16 @@ function extractAddress(html: string): string | null {
 function extractTownCity(url: string, name: string): string {
   const urlSlug = url.replace(/\/$/, '').split('/').pop() || '';
   
+  // If name contains a comma, use only the part before the comma for slug generation
+  // e.g., "The Moon Under Water, Hounslow" -> "The Moon Under Water"
+  let baseName = name;
+  if (name.includes(',')) {
+    baseName = name.split(',')[0].trim();
+  }
+  
   // Generate slug from name (remove non-alphanumeric except spaces, then replace spaces with hyphens)
   // This matches how URLs are typically created (apostrophes removed, not replaced)
-  const nameSlug = name
+  const nameSlug = baseName
     .toLowerCase()
     .replace(/[^a-z0-9 ]/g, '')  // Remove all non-alphanumeric characters except spaces
     .replace(/\s+/g, '-')         // Replace spaces with hyphens

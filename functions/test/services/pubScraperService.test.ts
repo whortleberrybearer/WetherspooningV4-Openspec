@@ -96,6 +96,26 @@ describe('pubScraperService', () => {
       expect(result?.name).toBe('The Crown & Anchor');
     });
 
+    it('should strip location suffix from pub name when separated by comma', async () => {
+      const htmlWithLocationSuffix = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">The Moon Under Water, Hounslow</h1>
+        <div class="pub-address-inner"><span>123 High Street, Hounslow</span></div>
+      </body></html>`;
+      const url = 'https://www.jdwetherspoon.com/pubs/the-moon-under-water-hounslow/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithLocationSuffix,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      // Name should have location suffix removed
+      expect(result?.name).toBe('The Moon Under Water');
+      expect(result?.townCity).toBe('Hounslow');
+    });
+
     it('should return null when fetch fails', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
