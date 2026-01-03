@@ -52,10 +52,10 @@ describe('pubScraperService', () => {
       expect(result?.inAirport).toBe(true); // Address contains 'Heathrow Airport'
       expect(result?.inTrainStation).toBe(false);
       expect(result?.country).toBeUndefined();
-      expect(result?.region).toBeUndefined();
+      expect(result?.county).toBeUndefined();
     });
 
-    it('should include country and region when geocoding succeeds', async () => {
+    it('should include country and county when geocoding succeeds', async () => {
       const url = 'https://www.jdwetherspoon.com/pubs/star-light-hounslow/';
       const imageUrl = 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7649-feature.png';
       
@@ -67,14 +67,14 @@ describe('pubScraperService', () => {
       // Mock successful geocoding
       (geocodingService.geocodePostcode as jest.Mock).mockResolvedValue({
         country: 'England',
-        region: 'Greater London',
+        county: 'Greater London',
       });
 
       const result = await scrapePubData(url, imageUrl);
 
       expect(result).not.toBeNull();
       expect(result?.country).toBe('England');
-      expect(result?.region).toBe('Greater London');
+      expect(result?.county).toBe('Greater London');
       expect(geocodingService.geocodePostcode).toHaveBeenCalledWith('TW6 3XA');
     });
 
@@ -98,7 +98,7 @@ describe('pubScraperService', () => {
 
       expect(result).not.toBeNull();
       expect(result?.country).toBeUndefined();
-      expect(result?.region).toBeUndefined();
+      expect(result?.county).toBeUndefined();
       // Geocoding should be called but return null
       expect(geocodingService.geocodePostcode).toHaveBeenCalledWith('XX9 9XX');
     });

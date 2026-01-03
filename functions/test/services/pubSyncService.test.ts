@@ -314,7 +314,7 @@ describe('pubSyncService', () => {
       expect(writtenData.inTrainStation).toBe(true);
     });
 
-    it('should include country and region in written data', async () => {
+    it('should include country and county in written data', async () => {
       const pubData: ScrapedPubData = {
         id: 'test-pub',
         name: 'Test Pub',
@@ -323,7 +323,7 @@ describe('pubSyncService', () => {
         address: '123 Test Street, London, SW1A 1AA',
         townCity: 'London',
         country: 'England',
-        region: 'Greater London',
+        county: 'Greater London',
         position: { lat: 51.5, lng: -0.1 },
         openState: 'Open',
         isHotel: false,
@@ -335,7 +335,7 @@ describe('pubSyncService', () => {
 
       const writtenData = mockSet.mock.calls[0][0];
       expect(writtenData.country).toBe('England');
-      expect(writtenData.region).toBe('Greater London');
+      expect(writtenData.county).toBe('Greater London');
     });
   });
 
@@ -345,7 +345,7 @@ describe('pubSyncService', () => {
         id: 'test-pub',
         name: 'Test Pub',
         country: 'England',
-        region: 'Greater London',
+        county: 'Greater London',
         lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 },
       };
 

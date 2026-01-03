@@ -7,7 +7,7 @@
 
 export interface GeocodeResult {
   country: string | undefined;
-  region: string | undefined;
+  county: string | undefined;
 }
 
 interface AddressComponent {
@@ -24,10 +24,10 @@ interface GoogleGeocodeResponse {
 }
 
 /**
- * Geocodes a postcode to extract country and region information.
+ * Geocodes a postcode to extract country and county information.
  * 
  * @param postcode - The postcode to geocode (e.g., "M1 1AA")
- * @returns GeocodeResult with country and region, or null if geocoding fails
+ * @returns GeocodeResult with country and county, or null if geocoding fails
  */
 export async function geocodePostcode(postcode: string): Promise<GeocodeResult | null> {
   const apiKey = process.env.GOOGLE_GEOCODING_API_KEY;
@@ -71,7 +71,7 @@ export async function geocodePostcode(postcode: string): Promise<GeocodeResult |
     const result = parseAddressComponents(addressComponents);
     
     // Return null if parsing failed to extract valid data
-    if (!result.country && !result.region) {
+    if (!result.country && !result.county) {
       return null;
     }
     
@@ -87,50 +87,50 @@ export async function geocodePostcode(postcode: string): Promise<GeocodeResult |
 }
 
 /**
- * Parses Google Geocoding API address components to extract country and region.
+ * Parses Google Geocoding API address components to extract country and county.
  * 
  * For UK addresses:
  * - country = administrative_area_level_1 (England, Scotland, Wales, Northern Ireland)
- * - region = administrative_area_level_2 OR postal_town (fallback)
+ * - county = administrative_area_level_2 OR postal_town (fallback)
  * 
  * For non-UK addresses:
  * - country = country component
- * - region = administrative_area_level_1
+ * - county = administrative_area_level_1
  * 
- * @param components - Array of address components from Google Geocoding API
- * @returns GeocodeResult with extracted country and region
+ * @param addressComponents - Array of address components from Google Geocoding API
+ * @returns GeocodeResult with extracted country and county
  */
 export function parseAddressComponents(components: AddressComponent[]): GeocodeResult {
   if (!components || components.length === 0) {
-    return { country: undefined, region: undefined };
+    return { country: undefined, county: undefined };
   }
 
   // Find the country component
   const countryComponent = components.find(c => c.types.includes('country'));
   
   if (!countryComponent) {
-    return { country: undefined, region: undefined };
+    return { country: undefined, county: undefined };
   }
 
   const isUK = countryComponent.short_name === 'GB';
 
   if (isUK) {
-    // For UK: country is admin_level_1, region is admin_level_2 or postal_town
+    // For UK: country is admin_level_1, county is admin_level_2 or postal_town
     const adminLevel1 = components.find(c => c.types.includes('administrative_area_level_1'));
     const adminLevel2 = components.find(c => c.types.includes('administrative_area_level_2'));
     const postalTown = components.find(c => c.types.includes('postal_town'));
 
     const country = adminLevel1?.long_name;
-    const region = adminLevel2?.long_name || postalTown?.long_name;
+    const county = adminLevel2?.long_name || postalTown?.long_name;
 
-    return { country, region };
+    return { country, county };
   } else {
-    // For non-UK: country is country, region is admin_level_1
+    // For non-UK: country is country, county is admin_level_1
     const adminLevel1 = components.find(c => c.types.includes('administrative_area_level_1'));
 
     const country = countryComponent.long_name;
-    const region = adminLevel1?.long_name;
+    const county = adminLevel1?.long_name;
 
-    return { country, region };
+    return { country, county };
   }
 }

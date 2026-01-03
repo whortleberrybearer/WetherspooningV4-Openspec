@@ -28,7 +28,7 @@ export async function syncPubToFirestore(pubData: ScrapedPubData): Promise<void>
       address: pubData.address,
       townCity: pubData.townCity,
       country: pubData.country,
-      region: pubData.region,
+      county: pubData.county,
       position: pubData.position,
       openState: pubData.openState,
       isHotel: pubData.isHotel,

@@ -31,16 +31,16 @@ export async function scrapePubData(url: string, imageUrl: string): Promise<Scra
     const inAirport = extractInAirport(html, address);
     const inTrainStation = extractInTrainStation(html);
     
-    // Extract country and region via geocoding
+    // Extract country and county via geocoding
     let country: string | undefined;
-    let region: string | undefined;
+    let county: string | undefined;
     
     const postcode = extractPostcode(address);
     if (postcode) {
       const geocodeResult = await geocodePostcode(postcode);
       if (geocodeResult) {
         country = geocodeResult.country;
-        region = geocodeResult.region;
+        county = geocodeResult.county;
       } else {
         console.warn(`Failed to geocode postcode: ${postcode}`);
       }
@@ -56,7 +56,7 @@ export async function scrapePubData(url: string, imageUrl: string): Promise<Scra
       address: address.trim(),
       townCity,
       country,
-      region,
+      county,
       position,
       openState,
       isHotel,

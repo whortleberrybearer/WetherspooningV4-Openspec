@@ -13,7 +13,7 @@ export interface Pub {
   address: string;
   townCity: string;
   country?: string;
-  region?: string;
+  county?: string;
   position: Position | null;
   openState: string;
   isHotel: boolean;
@@ -30,7 +30,7 @@ export interface ScrapedPubData {
   address: string;
   townCity: string;
   country?: string;
-  region?: string;
+  county?: string;
   position: Position | null;
   openState: string;
   isHotel: boolean;

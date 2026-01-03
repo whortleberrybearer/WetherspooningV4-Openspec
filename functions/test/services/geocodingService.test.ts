@@ -51,7 +51,7 @@ describe('geocodingService', () => {
 
       expect(result).toEqual({
         country: 'England',
-        region: 'Greater London',
+        county: 'Greater London',
       });
       expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('https://maps.googleapis.com/maps/api/geocode/json'),
@@ -84,7 +84,7 @@ describe('geocodingService', () => {
 
       expect(result).toEqual({
         country: 'Scotland',
-        region: 'Edinburgh',
+        county: 'Edinburgh',
       });
     });
 
@@ -111,7 +111,7 @@ describe('geocodingService', () => {
 
       expect(result).toEqual({
         country: 'United States',
-        region: 'California',
+        county: 'California',
       });
     });
 
@@ -185,7 +185,7 @@ describe('geocodingService', () => {
 
       expect(result).toEqual({
         country: 'Wales',
-        region: 'Cardiff',
+        county: 'Cardiff',
       });
     });
 
@@ -212,7 +212,7 @@ describe('geocodingService', () => {
 
       expect(result).toEqual({
         country: 'Northern Ireland',
-        region: 'Belfast',
+        county: 'Belfast',
       });
     });
 
@@ -274,7 +274,7 @@ describe('geocodingService', () => {
 
       expect(result).toEqual({
         country: 'England',
-        region: undefined,
+        county: undefined,
       });
     });
 
@@ -299,7 +299,7 @@ describe('geocodingService', () => {
 
       expect(result).toEqual({
         country: 'United States',
-        region: undefined,
+        county: undefined,
       });
     });
 

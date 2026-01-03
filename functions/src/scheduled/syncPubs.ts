@@ -41,11 +41,11 @@ export async function runPubSync(count?: number, start: number = 0): Promise<{ s
           continue;
         }
         
-        // Reuse existing country/region data if scraping didn't provide it
-        if (existingPub?.country && existingPub?.region && !pubData.country && !pubData.region) {
+        // Reuse existing country/county data if scraping didn't provide it
+        if (existingPub?.country && existingPub?.county && !pubData.country && !pubData.county) {
           pubData.country = existingPub.country;
-          pubData.region = existingPub.region;
-          console.log(`📍 Reusing existing geocode data for ${pubId}: ${existingPub.country}, ${existingPub.region}`);
+          pubData.county = existingPub.county;
+          console.log(`📍 Reusing existing geocode data for ${pubId}: ${existingPub.country}, ${existingPub.county}`);
         }
         
         await syncPubToFirestore(pubData);
