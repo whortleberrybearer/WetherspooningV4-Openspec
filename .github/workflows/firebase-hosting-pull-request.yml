@@ -33,8 +33,8 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/Wetherspooning && npm run build
 
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_WETHERSPOONING_LIVE }}
-          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
+      - name: Deploy all Firebase services
+        run: |
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_WETHERSPOONING_LIVE }}" > ${HOME}/gcloud.json
+          npm install -g firebase-tools
+          firebase deploy --project ${{ vars.FIREBASE_PROJECT_ID }} --token "$(firebase login:ci --no-localhost --json < ${HOME}/gcloud.json)" --only hosting,functions,firestore
