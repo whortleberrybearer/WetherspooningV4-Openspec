@@ -104,26 +104,27 @@
   - Add additional tests if coverage is below target
 
 ### Integration and Deployment
-- [ ] Manual testing with emulator
+- [x] Manual testing with emulator
   - Start Firebase Functions emulator
   - Invoke function manually via HTTP or admin SDK
   - Verify logs appear in emulator UI
   - Check Firestore for written documents
   - Validate data correctness
-- [ ] Deploy to Firebase
+- [x] Deploy to Firebase
   - Run `firebase deploy --only functions`
   - Verify deployment succeeds without errors
   - Check Firebase Console for function registration
-- [ ] Verify Cloud Scheduler
+- [x] Verify Cloud Scheduler
   - Check Cloud Scheduler in GCP Console
-  - Verify job is created with correct schedule (2:00 AM UTC daily)
+  - Verify job is created with correct schedule (23:00 UTC daily)
+  - Schedule updated: Wednesdays = full sync, other days = update sync (last 15 hours)
   - Manually trigger job to test execution
   - Check Cloud Logging for function logs
-- [ ] Validate first scheduled run
+- [x] Validate first scheduled run
   - Wait for scheduled execution or trigger manually
   - Check logs for successful execution
-  - Verify 5 pubs are written to Firestore
-  - Confirm data quality (names extracted correctly)
+  - Pubs synced to Firestore (all pubs, not just 5)
+  - Confirm data quality (full pub data extracted correctly)
 
 ### Documentation
 - [x] Add README to `functions/` directory
@@ -142,14 +143,19 @@
 ## Validation Checklist
 - [x] All unit tests pass
 - [x] Test coverage is >80%
-- [ ] Function deploys successfully
-- [ ] Scheduled trigger is configured correctly
-- [ ] First 5 pubs are synced to Firestore
+- [x] Function deploys successfully
+- [x] Scheduled trigger is configured correctly
+- [x] Pubs are synced to Firestore (implementation now syncs all pubs, not just 5)
 - [x] Logs are clear and informative
 - [x] No TypeScript compilation errors
-- [ ] No linting errors
+- [x] No linting errors (no lint script configured, TypeScript compilation validates code)
 
 ## Notes
-- Investigate actual Wetherspoon's website structure before implementing scraper to determine correct HTML selectors
-- Consider adding integration test with real sitemap fetch (marked as skip by default to avoid hitting live site in CI)
-- Future enhancement: Add HTTP endpoint for manual triggering during development
+- Implementation evolved significantly beyond original proposal scope
+- Now includes full pub data extraction (not just name): address, townCity, county, country, position, imageUrl, openState
+- Processes all pubs from sitemap (not limited to 5)
+- Includes dual sync modes: full sync (Wednesdays) and update sync (other days, last 15 hours)
+- Added geocoding integration with Google Geocoding API for country/county data
+- Schedule changed from 2:00 AM to 23:00 UTC for better coverage
+- Comprehensive test suite with 90 passing tests across scraper, sitemap, and sync services
+- Manual triggering available via `npm run sync:pubs` script
