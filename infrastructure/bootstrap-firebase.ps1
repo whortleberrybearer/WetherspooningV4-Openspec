@@ -45,13 +45,19 @@ foreach ($api in $apis) {
     gcloud services enable $api --project $ProjectId
 }
 
+
 # 4. Add Firebase to project
 Write-Host "Adding Firebase to project: $ProjectId"
+$firebaseLoginCheck = firebase login:list 2>&1
+if ($firebaseLoginCheck -match "No authorized accounts") {
+    Write-Host "No Firebase CLI authentication found. Launching 'firebase login'..."
+    firebase login
+}
 firebase projects:addfirebase $ProjectId
 
-# 5. Initialize Firestore (in native mode, region europe-west2)
+# 5. Initialize Firestore (in native mode, location europe-west2)
 Write-Host "Creating Firestore database in europe-west2"
-gcloud firestore databases create --project $ProjectId --region=europe-west2
+gcloud firestore databases create --project $ProjectId --location=europe-west2
 
 # 6. Deploy Firebase config (from repo root)
 Write-Host "Deploying Firebase configuration"

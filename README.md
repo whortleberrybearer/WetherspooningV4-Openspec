@@ -23,6 +23,11 @@ Before you begin, ensure you have the following tools installed:
 	```
 - Docs: https://cloud.google.com/sdk/docs
 
+**Note:** The script uses `gcloud beta billing` commands. Make sure the beta components are installed:
+```sh
+gcloud components install beta
+```
+
 Continue to the next section for project setup and automation scripts.
 
 ## Automated Project Bootstrap (PowerShell)
@@ -36,15 +41,6 @@ You can automate the creation and setup of your Firebase/GCP project using the p
 
 ### Script Location
 Place your script in the `scripts/` directory, e.g. `scripts/bootstrap-firebase.ps1`.
-
-### Example Script
-```powershell
-param(
-	[Parameter(Mandatory=$true)]
-	[string]$ProjectId,
-	[string]$BillingAccountId
-)
-
 
 ## Infrastructure Project Automation
 
