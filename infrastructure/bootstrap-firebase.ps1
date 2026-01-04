@@ -59,6 +59,3 @@ firebase projects:addfirebase $ProjectId
 Write-Host "Creating Firestore database in europe-west2"
 gcloud firestore databases create --project $ProjectId --location=europe-west2
 
-# 6. Deploy Firebase config (from repo root)
-Write-Host "Deploying Firebase configuration"
-firebase deploy --project $ProjectId
