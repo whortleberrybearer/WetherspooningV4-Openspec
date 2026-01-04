@@ -110,7 +110,9 @@ export async function runUpdateSync(since: Date): Promise<{ successCount: number
 }
 
 /**
- * Firebase scheduled function wrapper - runs full sync daily
+ * Firebase scheduled function wrapper
+ * - Runs full sync on Wednesdays
+ * - Runs update sync (last 15 hours) on other days
  */
 export const scheduledSyncPubs = onSchedule(
   {
@@ -120,6 +122,18 @@ export const scheduledSyncPubs = onSchedule(
     timeoutSeconds: 600,
   },
   async (event) => {
-    await runFullSync();
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 = Sunday, 3 = Wednesday
+    
+    if (dayOfWeek === 3) {
+      // Wednesday: Full sync
+      console.log('📅 Wednesday: Running full sync');
+      await runFullSync();
+    } else {
+      // Other days: Update sync for changes in last 15 hours
+      const fifteenHoursAgo = new Date(now.getTime() - (15 * 60 * 60 * 1000));
+      console.log(`📅 ${now.toDateString()}: Running update sync since ${fifteenHoursAgo.toISOString()}`);
+      await runUpdateSync(fifteenHoursAgo);
+    }
   }
 );
