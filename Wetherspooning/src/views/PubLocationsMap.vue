@@ -573,7 +573,7 @@ const separateMarkers = (): {
     const lat = typeof markerPos.lat === 'function' ? markerPos.lat() : markerPos.lat
     const lng = typeof markerPos.lng === 'function' ? markerPos.lng() : markerPos.lng
     
-    const pub = filteredPubsForMap.value.find(p => p.lat === lat && p.lng === lng)
+    const pub = filteredPubsForMap.value.find(p => p.position?.lat === lat && p.position?.lng === lng)
     
     if (pub) {
       if (isVisited(pub.id)) {

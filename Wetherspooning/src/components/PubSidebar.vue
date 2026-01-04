@@ -295,13 +295,16 @@ const groupedPubs = computed(() => {
 
   // Group filtered pubs by country and county
   filteredPubs.value.forEach((pub) => {
-    if (!grouped[pub.country]) {
-      grouped[pub.country] = {}
+    const country = pub.country || 'Unknown'
+    const county = pub.county || 'Unknown'
+    
+    if (!grouped[country]) {
+      grouped[country] = {}
     }
-    if (!grouped[pub.country]![pub.county]) {
-      grouped[pub.country]![pub.county] = []
+    if (!grouped[country]![county]) {
+      grouped[country]![county] = []
     }
-    grouped[pub.country]![pub.county]!.push(pub)
+    grouped[country]![county]!.push(pub)
   })
 
   // Sort countries alphabetically and filter out empty groups
