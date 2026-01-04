@@ -20,4 +20,4 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_WETHERSPOONING_LIVE }}
-          projectId: wetherspooning-live
+          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
