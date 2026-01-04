@@ -1,0 +1,383 @@
+import { syncPubToFirestore, getExistingPub } from '../../src/services/pubSyncService';
+import { ScrapedPubData } from '../../src/types/pub';
+
+// Mock Firestore
+const mockSet = jest.fn().mockResolvedValue(undefined);
+const mockGet = jest.fn();
+const mockDoc = jest.fn().mockReturnValue({ set: mockSet, get: mockGet });
+const mockCollection = jest.fn().mockReturnValue({ doc: mockDoc });
+
+jest.mock('firebase-admin/firestore', () => ({
+  getFirestore: jest.fn(() => ({
+    collection: mockCollection,
+  })),
+  Timestamp: {
+    now: jest.fn(() => ({ seconds: 1234567890, nanoseconds: 0 })),
+  },
+}));
+
+describe('pubSyncService', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('syncPubToFirestore', () => {
+    it('should write pub data to Firestore', async () => {
+      const testUuid = '550e8400-e29b-41d4-a716-446655440000';
+      const pubData: ScrapedPubData = {
+        id: testUuid,
+        name: 'Star Light',
+        url: 'https://www.jdwetherspoon.com/pubs/star-light-hounslow/',
+        imageUrl: 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/7649-feature.png',
+        address: 'Heathrow Airport, Terminal 4 (after security) , Hounslow, Middlesex, TW6 3XA',
+        townCity: 'Hounslow',
+        position: { lat: 51.46148, lng: -0.44538 },
+        openState: 'Open',
+        isHotel: false,
+        inAirport: true, // Address contains 'Heathrow Airport'
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      expect(mockCollection).toHaveBeenCalledWith('pubs');
+      expect(mockDoc).toHaveBeenCalledWith(testUuid);
+      expect(mockSet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: testUuid,
+          name: 'Star Light',
+          url: pubData.url,
+          imageUrl: pubData.imageUrl,
+          address: pubData.address,
+          townCity: pubData.townCity,
+          position: pubData.position,
+          openState: pubData.openState,
+          isHotel: pubData.isHotel,
+          inAirport: pubData.inAirport,
+          inTrainStation: pubData.inTrainStation,
+          lastSyncedAt: expect.any(Object),
+        }),
+        { merge: true }
+      );
+    });
+
+    it('should use merge option when writing', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'Test City',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      expect(mockSet).toHaveBeenCalledWith(
+        expect.any(Object),
+        { merge: true }
+      );
+    });
+
+    it('should throw error when Firestore write fails', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'Test City',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+      };
+
+      mockSet.mockRejectedValueOnce(new Error('Firestore error'));
+
+      await expect(syncPubToFirestore(pubData)).rejects.toThrow('Firestore error');
+    });
+
+    it('should include timestamp in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'Test City',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.lastSyncedAt).toBeDefined();
+      expect(writtenData.lastSyncedAt.seconds).toBe(1234567890);
+    });
+
+    it('should include imageUrl in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'Test City',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.imageUrl).toBe('https://example.com/image.jpg');
+    });
+
+    it('should include address in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street, Test Town, AB1 2CD',
+        townCity: 'Test Town',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.address).toBe('123 Test Street, Test Town, AB1 2CD');
+    });
+
+    it('should include townCity in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'London',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.townCity).toBe('London');
+    });
+
+    it('should include position in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'London',
+        position: { lat: 51.5074, lng: -0.1278 },
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.position).toEqual({ lat: 51.5074, lng: -0.1278 });
+    });
+
+    it('should include null position when not available', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'London',
+        position: null,
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.position).toBeNull();
+    });
+
+    it('should include openState in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'London',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Opening Soon',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.openState).toBe('Opening Soon');
+    });
+
+    it('should include isHotel in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'London',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
+        isHotel: true,
+        inAirport: false,
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.isHotel).toBe(true);
+    });
+
+    it('should include inAirport in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'London',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
+        isHotel: false,
+        inAirport: true,
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.inAirport).toBe(true);
+    });
+
+    it('should include inTrainStation in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'London',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: true,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.inTrainStation).toBe(true);
+    });
+
+    it('should include country and county in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street, London, SW1A 1AA',
+        townCity: 'London',
+        country: 'England',
+        county: 'Greater London',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.country).toBe('England');
+      expect(writtenData.county).toBe('Greater London');
+    });
+  });
+
+  describe('getExistingPub', () => {
+    it('should return existing pub data', async () => {
+      const existingData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        country: 'England',
+        county: 'Greater London',
+        lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 },
+      };
+
+      mockGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => existingData,
+      });
+
+      const result = await getExistingPub('test-pub');
+
+      expect(mockCollection).toHaveBeenCalledWith('pubs');
+      expect(mockDoc).toHaveBeenCalledWith('test-pub');
+      expect(result).toEqual(existingData);
+    });
+
+    it('should return null when pub does not exist', async () => {
+      mockGet.mockResolvedValueOnce({
+        exists: false,
+      });
+
+      const result = await getExistingPub('non-existent-pub');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null on error', async () => {
+      mockGet.mockRejectedValueOnce(new Error('Firestore error'));
+
+      const result = await getExistingPub('test-pub');
+
+      expect(result).toBeNull();
+    });
+  });
+});

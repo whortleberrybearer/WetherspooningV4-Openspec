@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "emulator": "firebase emulators:start --project demo-wetherspooning"
+  },
   "devDependencies": {
     "firebase-admin": "^13.6.0"
   }

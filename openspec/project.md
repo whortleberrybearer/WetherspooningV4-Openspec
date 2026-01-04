@@ -43,3 +43,6 @@ Wetherspooning is a website that displays the locations of Wetherspoons pubs and
 - **Google Maps JavaScript API:** Requires API key and Map ID (configured via environment variables)
   - Maps JavaScript API for map rendering
   - Advanced Marker API for pub location markers
+- **Google Geocoding API:** Requires API key (configured via environment variable)
+  - Used to extract country and region from pub addresses during data scraping
+  - API key: `GOOGLE_GEOCODING_API_KEY`
