@@ -1,25 +1,55 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { Timestamp } from 'firebase-admin/firestore';
 import { getSitemapUrls } from '../services/sitemapService';
 import { scrapePubData } from '../services/pubScraperService';
-import { syncPubToFirestore, getExistingPubByUrl } from '../services/pubSyncService';
-import { SitemapEntry } from '../types/pub';
+import { 
+  getExistingPubByUrl, 
+  findMatchingPub, 
+  hasDataChanged,
+  getAllPubs,
+  markClosedPubs,
+  batchWritePubs
+} from '../services/pubSyncService';
+import { SitemapEntry, Pub } from '../types/pub';
+
+interface ProcessResult {
+  pubsToWrite: Pub[];
+  processedIds: Set<string>;
+  successCount: number;
+  failureCount: number;
+  newCount: number;
+  updatedCount: number;
+  skippedCount: number;
+}
 
 /**
  * Processes a list of sitemap entries and syncs them to Firestore
  * @param entries Sitemap entries to process
- * @returns Object with success and failure counts
+ * @param existingPubs Optional array of existing pubs for full sync matching
+ * @returns Object with pubs to write, processed IDs, and counts
  */
-async function processPubEntries(entries: SitemapEntry[]): Promise<{ successCount: number; failureCount: number }> {
+async function processPubEntries(
+  entries: SitemapEntry[],
+  existingPubs?: Pub[]
+): Promise<ProcessResult> {
+  const pubsToWrite: Pub[] = [];
+  const processedIds = new Set<string>();
   let successCount = 0;
   let failureCount = 0;
+  let newCount = 0;
+  let updatedCount = 0;
+  let skippedCount = 0;
+
+  // Helper to sleep for ms milliseconds
+  function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
   for (const entry of entries) {
     try {
       console.log(`🔍 Processing pub: ${entry.url}`);
-      
-      // Check for existing pub by URL
-      const existingPub = await getExistingPubByUrl(entry.url);
-      
+      // Add 0.1s delay before each request to Wetherspoons
+      await sleep(100);
       const pubData = await scrapePubData(entry.url, entry.imageUrl);
       if (!pubData) {
         console.warn(`⚠️  Skipping pub (no data extracted): ${entry.url}`);
@@ -27,8 +57,18 @@ async function processPubEntries(entries: SitemapEntry[]): Promise<{ successCoun
         continue;
       }
       
-      // If pub already exists, reuse its ID
+      let existingPub: Pub | null = null;
+      
+      if (existingPubs) {
+        // Full sync: use matching logic with in-memory pubs
+        existingPub = findMatchingPub(pubData, existingPubs);
+      } else {
+        // Update sync: query individual pub by URL
+        existingPub = await getExistingPubByUrl(entry.url);
+      }
+      
       if (existingPub) {
+        // Reuse existing pub's ID
         pubData.id = existingPub.id;
         
         // Reuse existing country/county data if scraping didn't provide it
@@ -37,9 +77,33 @@ async function processPubEntries(entries: SitemapEntry[]): Promise<{ successCoun
           pubData.county = existingPub.county;
           console.log(`📍 Reusing existing geocode data for ${existingPub.id}: ${existingPub.country}, ${existingPub.county}`);
         }
+        
+        // Check if data has changed
+        if (hasDataChanged(existingPub, pubData)) {
+          // Create updated pub document
+          const updatedPub: Pub = {
+            ...pubData,
+            lastSyncedAt: Timestamp.now(),
+          };
+          pubsToWrite.push(updatedPub);
+          updatedCount++;
+        } else {
+          console.log(`No changes detected for pub ${pubData.id}`);
+          skippedCount++;
+        }
+        
+        processedIds.add(pubData.id);
+      } else {
+        // New pub
+        const newPub: Pub = {
+          ...pubData,
+          lastSyncedAt: Timestamp.now(),
+        };
+        pubsToWrite.push(newPub);
+        processedIds.add(pubData.id);
+        newCount++;
       }
       
-      await syncPubToFirestore(pubData);
       successCount++;
     } catch (error) {
       console.error(`❌ Error processing pub ${entry.url}:`, error);
@@ -47,7 +111,15 @@ async function processPubEntries(entries: SitemapEntry[]): Promise<{ successCoun
     }
   }
   
-  return { successCount, failureCount };
+  return { 
+    pubsToWrite, 
+    processedIds, 
+    successCount, 
+    failureCount,
+    newCount,
+    updatedCount,
+    skippedCount
+  };
 }
 
 /**
@@ -59,6 +131,9 @@ async function processPubEntries(entries: SitemapEntry[]): Promise<{ successCoun
 export async function runFullSync(count?: number, start: number = 0): Promise<{ successCount: number; failureCount: number }> {
   console.log('🚀 Starting full pub sync');
   try {
+    // Load all existing pubs for matching and closure detection
+    const existingPubs = await getAllPubs();
+    
     const entries = await getSitemapUrls();
     console.log(`📍 Fetched sitemap: ${entries.length} entries found`);
 
@@ -70,9 +145,22 @@ export async function runFullSync(count?: number, start: number = 0): Promise<{ 
     }
     console.log(`📋 Processing ${entriesToProcess.length} of ${entries.length} pubs (start: ${start}, count: ${count ?? 'all'})`);
 
-    const result = await processPubEntries(entriesToProcess);
-    console.log(`✅ Full sync complete: ${result.successCount} successful, ${result.failureCount} failed`);
-    return result;
+    // Process entries with matching and change detection
+    const result = await processPubEntries(entriesToProcess, existingPubs);
+    
+    // Mark unprocessed open pubs as closed (only in full sync)
+    const closedPubs = markClosedPubs(result.processedIds, existingPubs);
+    
+    // Combine all pubs to write
+    const allPubsToWrite = [...result.pubsToWrite, ...closedPubs];
+    
+    // Batch write to Firestore
+    if (allPubsToWrite.length > 0) {
+      await batchWritePubs(allPubsToWrite);
+    }
+    
+    console.log(`✅ Full sync complete: ${result.successCount} processed, ${result.newCount} new, ${result.updatedCount} updated, ${closedPubs.length} closed, ${result.skippedCount} skipped, ${result.failureCount} errors`);
+    return { successCount: result.successCount, failureCount: result.failureCount };
   } catch (error) {
     console.error('❌ Fatal error during full sync:', error);
     throw error;
@@ -100,9 +188,16 @@ export async function runUpdateSync(since: Date): Promise<{ successCount: number
     });
     console.log(`🔍 Found ${filteredEntries.length} pubs updated since ${since.toISOString()}`);
 
+    // Process entries without loading all existing pubs (performance optimization)
     const result = await processPubEntries(filteredEntries);
-    console.log(`✅ Update sync complete: ${result.successCount} successful, ${result.failureCount} failed`);
-    return result;
+    
+    // Batch write to Firestore
+    if (result.pubsToWrite.length > 0) {
+      await batchWritePubs(result.pubsToWrite);
+    }
+    
+    console.log(`✅ Update sync complete: ${result.successCount} processed, ${result.newCount} new, ${result.updatedCount} updated, ${result.skippedCount} skipped, ${result.failureCount} errors`);
+    return { successCount: result.successCount, failureCount: result.failureCount };
   } catch (error) {
     console.error('❌ Fatal error during update sync:', error);
     throw error;

@@ -1,15 +1,29 @@
-import { syncPubToFirestore, getExistingPub } from '../../src/services/pubSyncService';
-import { ScrapedPubData } from '../../src/types/pub';
+import { 
+  syncPubToFirestore, 
+  getExistingPub,
+  findMatchingPub,
+  hasDataChanged,
+  markClosedPubs,
+  batchWritePubs,
+  getAllPubs
+} from '../../src/services/pubSyncService';
+import { ScrapedPubData, Pub } from '../../src/types/pub';
 
 // Mock Firestore
 const mockSet = jest.fn().mockResolvedValue(undefined);
 const mockGet = jest.fn();
 const mockDoc = jest.fn().mockReturnValue({ set: mockSet, get: mockGet });
 const mockCollection = jest.fn().mockReturnValue({ doc: mockDoc });
+const mockBatchSet = jest.fn();
+const mockBatchCommit = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('firebase-admin/firestore', () => ({
   getFirestore: jest.fn(() => ({
     collection: mockCollection,
+    batch: () => ({
+      set: mockBatchSet,
+      commit: mockBatchCommit,
+    }),
   })),
   Timestamp: {
     now: jest.fn(() => ({ seconds: 1234567890, nanoseconds: 0 })),
@@ -378,6 +392,473 @@ describe('pubSyncService', () => {
       const result = await getExistingPub('test-pub');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('findMatchingPub', () => {
+    const scrapedPub: ScrapedPubData = {
+      id: 'new-id',
+      name: 'The Moon Under Water',
+      url: 'https://example.com/pubs/the-moon-under-water-london',
+      imageUrl: 'https://example.com/image.png',
+      address: '123 Main Street, Leicester Square, London, WC2H 7BP',
+      townCity: 'London',
+      position: { lat: 51.5074, lng: -0.1278 },
+      openState: 'Open',
+      isHotel: false,
+      inAirport: false,
+      inTrainStation: false,
+    };
+
+    it('should match by URL (tier 1)', () => {
+      const existingPubs: Pub[] = [{
+        ...scrapedPub,
+        id: 'existing-id',
+        lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+      }];
+
+      const result = findMatchingPub(scrapedPub, existingPubs);
+
+      expect(result).toBeDefined();
+      expect(result?.id).toBe('existing-id');
+    });
+
+    it('should match by name and townCity for open pubs (tier 2)', () => {
+      const existingPubs: Pub[] = [{
+        ...scrapedPub,
+        id: 'existing-id',
+        url: 'https://example.com/old-url',
+        openState: 'Open',
+        lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+      }];
+
+      const result = findMatchingPub(scrapedPub, existingPubs);
+
+      expect(result).toBeDefined();
+      expect(result?.id).toBe('existing-id');
+    });
+
+    it('should NOT match closed pubs by name and townCity (tier 2)', () => {
+      const existingPubs: Pub[] = [{
+        ...scrapedPub,
+        id: 'existing-id',
+        url: 'https://example.com/old-url',
+        openState: 'Closed',
+        lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+      }];
+
+      const result = findMatchingPub(scrapedPub, existingPubs);
+
+      expect(result).toBeNull();
+    });
+
+    it('should match by address for open pubs (tier 3)', () => {
+      const existingPubs: Pub[] = [{
+        ...scrapedPub,
+        id: 'existing-id',
+        name: 'Old Name',
+        url: 'https://example.com/old-url',
+        townCity: 'Different City',
+        openState: 'Open',
+        lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+      }];
+
+      const result = findMatchingPub(scrapedPub, existingPubs);
+
+      expect(result).toBeDefined();
+      expect(result?.id).toBe('existing-id');
+    });
+
+    it('should NOT match closed pubs by address (tier 3)', () => {
+      const existingPubs: Pub[] = [{
+        ...scrapedPub,
+        id: 'existing-id',
+        name: 'Old Name',
+        url: 'https://example.com/old-url',
+        openState: 'Closed',
+        lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+      }];
+
+      const result = findMatchingPub(scrapedPub, existingPubs);
+
+      expect(result).toBeNull();
+    });
+
+    it('should skip tier 3 for short addresses', () => {
+      const shortAddressPub = { ...scrapedPub, address: 'Short' };
+      const existingPubs: Pub[] = [{
+        ...scrapedPub,
+        id: 'existing-id',
+        name: 'Different Name',
+        url: 'https://example.com/different-url',
+        address: 'Short',
+        openState: 'Open',
+        lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+      }];
+
+      const result = findMatchingPub(shortAddressPub, existingPubs);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when no match found', () => {
+      const existingPubs: Pub[] = [{
+        ...scrapedPub,
+        id: 'existing-id',
+        name: 'Different Name',
+        url: 'https://example.com/different-url',
+        address: 'Different Address That Is Long Enough',
+        townCity: 'Different City',
+        openState: 'Open',
+        lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+      }];
+
+      const result = findMatchingPub(scrapedPub, existingPubs);
+
+      expect(result).toBeNull();
+    });
+
+    it('should prioritize URL match over name+townCity', () => {
+      const existingPubs: Pub[] = [
+        {
+          ...scrapedPub,
+          id: 'url-match-id',
+          lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+        },
+        {
+          ...scrapedPub,
+          id: 'name-match-id',
+          url: 'https://example.com/different-url',
+          openState: 'Open',
+          lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+        }
+      ];
+
+      const result = findMatchingPub(scrapedPub, existingPubs);
+
+      expect(result?.id).toBe('url-match-id');
+    });
+  });
+
+  describe('hasDataChanged', () => {
+    const basePub: Pub = {
+      id: 'test-id',
+      name: 'Test Pub',
+      url: 'https://example.com/test-pub',
+      imageUrl: 'https://example.com/image.png',
+      address: '123 Test Street',
+      townCity: 'Test City',
+      position: { lat: 51.5074, lng: -0.1278 },
+      openState: 'Open',
+      isHotel: false,
+      inAirport: false,
+      inTrainStation: false,
+      lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+    };
+
+    const baseScraped: ScrapedPubData = {
+      id: 'test-id',
+      name: 'Test Pub',
+      url: 'https://example.com/test-pub',
+      imageUrl: 'https://example.com/image.png',
+      address: '123 Test Street',
+      townCity: 'Test City',
+      position: { lat: 51.5074, lng: -0.1278 },
+      openState: 'Open',
+      isHotel: false,
+      inAirport: false,
+      inTrainStation: false,
+    };
+
+    it('should return false when no changes detected', () => {
+      const result = hasDataChanged(basePub, baseScraped);
+      expect(result).toBe(false);
+    });
+
+    it('should detect name change', () => {
+      const scraped = { ...baseScraped, name: 'New Name' };
+      const result = hasDataChanged(basePub, scraped);
+      expect(result).toBe(true);
+    });
+
+    it('should detect URL change', () => {
+      const scraped = { ...baseScraped, url: 'https://example.com/new-url' };
+      const result = hasDataChanged(basePub, scraped);
+      expect(result).toBe(true);
+    });
+
+    it('should detect address change', () => {
+      const scraped = { ...baseScraped, address: '456 New Street' };
+      const result = hasDataChanged(basePub, scraped);
+      expect(result).toBe(true);
+    });
+
+    it('should detect openState change', () => {
+      const scraped = { ...baseScraped, openState: 'Closed' };
+      const result = hasDataChanged(basePub, scraped);
+      expect(result).toBe(true);
+    });
+
+    it('should detect position change', () => {
+      const scraped = { ...baseScraped, position: { lat: 51.5075, lng: -0.1278 } };
+      const result = hasDataChanged(basePub, scraped);
+      expect(result).toBe(true);
+    });
+
+    it('should detect position null to value', () => {
+      const pub = { ...basePub, position: null };
+      const result = hasDataChanged(pub, baseScraped);
+      expect(result).toBe(true);
+    });
+
+    it('should detect position value to null', () => {
+      const scraped = { ...baseScraped, position: null };
+      const result = hasDataChanged(basePub, scraped);
+      expect(result).toBe(true);
+    });
+
+    it('should handle both positions null as no change', () => {
+      const pub = { ...basePub, position: null };
+      const scraped = { ...baseScraped, position: null };
+      const result = hasDataChanged(pub, scraped);
+      expect(result).toBe(false);
+    });
+
+    it('should detect country change', () => {
+      const pub = { ...basePub, country: 'UK' };
+      const scraped = { ...baseScraped, country: 'Ireland' };
+      const result = hasDataChanged(pub, scraped);
+      expect(result).toBe(true);
+    });
+
+    it('should detect multiple field changes', () => {
+      const scraped = { 
+        ...baseScraped, 
+        name: 'New Name',
+        address: '456 New Street',
+        openState: 'Closed'
+      };
+      const result = hasDataChanged(basePub, scraped);
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('markClosedPubs', () => {
+    it('should mark unprocessed open pubs as closed', () => {
+      const existingPubs: Pub[] = [
+        {
+          id: 'pub-1',
+          name: 'Open Pub',
+          url: 'https://example.com/pub-1',
+          imageUrl: '',
+          address: '',
+          townCity: '',
+          position: null,
+          openState: 'Open',
+          isHotel: false,
+          inAirport: false,
+          inTrainStation: false,
+          lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+        },
+        {
+          id: 'pub-2',
+          name: 'Processed Pub',
+          url: 'https://example.com/pub-2',
+          imageUrl: '',
+          address: '',
+          townCity: '',
+          position: null,
+          openState: 'Open',
+          isHotel: false,
+          inAirport: false,
+          inTrainStation: false,
+          lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+        }
+      ];
+
+      const processedIds = new Set(['pub-2']);
+      const closedPubs = markClosedPubs(processedIds, existingPubs);
+
+      expect(closedPubs).toHaveLength(1);
+      expect(closedPubs[0].id).toBe('pub-1');
+      expect(closedPubs[0].openState).toBe('Closed');
+      expect(closedPubs[0].url).toBe('');
+    });
+
+    it('should skip already closed pubs', () => {
+      const existingPubs: Pub[] = [
+        {
+          id: 'pub-1',
+          name: 'Closed Pub',
+          url: '',
+          imageUrl: '',
+          address: '',
+          townCity: '',
+          position: null,
+          openState: 'Closed',
+          isHotel: false,
+          inAirport: false,
+          inTrainStation: false,
+          lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+        }
+      ];
+
+      const processedIds = new Set<string>();
+      const closedPubs = markClosedPubs(processedIds, existingPubs);
+
+      expect(closedPubs).toHaveLength(0);
+    });
+
+    it('should skip processed pubs', () => {
+      const existingPubs: Pub[] = [
+        {
+          id: 'pub-1',
+          name: 'Processed Pub',
+          url: 'https://example.com/pub-1',
+          imageUrl: '',
+          address: '',
+          townCity: '',
+          position: null,
+          openState: 'Open',
+          isHotel: false,
+          inAirport: false,
+          inTrainStation: false,
+          lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+        }
+      ];
+
+      const processedIds = new Set(['pub-1']);
+      const closedPubs = markClosedPubs(processedIds, existingPubs);
+
+      expect(closedPubs).toHaveLength(0);
+    });
+
+    it('should return empty array when all pubs processed', () => {
+      const existingPubs: Pub[] = [
+        {
+          id: 'pub-1',
+          name: 'Pub 1',
+          url: 'https://example.com/pub-1',
+          imageUrl: '',
+          address: '',
+          townCity: '',
+          position: null,
+          openState: 'Open',
+          isHotel: false,
+          inAirport: false,
+          inTrainStation: false,
+          lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+        }
+      ];
+
+      const processedIds = new Set(['pub-1']);
+      const closedPubs = markClosedPubs(processedIds, existingPubs);
+
+      expect(closedPubs).toHaveLength(0);
+    });
+  });
+
+  describe('batchWritePubs', () => {
+    beforeEach(() => {
+      mockBatchSet.mockClear();
+      mockBatchCommit.mockClear();
+    });
+
+    it('should write pubs in a single batch when under 500', async () => {
+      const pubs: Pub[] = Array(10).fill(null).map((_, i) => ({
+        id: `pub-${i}`,
+        name: `Pub ${i}`,
+        url: `https://example.com/pub-${i}`,
+        imageUrl: '',
+        address: '',
+        townCity: '',
+        position: null,
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+        lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+      }));
+
+      await batchWritePubs(pubs);
+
+      expect(mockBatchSet).toHaveBeenCalledTimes(10);
+      expect(mockBatchCommit).toHaveBeenCalledTimes(1);
+    });
+
+    it('should write pubs in multiple batches when over 500', async () => {
+      const pubs: Pub[] = Array(1200).fill(null).map((_, i) => ({
+        id: `pub-${i}`,
+        name: `Pub ${i}`,
+        url: `https://example.com/pub-${i}`,
+        imageUrl: '',
+        address: '',
+        townCity: '',
+        position: null,
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+        lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+      }));
+
+      await batchWritePubs(pubs);
+
+      expect(mockBatchSet).toHaveBeenCalledTimes(1200);
+      expect(mockBatchCommit).toHaveBeenCalledTimes(3); // 500 + 500 + 200
+    });
+
+    it('should handle batch commit errors gracefully', async () => {
+      mockBatchCommit.mockRejectedValueOnce(new Error('Batch failed'));
+
+      const pubs: Pub[] = [{
+        id: 'pub-1',
+        name: 'Pub 1',
+        url: 'https://example.com/pub-1',
+        imageUrl: '',
+        address: '',
+        townCity: '',
+        position: null,
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+        lastSyncedAt: { seconds: 1234567890, nanoseconds: 0 } as any,
+      }];
+
+      // Should not throw
+      await expect(batchWritePubs(pubs)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('getAllPubs', () => {
+    it('should load all pubs from Firestore', async () => {
+      const mockPubs = [
+        { id: 'pub-1', name: 'Pub 1' },
+        { id: 'pub-2', name: 'Pub 2' }
+      ];
+
+      const mockQuerySnapshot = {
+        forEach: (callback: any) => {
+          mockPubs.forEach(pub => callback({ data: () => pub }));
+        }
+      };
+
+      const mockGet = jest.fn().mockResolvedValue(mockQuerySnapshot);
+      mockCollection.mockReturnValueOnce({ get: mockGet });
+
+      const result = await getAllPubs();
+
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe('pub-1');
+      expect(result[1].id).toBe('pub-2');
+    });
+
+    it('should throw error when Firestore query fails', async () => {
+      const mockGet = jest.fn().mockRejectedValue(new Error('Query failed'));
+      mockCollection.mockReturnValueOnce({ get: mockGet });
+
+      await expect(getAllPubs()).rejects.toThrow('Query failed');
     });
   });
 });

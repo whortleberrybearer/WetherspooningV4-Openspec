@@ -14,7 +14,7 @@ import * as admin from 'firebase-admin';
 
 // Load environment variables from .env file
 dotenv.config();
-import { runPubSync } from '../scheduled/syncPubs';
+import { runFullSync } from '../scheduled/syncPubs';
 
 // Simple argument parser for --count and --start
 function parseArgs() {
@@ -64,7 +64,7 @@ async function main() {
   console.log(`Running pub sync with count: ${count ?? 'all'}, start: ${start}`);
 
   try {
-    const result = await runPubSync(count, start);
+    const result = await runFullSync(count, start);
     console.log('\n📊 Final Results:');
     console.log(`   ✅ Successful: ${result.successCount}`);
     console.log(`   ❌ Failed: ${result.failureCount}`);
