@@ -701,6 +701,39 @@ describe('pubScraperService', () => {
       expect(result?.name).toBe('Sir Alec Rose');
       expect(result?.townCity).toBe('Portsmouth');
     });
+
+    it('should handle town names with apostrophes (The Central Bar Shepherd\'s Bush)', async () => {
+      const url = 'https://www.jdwetherspoon.com/pubs/the-central-bar-shepherds-bush/';
+      const imageUrl = 'https://example.com/image.png';
+      
+      const html = `
+        <!DOCTYPE html>
+        <html>
+          <body>
+            <h1 class="wp-block-heading">The Central Bar</h1>
+            <div class="pub-address-inner">
+              <span>West 12 Shopping Centre, Shepherd's Bush Green, Shepherd's Bush, Hammersmith & Fulham, W12 8PH</span>
+            </div>
+            <img class="pub-map" src="https://maps.googleapis.com/maps/api/staticmap?center=51.50505,-0.22147&zoom=15" />
+            <p class="open-status">Open</p>
+            <div class="pub-facilities-list"></div>
+          </body>
+        </html>
+      `;
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => html,
+      });
+
+      (geocodingService.geocodePostcode as jest.Mock).mockResolvedValue(null);
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result).not.toBeNull();
+      expect(result?.name).toBe('The Central Bar');
+      expect(result?.townCity).toBe("Shepherd's Bush"); // Should preserve apostrophe from address
+    });
   });
 
   describe('extractPostcode', () => {

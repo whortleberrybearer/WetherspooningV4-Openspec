@@ -253,10 +253,10 @@ function extractTownCity(url: string, name: string, address: string): string {
     
     // Search each address part for a match
     for (const part of addressParts) {
-      // Remove hyphens and spaces from the address part for comparison
-      const partNormalized = part.replace(/[-\s]/g, '').toLowerCase();
+      // Remove hyphens, spaces, apostrophes, and other punctuation from the address part for comparison
+      const partNormalized = part.replace(/[-\s']/g, '').toLowerCase();
       
-      // If the slug matches this part (ignoring hyphens and spaces), use the original part
+      // If the slug matches this part (ignoring hyphens, spaces, and apostrophes), use the original part
       if (partNormalized === townSlugNoHyphens) {
         return part;
       }
