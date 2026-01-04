@@ -17,6 +17,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+
+      - name: Create .env for Functions
+        run: |
+          echo "GOOGLE_GEOCODING_API_KEY=${{ secrets.GOOGLE_GEOCODING_API_KEY }}" > $GITHUB_WORKSPACE/functions/.env
+
       - name: Install dependencies (Functions)
         run: |
           cd $GITHUB_WORKSPACE/functions && npm ci
@@ -24,6 +29,15 @@ jobs:
       - name: Build Functions
         run: |
           cd $GITHUB_WORKSPACE/functions && npm run build
+
+      - name: Create .env.production for Website
+        run: |
+          echo "VITE_GOOGLE_MAPS_API_KEY=${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}" > $GITHUB_WORKSPACE/Wetherspooning/.env.production
+          echo "VITE_GOOGLE_MAPS_MAP_ID=${{ secrets.VITE_GOOGLE_MAPS_MAP_ID }}" >> $GITHUB_WORKSPACE/Wetherspooning/.env.production
+          echo "VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}" >> $GITHUB_WORKSPACE/Wetherspooning/.env.production
+          echo "VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}" >> $GITHUB_WORKSPACE/Wetherspooning/.env.production
+          echo "VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}" >> $GITHUB_WORKSPACE/Wetherspooning/.env.production
+          echo "VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}" >> $GITHUB_WORKSPACE/Wetherspooning/.env.production
 
       - name: Install dependencies (Web)
         run: |
