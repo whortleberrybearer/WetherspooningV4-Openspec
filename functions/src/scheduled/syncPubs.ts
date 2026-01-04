@@ -40,10 +40,16 @@ async function processPubEntries(
   let updatedCount = 0;
   let skippedCount = 0;
 
+  // Helper to sleep for ms milliseconds
+  function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
   for (const entry of entries) {
     try {
       console.log(`🔍 Processing pub: ${entry.url}`);
-      
+      // Add 0.1s delay before each request to Wetherspoons
+      await sleep(100);
       const pubData = await scrapePubData(entry.url, entry.imageUrl);
       if (!pubData) {
         console.warn(`⚠️  Skipping pub (no data extracted): ${entry.url}`);
