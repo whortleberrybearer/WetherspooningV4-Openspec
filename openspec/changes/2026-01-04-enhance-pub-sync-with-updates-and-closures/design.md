@@ -78,9 +78,10 @@ function findMatchingPub(
   if (match) return match;
   
   // Tier 3: Address match (handles name and URL changes)
-  // Only use if address is non-empty and meaningful
+  // Only match against open pubs and if address is non-empty and meaningful
   if (scrapedPub.address && scrapedPub.address.length > 10) {
     match = existingPubs.find(p => 
+      p.openState === 'Open' &&
       p.address === scrapedPub.address
     );
     if (match) return match;
@@ -93,7 +94,7 @@ function findMatchingPub(
 **Trade-offs:**
 - **Tier 1 (URL):** Very reliable but fails on URL changes
 - **Tier 2 (Name+TownCity):** Handles URL changes, but requires openState check to avoid matching closed pubs
-- **Tier 3 (Address):** Catches edge cases but slightly riskier (addresses can be formatted differently)
+- **Tier 3 (Address):** Catches edge cases but slightly riskier (addresses can be formatted differently); also requires openState check to avoid resurrecting closed pubs
 
 ### 2. Change Detection
 

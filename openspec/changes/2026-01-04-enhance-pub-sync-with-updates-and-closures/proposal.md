@@ -20,7 +20,7 @@ Enhance the scheduled-data-sync capability with:
 1. **Multi-Step Matching Logic:** Implement a three-tier matching strategy to find existing pubs:
    - Match by URL (primary)
    - Match by name + townCity for open pubs (handles URL changes)
-   - Match by address (handles name and URL changes)
+   - Match by address for open pubs (handles name and URL changes)
 
 2. **Change Detection:** Before writing to Firestore, compare scraped data with existing pub data. Only update if changes are detected, reducing unnecessary writes.
 

@@ -20,7 +20,7 @@ The system MUST implement multi-tier matching logic to find existing pub records
 - Three-tier matching algorithm is implemented
 - Tier 1: Match by URL (exact string match on `url` field)
 - Tier 2: Match by name AND townCity for pubs with `openState === 'Open'` (handles URL changes)
-- Tier 3: Match by address (exact string match, only if address length > 10 characters)
+- Tier 3: Match by address for pubs with `openState === 'Open'` (exact string match, only if address length > 10 characters)
 - Matching tiers are evaluated in order: URL → Name+TownCity → Address
 - First match found is returned; no further tiers are evaluated
 - If no match is found, the scraped pub is treated as new
@@ -48,13 +48,13 @@ The system MUST implement multi-tier matching logic to find existing pub records
 
 #### Scenario: Match by Address (Tier 3)
 **Given** an existing pub with address "123 Main Street, Leicester Square, London, WC2H 7BP"  
-**And** the existing pub has name "Old Name" and URL "https://old-url.com"  
+**And** the existing pub has name "Old Name", URL "https://old-url.com", and `openState === 'Open'`  
 **And** the scraped sitemap entry has name "New Name" and URL "https://new-url.com"  
 **And** the scraped pub has the same address "123 Main Street, Leicester Square, London, WC2H 7BP"  
 **When** the matching logic runs  
 **Then** tier 1 fails (URL mismatch)  
 **And** tier 2 fails (name mismatch)  
-**And** tier 3 succeeds (address match)  
+**And** tier 3 succeeds (address match, pub is open)  
 **And** the existing pub is matched  
 **And** the existing pub's ID is reused
 
@@ -69,6 +69,14 @@ The system MUST implement multi-tier matching logic to find existing pub records
 **Given** an existing pub with name "The Moon Under Water", townCity "London", and `openState === 'Closed'`  
 **And** the scraped pub has name "The Moon Under Water" and townCity "London"  
 **When** tier 2 matching runs  
+**Then** the existing closed pub is NOT matched  
+**And** the scraped pub is treated as a new pub  
+**And** a new ID is generated
+
+#### Scenario: Skip Closed Pubs in Tier 3
+**Given** an existing pub with address "123 Main Street, London" and `openState === 'Closed'`  
+**And** the scraped pub has address "123 Main Street, London"  
+**When** tier 3 matching runs  
 **Then** the existing closed pub is NOT matched  
 **And** the scraped pub is treated as a new pub  
 **And** a new ID is generated
