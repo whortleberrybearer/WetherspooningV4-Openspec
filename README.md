@@ -45,41 +45,36 @@ param(
 	[string]$BillingAccountId
 )
 
-# 1. Create GCP project
-gcloud projects create $ProjectId
 
-# 2. Link billing account (required for Firestore/Functions)
-if ($BillingAccountId) {
-	gcloud beta billing projects link $ProjectId --billing-account $BillingAccountId
-}
+## Infrastructure Project Automation
 
-# 3. Enable required APIs
-$apis = @(
-	'cloudresourcemanager.googleapis.com',
-	'firebase.googleapis.com',
-	'firestore.googleapis.com',
-	'iam.googleapis.com',
-	'cloudfunctions.googleapis.com',
-	'identitytoolkit.googleapis.com'
-)
-foreach ($api in $apis) {
-	gcloud services enable $api --project $ProjectId
-}
+This project includes a PowerShell script to automate the creation and setup of your Firebase/GCP project.
 
-# 4. Add Firebase to project
-firebase projects:addfirebase $ProjectId
+### Script Location
+- The script is located at: `infrastructure/bootstrap-firebase.ps1`
 
-# 5. Initialize Firestore (in native mode, region europe-west2)
-gcloud firestore databases create --project $ProjectId --region=europe-west2
+### What the Script Does
+- Creates a new Google Cloud project
+- Enables required Google APIs (Firestore, Firebase, IAM, etc.)
+- Initializes Firebase
+- Deploys your Firebase configuration
 
-# 6. Deploy Firebase config (from repo root)
-firebase deploy --project $ProjectId
-```
-
-### Usage
+### How to Run the Script
+Open a PowerShell terminal and run:
 ```powershell
 cd scripts
 ./bootstrap-firebase.ps1 -ProjectId "your-firebase-project-id" -BillingAccountId "your-billing-account-id"
+```
+
+- If you omit a parameter, the script will prompt you to enter it interactively.
+- You can find your Project ID and Billing Account ID in the Google Cloud Console:
+  - Project ID: https://console.cloud.google.com/cloud-resource-manager
+  - Billing Account ID: https://console.cloud.google.com/billing
+
+#### Example (with prompts):
+```powershell
+./bootstrap-firebase.ps1
+# The script will ask for ProjectId and BillingAccountId if not provided.
 ```
 
 > **Note:**
@@ -88,23 +83,4 @@ cd scripts
 > - The script is idempotent: it will skip steps if resources already exist.
 
 ---
-# Wetherspooning
-
-Wetherspooning is a website that displays the locations of Wetherspoons pubs and allows users to track visits to them.
-
-## Features
-
-- **Pub Location Map** - Interactive map showing all Wetherspoon's pub locations
-- **Visit Tracking** - Track which pubs you've visited
-- **User Authentication** - Secure login and signup with Firebase Auth
-- **Automated Data Sync** - Daily scheduled sync of pub data from Wetherspoon's website
-
-## Project Structure
-
-- `/Wetherspooning` - Vue.js frontend application
-- `/functions` - Firebase Cloud Functions for backend services ([README](functions/README.md))
-- `/openspec` - Project specifications and change proposals
-
-## Getting Started
-
-See the [functions README](functions/README.md) for information about the scheduled pub sync feature.
+> - You must have owner permissions in your GCP organization to create projects and link billing.
