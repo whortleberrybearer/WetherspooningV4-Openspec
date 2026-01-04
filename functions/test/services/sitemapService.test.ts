@@ -29,10 +29,12 @@ describe('sitemapService', () => {
       expect(entries[0]).toEqual({
         url: 'https://www.jdwetherspoon.com/pubs/the-sir-thomas-haggerston-berwick-upon-tweed/',
         imageUrl: 'https://www.jdwetherspoon.com/wp-content/uploads/2024/12/7906_4.jpg',
+        lastmod: '2025-10-09T15:00:41+00:00',
       });
       expect(entries[5]).toEqual({
         url: 'https://www.jdwetherspoon.com/pubs/the-falcon-high-wycombe/',
         imageUrl: 'https://www.jdwetherspoon.com/wp-content/uploads/2024/06/167-feature.png',
+        lastmod: '2025-10-15T14:56:30+00:00',
       });
     });
 

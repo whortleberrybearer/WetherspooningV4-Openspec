@@ -41,4 +41,5 @@ export interface ScrapedPubData {
 export interface SitemapEntry {
   url: string;
   imageUrl: string;
+  lastmod?: string;
 }

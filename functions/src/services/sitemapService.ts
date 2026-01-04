@@ -35,8 +35,9 @@ function parseSitemapXml(xml: string): SitemapEntry[] {
     ? result.urlset.url 
     : [result.urlset.url];
   
-  return urls.map((entry: { loc: string; 'image:image'?: { 'image:loc': string } }) => ({
+  return urls.map((entry: { loc: string; lastmod?: string; 'image:image'?: { 'image:loc': string } }) => ({
     url: entry.loc,
     imageUrl: entry['image:image']?.['image:loc'] || '',
+    lastmod: entry.lastmod,
   })).filter((entry: SitemapEntry) => entry.url);
 }
