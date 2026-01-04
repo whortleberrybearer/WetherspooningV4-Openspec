@@ -29,5 +29,13 @@
       "enabled": true,
       "port": 4000
     }
+  },
+  "hosting": {
+    "public": "n",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
   }
 }
