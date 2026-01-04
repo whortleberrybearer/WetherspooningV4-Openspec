@@ -288,6 +288,51 @@ The system MUST load all existing pub records from Firestore at the start of a f
 
 ---
 
+### Requirement: Update Sync Execution (REQ-SDS-014)
+**Priority:** MUST  
+**Category:** Functional
+
+The system MUST support update sync mode which processes only recently updated sitemap entries without closure detection.
+
+**Acceptance Criteria:**
+- Update sync does NOT load all existing pubs from Firestore (performance optimization)
+- Update sync filters sitemap entries by `lastmod` date
+- Only entries with `lastmod >= sinceDate` are processed
+- For each entry, individual Firestore query is made to check for existing pub by URL
+- Matching logic is applied using in-memory data (no closure detection)
+- Change detection determines which pubs need database writes
+- Writes are batched and committed to Firestore
+- Closure detection is NOT performed (can't know what's missing without full pub list)
+- Function logs summary: total processed, new, updated, skipped, errors (no closures)
+
+#### Scenario: Update Sync with Recent Changes
+**Given** the sitemap contains 100 pub entries  
+**And** 15 entries have `lastmod >= 2026-01-03T00:00:00Z` (last 24 hours)  
+**And** 10 of those 15 match existing pubs  
+**And** 5 are new pubs  
+**And** 7 of the existing pubs have data changes  
+**When** an update sync runs with `sinceDate = 2026-01-03T00:00:00Z`  
+**Then** only 15 entries are processed  
+**And** existing pubs are not loaded from Firestore  
+**And** 15 individual Firestore queries are made (one per entry)  
+**And** 10 existing pubs are matched  
+**And** 7 pubs are updated (changes detected)  
+**And** 3 pubs are skipped (no changes)  
+**And** 5 new pubs are created  
+**And** NO pubs are marked as closed  
+**And** logs indicate:
+- "🔍 Found 15 pubs updated since 2026-01-03T00:00:00Z"
+- "✅ Update sync complete: 15 processed, 5 new, 7 updated, 3 skipped, 0 errors"
+
+---
+
+## RENAMED Requirements
+
+- FROM: `### Requirement: Limited Pub Processing (REQ-SDS-003)`
+- TO: `### Requirement: Full Sync Execution (REQ-SDS-003)`
+
+---
+
 ## MODIFIED Requirements
 
 ### Requirement: Firestore Data Sync (REQ-SDS-005)
@@ -349,7 +394,7 @@ _(Other scenarios from original REQ-SDS-005 remain unchanged)_
 
 ---
 
-### Requirement: Full Sync Execution (REQ-SDS-003, renamed from "Limited Pub Processing")
+### Requirement: Full Sync Execution (REQ-SDS-003)
 **Priority:** MUST  
 **Category:** Functional
 
@@ -390,44 +435,6 @@ The system MUST support full sync mode which processes all sitemap entries, upda
 - "✅ Full sync complete: 100 processed, 2 new, 50 updated, 4 closed, 48 skipped, 0 errors"
 
 _(Scenario "Limiting to First 5 Pubs" is removed as this constraint no longer applies)_
-
----
-
-### Requirement: Update Sync Execution (REQ-SDS-014, formerly part of scheduledSyncPubs)
-**Priority:** MUST  
-**Category:** Functional
-
-The system MUST support update sync mode which processes only recently updated sitemap entries without closure detection.
-
-**Acceptance Criteria:**
-- Update sync does NOT load all existing pubs from Firestore (performance optimization)
-- Update sync filters sitemap entries by `lastmod` date
-- Only entries with `lastmod >= sinceDate` are processed
-- For each entry, individual Firestore query is made to check for existing pub by URL
-- Matching logic is applied using in-memory data (no closure detection)
-- Change detection determines which pubs need database writes
-- Writes are batched and committed to Firestore
-- Closure detection is NOT performed (can't know what's missing without full pub list)
-- Function logs summary: total processed, new, updated, skipped, errors (no closures)
-
-#### Scenario: Update Sync with Recent Changes
-**Given** the sitemap contains 100 pub entries  
-**And** 15 entries have `lastmod >= 2026-01-03T00:00:00Z` (last 24 hours)  
-**And** 10 of those 15 match existing pubs  
-**And** 5 are new pubs  
-**And** 7 of the existing pubs have data changes  
-**When** an update sync runs with `sinceDate = 2026-01-03T00:00:00Z`  
-**Then** only 15 entries are processed  
-**And** existing pubs are not loaded from Firestore  
-**And** 15 individual Firestore queries are made (one per entry)  
-**And** 10 existing pubs are matched  
-**And** 7 pubs are updated (changes detected)  
-**And** 3 pubs are skipped (no changes)  
-**And** 5 new pubs are created  
-**And** NO pubs are marked as closed  
-**And** logs indicate:
-- "🔍 Found 15 pubs updated since 2026-01-03T00:00:00Z"
-- "✅ Update sync complete: 15 processed, 5 new, 7 updated, 3 skipped, 0 errors"
 
 ---
 
