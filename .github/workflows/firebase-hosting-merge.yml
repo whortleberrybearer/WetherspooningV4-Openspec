@@ -30,9 +30,9 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/Wetherspooning && npm run build
 
-#      - uses: FirebaseExtended/action-hosting-deploy@v0
-#        with:
-#          repoToken: ${{ secrets.GITHUB_TOKEN }}
-#          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_WETHERSPOONING_LIVE }}
-#          channelId: live
-#          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_WETHERSPOONING_LIVE }}
+          channelId: live
+          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
