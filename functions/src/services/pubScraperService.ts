@@ -220,12 +220,26 @@ function extractTownCity(url: string, name: string, address: string): string {
     .replace(/^-+|-+$/g, '');     // Trim hyphens from start/end
   
   // Remove the name slug from the URL slug to get the location
-  // Try removing nameSlug with trailing hyphen first, then without
-  let townSlug = urlSlug.replace(nameSlug + '-', '');
-  if (townSlug === urlSlug) {
-    // If that didn't work, try without trailing hyphen
-    townSlug = urlSlug.replace(nameSlug, '');
+  // Edge case: If the URL slug starts with "the-" but the name doesn't start with "The",
+  // the nameSlug won't include "the-", so try removing "the-" + nameSlug first
+  // Example: URL "the-sir-alec-rose-portsmouth", name "Sir Alec Rose" -> nameSlug "sir-alec-rose"
+  let townSlug = urlSlug;
+  if (urlSlug.startsWith('the-') && !nameSlug.startsWith('the-')) {
+    townSlug = urlSlug.replace('the-' + nameSlug + '-', '');
+    if (townSlug === urlSlug) {
+      townSlug = urlSlug.replace('the-' + nameSlug, '');
+    }
   }
+  
+  // If the edge case didn't apply, try removing nameSlug normally
+  if (townSlug === urlSlug) {
+    townSlug = urlSlug.replace(nameSlug + '-', '');
+    if (townSlug === urlSlug) {
+      // If that didn't work, try without trailing hyphen
+      townSlug = urlSlug.replace(nameSlug, '');
+    }
+  }
+  
   townSlug = townSlug.replace(/^-+|-+$/g, '');
   
   // For multi-word town names (with hyphens), use address-based matching

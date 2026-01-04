@@ -668,6 +668,39 @@ describe('pubScraperService', () => {
       expect(result?.inAirport).toBe(false);
       expect(result?.inTrainStation).toBe(false);
     });
+
+    it('should handle pub name without "the" prefix when URL has it (Sir Alec Rose Portsmouth)', async () => {
+      const url = 'https://www.jdwetherspoon.com/pubs/the-sir-alec-rose-portsmouth/';
+      const imageUrl = 'https://example.com/image.png';
+      
+      const html = `
+        <!DOCTYPE html>
+        <html>
+          <body>
+            <h1 class="wp-block-heading">Sir Alec Rose</h1>
+            <div class="pub-address-inner">
+              <span>Winston Churchill Avenue, Portsmouth, Hampshire, PO1 2LX</span>
+            </div>
+            <img class="pub-map" src="https://maps.googleapis.com/maps/api/staticmap?center=50.79717,-1.09329&zoom=15" />
+            <p class="open-status">Open</p>
+            <div class="pub-facilities-list"></div>
+          </body>
+        </html>
+      `;
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => html,
+      });
+
+      (geocodingService.geocodePostcode as jest.Mock).mockResolvedValue(null);
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result).not.toBeNull();
+      expect(result?.name).toBe('Sir Alec Rose');
+      expect(result?.townCity).toBe('Portsmouth');
+    });
   });
 
   describe('extractPostcode', () => {
