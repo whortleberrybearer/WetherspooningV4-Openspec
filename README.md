@@ -18,3 +18,11 @@ Wetherspooning is a website that displays the locations of Wetherspoons pubs and
 ## Getting Started
 
 See the [functions README](functions/README.md) for information about the scheduled pub sync feature.
+
+## Deployment
+
+Deployment to Firebase Hosting, Functions, and Firestore is automated via GitHub Actions.
+
+- On every push to main, the site and backend are built and deployed automatically.
+- Environment variables are securely injected from GitHub secrets during the build and deploy steps.
+- No manual deployment is required—just push your changes to GitHub.
