@@ -28,7 +28,7 @@ jobs:
           grep -o '\\n' gcloud-key.json | wc -l
           echo "----- INSTALL -----"
           npm install -g firebase-tools
-          firebase deploy --project ${{ vars.FIREBASE_PROJECT_ID }} --debug --only hosting
+          firebase deploy --project ${{ vars.FIREBASE_PROJECT_ID }} --debug --non-interactive --only hosting
 
       - name: Create .env for Functions
         run: |
