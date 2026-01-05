@@ -44,8 +44,10 @@ jobs:
           cd $GITHUB_WORKSPACE/Wetherspooning && npm run build
 
       - name: Deploy all Firebase services
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/gcloud-key.json
         run: |
-          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_WETHERSPOONING }}" > ${HOME}/gcloud.json
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_WETHERSPOONING }}" > ${{ github.workspace }}/gcloud-key.json
           npm install -g firebase-tools
-          firebase deploy --project ${{ vars.FIREBASE_PROJECT_ID }} --token "$(firebase login:ci --no-localhost --json < ${HOME}/gcloud.json)" --only hosting,functions,firestore
+          firebase deploy --project ${{ vars.FIREBASE_PROJECT_ID }} --only hosting,functions,firestore
 
