@@ -58,5 +58,6 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/gcloud-key.json
         run: |
           echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_WETHERSPOONING }}" > ${{ github.workspace }}/gcloud-key.json
+          dir
           npm install -g firebase-tools
-          firebase login --no-localhost
+          firebase deploy --project ${{ vars.FIREBASE_PROJECT_ID }} --only hosting,functions,firestore
