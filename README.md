@@ -1,3 +1,31 @@
+# Environment Variable Reference
+
+This project requires several environment variables for both the website and functions. Below is a guide to where each value can be created or found:
+
+## Website (.env.production)
+
+| Variable                        | Where to Find / Create                                                                 |
+|----------------------------------|--------------------------------------------------------------------------------------|
+| VITE_GOOGLE_MAPS_API_KEY         | Google Cloud Console → APIs & Services → Credentials → Create API key (Maps JS API)   |
+| VITE_GOOGLE_MAPS_MAP_ID          | Google Cloud Console → Maps Studio → Create Map ID                                    |
+| VITE_FIREBASE_API_KEY            | Firebase Console → Project Settings → General → Your apps → Web app config            |
+| VITE_FIREBASE_AUTH_DOMAIN        | Firebase Console → Project Settings → General → Web app config                        |
+| VITE_FIREBASE_PROJECT_ID         | Firebase Console → Project Settings → General → Project ID                            |
+| VITE_FIREBASE_STORAGE_BUCKET     | Firebase Console → Project Settings → General → Storage bucket                        |
+| VITE_FIREBASE_MESSAGING_SENDER_ID| Firebase Console → Project Settings → General → Web app config                        |
+| VITE_FIREBASE_APP_ID             | Firebase Console → Project Settings → General → Web app config                        |
+
+## Functions (.env)
+
+| Variable                 | Where to Find / Create                                                                 |
+|--------------------------|--------------------------------------------------------------------------------------|
+| GOOGLE_GEOCODING_API_KEY | Google Cloud Console → APIs & Services → Credentials → Create API key (Geocoding API) |
+
+**Notes:**
+- For Google API keys, restrict usage to your domain(s) in the Google Cloud Console for security.
+- For Firebase config, you must register a web app in the Firebase Console to generate these values.
+- Never commit your .env or .env.production files to version control.
+
 # Infrastructure & Setup
 
 ## Prerequisites
