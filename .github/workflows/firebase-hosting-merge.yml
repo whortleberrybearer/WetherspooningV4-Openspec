@@ -17,6 +17,7 @@ jobs:
       - name: Create .env for Functions
         run: |
           echo "GOOGLE_GEOCODING_API_KEY=${{ secrets.GOOGLE_GEOCODING_API_KEY }}" > $GITHUB_WORKSPACE/functions/.env
+          echo "WETHERSPOONING_ADMIN_USER_ID=${{ secrets.WETHERSPOONING_ADMIN_USER_ID }}" >> $GITHUB_WORKSPACE/functions/.env
 
       - name: Install dependencies (Functions)
         run: |
