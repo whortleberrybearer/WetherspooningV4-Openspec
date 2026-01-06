@@ -6,16 +6,40 @@ This directory contains Firebase Cloud Functions for the Wetherspooning applicat
 
 ### Scheduled Pub Sync (`scheduledSyncPubs`)
 
-A scheduled function that runs daily at 2:00 AM UTC to sync pub data from the Wetherspoon's website.
+A scheduled function that runs daily at 23:00 UTC to sync pub data from the Wetherspoon's website.
 
 **What it does:**
 - Fetches the sitemap from https://www.jdwetherspoon.com/pubs-sitemap.xml
-- Extracts pub URLs
-- Scrapes the first 5 pub pages (limited for initial implementation)
-- Extracts pub names
-- Writes/updates data to Firestore `pubs` collection
+- Extracts pub URLs and image URLs
+- Scrapes pub data (name, address, location, facilities, etc.)
+- Syncs data to Firestore `pubs` collection with change detection
+- Runs full sync on Wednesdays, incremental update sync on other days
 
-**Schedule:** Daily at 2:00 AM UTC
+**Schedule:** Daily at 23:00 UTC
+
+### On-Demand Pub Sync (`syncPubsOnDemand`)
+
+A callable function that allows authorized administrators to trigger pub syncs remotely.
+
+**What it does:**
+- Provides secure remote access to sync operations
+- Supports both full sync and update sync modes
+- Accepts parameters for partial syncs (`count`, `start`, `since`)
+- Returns sync results (success/failure counts)
+
+**Authorization:** Requires Firebase Auth with UID matching `WETHERSPOONING_ADMIN_USER_ID` environment variable
+
+**Usage:**
+```bash
+# Full sync with first 10 pubs
+firebase functions:call syncPubsOnDemand --data '{"mode":"full","count":10}'
+
+# Full sync starting from position 20
+firebase functions:call syncPubsOnDemand --data '{"mode":"full","count":10,"start":20}'
+
+# Update sync since specific date
+firebase functions:call syncPubsOnDemand --data '{"mode":"update","since":"2026-01-01T00:00:00Z"}'
+```
 
 ## Project Structure
 
@@ -23,17 +47,23 @@ A scheduled function that runs daily at 2:00 AM UTC to sync pub data from the We
 functions/
 ├── src/
 │   ├── index.ts                 # Main exports
+│   ├── callable/
+│   │   └── syncPubsOnDemand.ts  # On-demand sync callable function
 │   ├── scheduled/
 │   │   └── syncPubs.ts          # Scheduled sync function
+│   ├── scripts/
+│   │   └── runPubSync.ts        # Local sync script
 │   ├── services/
 │   │   ├── sitemapService.ts    # Sitemap fetching and parsing
 │   │   ├── pubScraperService.ts # Pub page scraping
-│   │   └── pubSyncService.ts    # Firestore sync logic
+│   │   ├── pubSyncService.ts    # Firestore sync logic
+│   │   └── geocodingService.ts  # Geocoding service
 │   └── types/
 │       └── pub.ts               # Type definitions
 ├── test/
 │   ├── services/                # Unit tests
 │   └── fixtures/                # Test data
+├── .env.example                 # Environment variables template
 ├── package.json
 ├── tsconfig.json
 └── jest.config.js
@@ -52,6 +82,39 @@ functions/
 cd functions
 npm install
 ```
+
+### Environment Variables
+
+Copy the `.env.example` file to `.env` and configure the required variables:
+
+```bash
+cp .env.example .env
+```
+
+Required environment variables:
+
+- `GOOGLE_GEOCODING_API_KEY` - Your Google Geocoding API key
+- `WETHERSPOONING_ADMIN_USER_ID` - Firebase Auth UID for on-demand sync authorization
+
+**Getting your Firebase Auth UID:**
+
+1. Go to [Firebase Console](https://console.firebase.google.com) > Authentication > Users
+2. Find your user and copy the UID
+3. Or export users: `firebase auth:export users.json --format=JSON`
+
+**Production Configuration:**
+
+For production, set environment variables using Firebase Functions config:
+
+```bash
+# Set admin user ID
+firebase functions:config:set admin.user_id="your-firebase-auth-uid"
+
+# View current config
+firebase functions:config:get
+```
+
+Note: Configuration changes take effect after deployment.
 
 ## Development
 
@@ -159,7 +222,27 @@ firebase deploy --only functions
 
 ```bash
 firebase deploy --only functions:scheduledSyncPubs
+firebase deploy --only functions:syncPubsOnDemand
 ```
+
+### First-Time Deployment of On-Demand Sync
+
+Before deploying the `syncPubsOnDemand` function for the first time:
+
+1. Set the `ADMIN_USER_ID` in production:
+   ```bash
+   firebase functions:config:set admin.user_id="your-firebase-auth-uid"
+   ```
+
+2. Deploy the function:
+   ```bash
+   firebase deploy --only functions:syncPubsOnDemand
+   ```
+
+3. Test the deployment:
+   ```bash
+   firebase functions:call syncPubsOnDemand --data '{"mode":"full","count":2}'
+   ```
 
 ## Testing
 
@@ -222,6 +305,24 @@ Ensure you're authenticated with Firebase:
 firebase login
 firebase projects:list
 ```
+
+### On-Demand Sync Errors
+
+**Error: "Server configuration error: WETHERSPOONING_ADMIN_USER_ID not set"**
+- Solution: Set the environment variable in production: `firebase functions:config:set admin.user_id="your-uid"`
+- For local development: Add `WETHERSPOONING_ADMIN_USER_ID=your-uid` to `.env` file
+
+**Error: "Unauthorized: Admin access required"**
+- Your Firebase Auth UID doesn't match the configured `WETHERSPOONING_ADMIN_USER_ID`
+- Verify your UID in Firebase Console > Authentication > Users
+- Ensure you're authenticated: `firebase login`
+
+**Error: "Invalid argument" errors**
+- Check your request data format
+- Full sync: `{"mode":"full","count":10,"start":0}`
+- Update sync: `{"mode":"update","since":"2026-01-01T00:00:00Z"}`
+- Ensure `count` and `start` are non-negative numbers
+- Ensure `since` is a valid ISO 8601 date string
 
 ## Future Enhancements
 

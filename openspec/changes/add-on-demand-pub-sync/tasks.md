@@ -1,77 +1,77 @@
 # Implementation Tasks
 
 ## Prerequisites
-- [ ] Ensure Firebase Functions SDK supports `onCall` (v2) - already in use
-- [ ] Confirm `ADMIN_USER_ID` environment variable naming convention
+- [x] Ensure Firebase Functions SDK supports `onCall` (v2) - already in use
+- [x] Confirm `ADMIN_USER_ID` environment variable naming convention
 
 ## Core Implementation
 
 ### 1. Create Callable Function
-- [ ] Create new file `functions/src/callable/syncPubsOnDemand.ts`
-- [ ] Import `onCall` from `firebase-functions/v2/https`
-- [ ] Import `HttpsError` from `firebase-functions/v2/https`
-- [ ] Import existing sync functions `runFullSync` and `runUpdateSync` from `../scheduled/syncPubs`
-- [ ] Define TypeScript request/response interfaces:
+- [x] Create new file `functions/src/callable/syncPubsOnDemand.ts`
+- [x] Import `onCall` from `firebase-functions/v2/https`
+- [x] Import `HttpsError` from `firebase-functions/v2/https`
+- [x] Import existing sync functions `runFullSync` and `runUpdateSync` from `../scheduled/syncPubs`
+- [x] Define TypeScript request/response interfaces:
   - `FullSyncRequest`: `{ mode: 'full'; count?: number; start?: number }`
   - `UpdateSyncRequest`: `{ mode: 'update'; since: string }`
   - `SyncRequest`: `FullSyncRequest | UpdateSyncRequest`
   - `SyncResponse`: `{ mode: string; successCount: number; failureCount: number; parameters?: object }`
-- [ ] Implement `syncPubsOnDemand` callable function with configuration:
+- [x] Implement `syncPubsOnDemand` callable function with configuration:
   - Region: `europe-west2`
   - Memory: `256MiB`
   - Timeout: `600` seconds
-- [ ] Add function to `functions/src/index.ts` exports
+- [x] Add function to `functions/src/index.ts` exports
 
 ### 2. Implement Authorization
-- [ ] Read `ADMIN_USER_ID` from `process.env.ADMIN_USER_ID`
-- [ ] Check if environment variable is set, throw `internal` error if missing with message "Server configuration error: ADMIN_USER_ID not set"
-- [ ] Check if `context.auth` exists, throw `permission-denied` if null with message "Unauthorized: Admin access required"
-- [ ] Compare `context.auth.uid` with `ADMIN_USER_ID`
-- [ ] Throw `permission-denied` error if UIDs don't match with message "Unauthorized: Admin access required"
-- [ ] Log authorization attempts (success and failure) with caller UID
+- [x] Read `ADMIN_USER_ID` from `process.env.ADMIN_USER_ID`
+- [x] Check if environment variable is set, throw `internal` error if missing with message "Server configuration error: ADMIN_USER_ID not set"
+- [x] Check if `context.auth` exists, throw `permission-denied` if null with message "Unauthorized: Admin access required"
+- [x] Compare `context.auth.uid` with `ADMIN_USER_ID`
+- [x] Throw `permission-denied` error if UIDs don't match with message "Unauthorized: Admin access required"
+- [x] Log authorization attempts (success and failure) with caller UID
 
 ### 3. Implement Parameter Validation
-- [ ] Check if `data.mode` exists, throw `invalid-argument` if missing: "Missing required parameter: mode"
-- [ ] Validate `mode` is either `'full'` or `'update'`, throw `invalid-argument` if invalid: "Invalid mode. Must be 'full' or 'update'"
-- [ ] For full sync mode:
-  - [ ] Validate `count` is undefined or non-negative number, throw `invalid-argument` if negative: "Invalid count. Must be a non-negative number"
-  - [ ] Validate `start` is undefined or non-negative number, throw `invalid-argument` if negative: "Invalid start. Must be a non-negative number"
-  - [ ] Default `start` to 0 if not provided
-- [ ] For update sync mode:
-  - [ ] Check if `since` parameter exists, throw `invalid-argument` if missing: "Missing required parameter for update mode: since"
-  - [ ] Parse `since` as ISO 8601 date string, throw `invalid-argument` if invalid: "Invalid since date. Must be a valid ISO 8601 date string"
-- [ ] Log validated parameters
+- [x] Check if `data.mode` exists, throw `invalid-argument` if missing: "Missing required parameter: mode"
+- [x] Validate `mode` is either `'full'` or `'update'`, throw `invalid-argument` if invalid: "Invalid mode. Must be 'full' or 'update'"
+- [x] For full sync mode:
+  - [x] Validate `count` is undefined or non-negative number, throw `invalid-argument` if negative: "Invalid count. Must be a non-negative number"
+  - [x] Validate `start` is undefined or non-negative number, throw `invalid-argument` if negative: "Invalid start. Must be a non-negative number"
+  - [x] Default `start` to 0 if not provided
+- [x] For update sync mode:
+  - [x] Check if `since` parameter exists, throw `invalid-argument` if missing: "Missing required parameter for update mode: since"
+  - [x] Parse `since` as ISO 8601 date string, throw `invalid-argument` if invalid: "Invalid since date. Must be a valid ISO 8601 date string"
+- [x] Log validated parameters
 
 ### 4. Implement Sync Execution
-- [ ] Wrap sync logic in try-catch block
-- [ ] For `mode: 'full'`:
-  - [ ] Call `runFullSync(count, start)` with validated parameters
-  - [ ] Capture returned `{ successCount, failureCount }`
-- [ ] For `mode: 'update'`:
-  - [ ] Convert `since` string to Date object
-  - [ ] Call `runUpdateSync(new Date(since))`
-  - [ ] Capture returned `{ successCount, failureCount }`
-- [ ] Catch sync errors, log with full stack trace, and throw `internal` error: "Sync execution failed. Check logs for details"
-- [ ] Log sync invocation with mode, parameters, and caller UID
+- [x] Wrap sync logic in try-catch block
+- [x] For `mode: 'full'`:
+  - [x] Call `runFullSync(count, start)` with validated parameters
+  - [x] Capture returned `{ successCount, failureCount }`
+- [x] For `mode: 'update'`:
+  - [x] Convert `since` string to Date object
+  - [x] Call `runUpdateSync(new Date(since))`
+  - [x] Capture returned `{ successCount, failureCount }`
+- [x] Catch sync errors, log with full stack trace, and throw `internal` error: "Sync execution failed. Check logs for details"
+- [x] Log sync invocation with mode, parameters, and caller UID
 
 ### 5. Implement Response Formatting
-- [ ] Create response object with `mode`, `successCount`, `failureCount`
-- [ ] Add `parameters` object to response based on mode:
+- [x] Create response object with `mode`, `successCount`, `failureCount`
+- [x] Add `parameters` object to response based on mode:
   - Full sync: `{ count?, start? }`
   - Update sync: `{ since }`
-- [ ] Return response object from callable function
-- [ ] Log successful completion with counts
+- [x] Return response object from callable function
+- [x] Log successful completion with counts
 
 ## Environment Configuration
 
 ### 6. Development Environment Setup
-- [ ] Add `ADMIN_USER_ID` to `.env.example` file with placeholder value
-- [ ] Document in `functions/README.md` how to set `ADMIN_USER_ID` locally
-- [ ] Update `.gitignore` to ensure `.env` is not committed (should already be ignored)
+- [x] Add `ADMIN_USER_ID` to `.env.example` file with placeholder value
+- [x] Document in `functions/README.md` how to set `ADMIN_USER_ID` locally
+- [x] Update `.gitignore` to ensure `.env` is not committed (should already be ignored)
 
 ### 7. Production Environment Setup
-- [ ] Document in main `README.md` how to set production config: `firebase functions:config:set admin.user_id=<your-uid>`
-- [ ] Note that config takes effect after deployment
+- [x] Document in main `README.md` how to set production config: `firebase functions:config:set admin.user_id=<your-uid>`
+- [x] Note that config takes effect after deployment
 
 ## Testing
 
@@ -112,29 +112,29 @@
 ## Documentation
 
 ### 11. Update Documentation
-- [ ] Add section to `README.md` explaining on-demand sync feature
-- [ ] Document how to get Firebase Auth UID for admin user
-- [ ] Document how to call function from Firebase CLI
-- [ ] Document how to call function from client code (if applicable)
-- [ ] Add troubleshooting section for common errors:
+- [x] Add section to `README.md` explaining on-demand sync feature
+- [x] Document how to get Firebase Auth UID for admin user
+- [x] Document how to call function from Firebase CLI
+- [x] Document how to call function from client code (if applicable)
+- [x] Add troubleshooting section for common errors:
   - "ADMIN_USER_ID not set"
   - "permission-denied" errors
   - Parameter validation errors
-- [ ] Update `RUN_PUB_SYNC.md` to mention on-demand callable function as alternative to local script
+- [x] Update `RUN_PUB_SYNC.md` to mention on-demand callable function as alternative to local script
 
 ### 12. Code Review & Cleanup
-- [ ] Review code for TypeScript best practices
-- [ ] Ensure error messages don't leak sensitive information
-- [ ] Verify all logs include relevant context (UID, parameters)
-- [ ] Check that function configuration matches design (region, memory, timeout)
-- [ ] Ensure imports are clean and unused imports removed
+- [x] Review code for TypeScript best practices
+- [x] Ensure error messages don't leak sensitive information
+- [x] Verify all logs include relevant context (UID, parameters)
+- [x] Check that function configuration matches design (region, memory, timeout)
+- [x] Ensure imports are clean and unused imports removed
 
 ## Deployment
 
 ### 13. Pre-Deployment
 - [ ] Set `ADMIN_USER_ID` in production Firebase config
-- [ ] Verify `.env` file is in `.gitignore`
-- [ ] Run `npm run build` in functions directory to check for TypeScript errors
+- [x] Verify `.env` file is in `.gitignore`
+- [x] Run `npm run build` in functions directory to check for TypeScript errors
 - [ ] Commit all changes with descriptive commit message
 
 ### 14. Deployment

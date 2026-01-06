@@ -1,6 +1,37 @@
-# Running the Pub Sync Service Locally
+# Running the Pub Sync Service
 
-The pub sync service has been successfully refactored! Here's how to use it:
+The pub sync service can be run in three ways:
+
+## 1. On-Demand via Firebase Callable Function (Recommended for Production)
+
+For administrators with the correct Firebase Auth UID, you can trigger syncs remotely:
+
+```bash
+# Full sync with first 10 pubs
+firebase functions:call syncPubsOnDemand --data '{"mode":"full","count":10}'
+
+# Full sync starting from position 20
+firebase functions:call syncPubsOnDemand --data '{"mode":"full","count":10,"start":20}'
+
+# Update sync since specific date
+firebase functions:call syncPubsOnDemand --data '{"mode":"update","since":"2026-01-01T00:00:00Z"}'
+
+# Full sync of all pubs (omit count parameter)
+firebase functions:call syncPubsOnDemand --data '{"mode":"full"}'
+```
+
+**Requirements:**
+- Must be authenticated with Firebase CLI (`firebase login`)
+- Your Firebase Auth UID must match the `ADMIN_USER_ID` environment variable
+- Function must be deployed to Firebase
+
+**Advantages:**
+- No local environment setup required
+- Can be run from anywhere
+- Secure (requires admin authorization)
+- Works on production Firestore
+
+## 2. Locally with Emulator (For Development/Testing)
 
 ## Quick Start
 
