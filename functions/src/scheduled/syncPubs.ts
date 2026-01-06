@@ -215,6 +215,7 @@ export const scheduledSyncPubs = onSchedule(
     timeZone: 'UTC',
     memory: '256MiB',
     timeoutSeconds: 600,
+    region: 'europe-west2',
   },
   async (event) => {
     const now = new Date();
