@@ -2,235 +2,344 @@
 
 ## Overview
 
-This document outlines the technical architecture for implementing client-side caching of Firestore data to reduce read operations by >90% while maintaining data freshness and preparing for future cloud function integration.
+This document outlines the technical architecture for implementing caching of Firestore data using Firebase's built-in capabilities: Cloud Functions with CDN caching for pub data, and Firestore SDK persistence for visit data. This approach reduces Firestore reads by >90% while maintaining simplicity and leveraging battle-tested Firebase features.
 
 ## Architecture Principles
 
-1. **Single Responsibility:** Caching logic isolated in dedicated service layer
-2. **Transparency:** Existing callers should not require significant changes
-3. **TTL-based invalidation:** Time-based expiry for shared data (pubs)
-4. **Event-based invalidation:** Mutation-triggered invalidation for user data (visits)
-5. **Future-proof:** Design supports future cloud function data sources
+1. **Leverage Built-In Features:** Use Firebase's native caching instead of custom implementations
+2. **Global CDN:** Pub data cached on Firebase Hosting CDN edge nodes worldwide
+3. **Session-Scoped:** All caches tied to session lifetime (cleared on logout)
+4. **Graceful Degradation:** Cache failures fall back to direct Firestore reads
+5. **Future-Proof:** Cloud Function provides server-side processing integration point
 
 ## System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      Vue Components                         │
-│  (PubLocationsMap, PubDetailSheet, useVisits composable)   │
-└─────────────────┬───────────────────────────────────────────┘
-                  │
-                  │ getAllPubs() / getUserVisits()
-                  │
-┌─────────────────▼───────────────────────────────────────────┐
-│              firebaseDataService.ts                         │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  Uses cachingService internally                     │   │
-│  │  - Checks cache before Firestore read               │   │
-│  │  - Returns cached data if valid                     │   │
-│  │  - Fetches from Firestore on cache miss/expiry      │   │
-│  │  - Updates cache with fresh data                    │   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────┬───────────────────────────────────────────┘
-                  │
-                  │ get() / set() / invalidate()
-                  │
-┌─────────────────▼───────────────────────────────────────────┐
-│                 cachingService.ts                           │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  Generic in-memory cache with TTL                   │   │
-│  │  - Key-value store (Map)                            │   │
-│  │  - Per-entry TTL tracking                           │   │
-│  │  - Automatic expiry checking                        │   │
-│  │  - Manual invalidation support                      │   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                         Vue Components                           │
+│   (PubLocationsMap, PubDetailSheet, useVisits composable)       │
+└────────────────┬────────────────────────────┬────────────────────┘
+                 │                            │
+                 │ Pub Data                   │ Visit Data
+                 │                            │
+┌────────────────▼──────────────┐  ┌──────────▼─────────────────────┐
+│     pubDataService.ts         │  │   firebaseDataService.ts       │
+│  ┌────────────────────────┐   │  │  (getUserVisits, etc.)         │
+│  │ 1. Check sessionStorage│   │  │                                │
+│  │ 2. Call Cloud Function │   │  └────────────┬───────────────────┘
+│  │ 3. Cache in session    │   │               │
+│  └────────────────────────┘   │               │ getDocs()
+└────────────────┬───────────────┘               │
+                 │                               │
+                 │ HTTPS Call                    │
+                 │                               │
+┌────────────────▼───────────────────────────────▼───────────────────┐
+│                    Firebase Hosting CDN                            │
+│  ┌──────────────────────────────────────────────────────────┐     │
+│  │  Cache-Control: public, max-age=86400                    │     │
+│  │  Serves cached response if <24h old                      │     │
+│  │  Routes /api/pubs to Cloud Function on cache miss        │     │
+│  └──────────────────────────────────────────────────────────┘     │
+└────────────────┬───────────────────────────────┬───────────────────┘
+                 │                               │
+                 │ On CDN miss                   │
+                 │                               │
+┌────────────────▼───────────────┐  ┌────────────▼───────────────────┐
+│  Cloud Function: getPubs       │  │  Firestore SDK Persistence     │
+│  ┌──────────────────────────┐  │  │  ┌──────────────────────────┐ │
+│  │ 1. Query Firestore pubs  │  │  │  │ enableIndexedDbPersistence│ │
+│  │ 2. Return JSON + headers │  │  │  │ - Auto caches all reads  │ │
+│  │ 3. CDN caches response   │  │  │  │ - Serves from IndexedDB  │ │
+│  └──────────────────────────┘  │  │  │ - Offline support        │ │
+└────────────────┬───────────────┘  │  └──────────────────────────┘ │
+                 │                  └────────────────┬───────────────┘
+                 │                                   │
+                 │ getDocs()                         │ getDocs()
+                 │                                   │
+┌────────────────▼───────────────────────────────────▼───────────────┐
+│                         Firestore Database                         │
+│                    (pubs collection, visits collection)            │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Component Design
 
-### 1. cachingService.ts (New)
+### 1. Cloud Function: getPubs (New)
 
-**Purpose:** Generic caching utility with TTL support
+**Location:** `functions/src/callable/getPubs.ts`
 
-**Interface:**
+**Purpose:** Serve pub data with HTTP cache headers for CDN caching
+
+**Implementation:**
 ```typescript
-interface CacheEntry<T> {
-  data: T
+import { onRequest } from 'firebase-functions/v2/https'
+import { getDocs, collection } from 'firebase/firestore'
+import { db } from '../lib/firebase'
+
+export const getPubs = onRequest(
+  { cors: true },
+  async (req, res) => {
+    try {
+      // Check for cache bypass parameter
+      const nocache = req.query.nocache === '1'
+      
+      // Set cache headers (24 hours)
+      if (!nocache) {
+        res.set('Cache-Control', 'public, max-age=86400')
+      } else {
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+      }
+      
+      // Query Firestore
+      const snapshot = await getDocs(collection(db, 'pubs'))
+      const pubs = snapshot.docs.map(doc => doc.data())
+      
+      res.status(200).json({ pubs })
+    } catch (error) {
+      console.error('Error fetching pubs:', error)
+      res.status(500).json({ error: 'Failed to fetch pubs' })
+    }
+  }
+)
+```
+
+**Cache Behavior:**
+- Normal requests: `Cache-Control: public, max-age=86400` (24 hours)
+- `?nocache=1`: `Cache-Control: no-cache, no-store, must-revalidate`
+- Firebase Hosting CDN respects cache headers automatically
+
+### 2. pubDataService.ts (New)
+
+**Location:** `Wetherspooning/src/services/pubDataService.ts`
+
+**Purpose:** Fetch pub data from Cloud Function with sessionStorage caching
+
+**Implementation:**
+```typescript
+import type { Pub } from './firebaseDataService'
+
+const SESSION_CACHE_KEY = 'pubs_cache'
+
+interface CachedPubData {
+  pubs: Pub[]
   timestamp: number
-  ttl: number // milliseconds
 }
 
-interface CachingService {
-  get<T>(key: string): T | null
-  set<T>(key: string, data: T, ttl: number): void
-  invalidate(key: string): void
-  invalidateAll(): void
-  isValid(key: string): boolean
-}
-```
-
-**Implementation Details:**
-- In-memory Map-based storage
-- TTL stored per entry (milliseconds since epoch)
-- `get()` auto-expires stale entries
-- No localStorage persistence (not needed for session-scoped data)
-- Type-safe generic interface
-
-**Cache Keys:**
-- `pubs:all` - All pub data
-- `visits:${userId}` - Per-user visit data
-
-**Configuration:**
-```typescript
-const CACHE_CONFIG = {
-  PUBS_TTL: 24 * 60 * 60 * 1000,     // 24 hours
-  VISITS_TTL: Infinity,               // Never expire (manual invalidation only)
-}
-```
-
-### 2. firebaseDataService.ts (Modified)
-
-**Changes to `getAllPubs()`:**
-```typescript
-export async function getAllPubs(): Promise<Pub[]> {
-  const cacheKey = 'pubs:all'
-  
-  // Check cache first
-  const cached = cachingService.get<Pub[]>(cacheKey)
-  if (cached !== null) {
-    console.log('Returning cached pub data')
-    return cached
+export async function getAllPubs(nocache = false): Promise<Pub[]> {
+  // Check sessionStorage first (instant load within session)
+  if (!nocache) {
+    const cached = sessionStorage.getItem(SESSION_CACHE_KEY)
+    if (cached) {
+      try {
+        const { pubs } = JSON.parse(cached) as CachedPubData
+        console.log('Returning sessionStorage cached pub data')
+        return pubs
+      } catch (error) {
+        console.warn('Invalid cached pub data, refetching')
+        sessionStorage.removeItem(SESSION_CACHE_KEY)
+      }
+    }
   }
   
-  // Cache miss - fetch from Firestore
+  // Fetch from Cloud Function (will hit CDN cache if available)
+  const url = `${import.meta.env.VITE_FIREBASE_FUNCTIONS_URL}/getPubs${nocache ? '?nocache=1' : ''}`
+  
   try {
-    const pubs = await fetchPubsFromFirestore() // existing logic
-    cachingService.set(cacheKey, pubs, CACHE_CONFIG.PUBS_TTL)
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    const { pubs } = await response.json()
+    
+    // Cache in sessionStorage for instant loads within this session
+    if (!nocache) {
+      sessionStorage.setItem(SESSION_CACHE_KEY, JSON.stringify({
+        pubs,
+        timestamp: Date.now()
+      }))
+    }
+    
+    console.log(`Fetched ${pubs.length} pubs from Cloud Function`)
     return pubs
   } catch (error) {
-    // On error, don't cache - throw as before
+    console.error('Failed to fetch pubs from Cloud Function:', error)
+    throw error
+  }
+}
+
+export function clearPubCache(): void {
+  sessionStorage.removeItem(SESSION_CACHE_KEY)
+}
+```
+
+**Cache Layers:**
+1. **sessionStorage** (10ms) - Instant loads within same browser session
+2. **CDN cache** (50ms) - Global cache shared across all users
+3. **Cloud Function** (300-500ms) - On CDN cache miss, queries Firestore
+
+### 3. Firestore SDK Persistence (Modified)
+
+**Location:** `Wetherspooning/src/lib/firebase.ts`
+
+**Changes:**
+```typescript
+import { getFirestore, connectFirestoreEmulator, enableIndexedDbPersistence } from 'firebase/firestore'
+
+export const db = getFirestore(app)
+
+if (import.meta.env.DEV) {
+  connectFirestoreEmulator(db, 'localhost', 8080)
+  console.log('🔥 Connected to Firestore Emulator')
+}
+
+// Enable Firestore persistence for automatic caching
+enableIndexedDbPersistence(db)
+  .then(() => {
+    console.log('✅ Firestore persistence enabled')
+  })
+  .catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn('⚠️ Firestore persistence failed: Multiple tabs open')
+    } else if (err.code === 'unimplemented') {
+      console.warn('⚠️ Firestore persistence not supported in this browser')
+    } else {
+      console.error('❌ Firestore persistence error:', err)
+    }
+  })
+```
+
+**Behavior:**
+- All `getDocs()`, `getDoc()` calls automatically check IndexedDB cache first
+- Cache persists across page refreshes until explicitly cleared
+- Works offline automatically
+- Gracefully falls back to network-only if persistence unavailable
+
+### 4. useAuth.ts - Clear Cache on Logout (Modified)
+
+**Location:** `Wetherspooning/src/composables/useAuth.ts`
+
+**Changes:**
+```typescript
+import { clearPubCache } from '@/services/pubDataService'
+
+const logout = async (): Promise<void> => {
+  try {
+    await signOut(auth)
+    clearVisits()
+    clearPubCache() // Clear sessionStorage pub cache
+    // Note: Firestore persistence cache is NOT cleared here to allow
+    // offline access. It will be naturally overwritten on next session.
+    console.log('User logged out successfully')
+  } catch (error) {
+    console.error('Logout error:', error)
     throw error
   }
 }
 ```
 
-**Changes to `getUserVisits()`:**
-```typescript
-export async function getUserVisits(userId: string): Promise<Visit[]> {
-  const cacheKey = `visits:${userId}`
-  
-  // Check cache first
-  const cached = cachingService.get<Visit[]>(cacheKey)
-  if (cached !== null) {
-    console.log(`Returning cached visit data for user ${userId}`)
-    return cached
-  }
-  
-  // Cache miss - fetch from Firestore
-  try {
-    const visits = await fetchVisitsFromFirestore(userId) // existing logic
-    cachingService.set(cacheKey, visits, CACHE_CONFIG.VISITS_TTL)
-    return visits
-  } catch (error) {
-    // On error, don't cache - return empty array as before
-    return []
-  }
-}
-```
-
-**Changes to Visit Mutations:**
-```typescript
-export async function createVisit(visit: Omit<Visit, 'id'>): Promise<Visit> {
-  const result = await createVisitInFirestore(visit) // existing logic
-  
-  // Invalidate cache after successful mutation
-  const cacheKey = `visits:${visit.userId}`
-  cachingService.invalidate(cacheKey)
-  
-  return result
-}
-
-export async function updateVisit(visitId: string, updates: Partial<Visit>): Promise<void> {
-  // Must fetch visit to get userId for cache invalidation
-  const visit = await getVisitById(visitId)
-  await updateVisitInFirestore(visitId, updates) // existing logic
-  
-  if (visit) {
-    cachingService.invalidate(`visits:${visit.userId}`)
-  }
-}
-
-export async function deleteVisit(visitId: string): Promise<void> {
-  const visit = await getVisitById(visitId)
-  await deleteVisitFromFirestore(visitId) // existing logic
-  
-  if (visit) {
-    cachingService.invalidate(`visits:${visit.userId}`)
-  }
-}
-```
-
-
+**Cache Lifecycle:**
+- **Pub sessionStorage cache:** Cleared on logout
+- **Firestore persistence:** Remains intact (allows offline access, naturally refreshes on next session)
+- **Visit state:** Cleared via existing `clearVisits()`
 
 ## Data Flow Diagrams
 
-### Pub Data Flow (Cache Hit)
+### Pub Data Flow (First Global Request)
 ```
-User loads map → getAllPubs() → Check cache → Return cached data (20ms)
-```
-
-### Pub Data Flow (Cache Miss)
-```
-User loads map → getAllPubs() → Check cache → Cache miss → 
-Fetch Firestore (300ms) → Store in cache → Return fresh data
+User 1 loads map → sessionStorage miss → Fetch Cloud Function →
+CDN miss → Function queries Firestore → Function returns JSON + cache headers →
+CDN caches for 24h → sessionStorage caches → User sees map (300-500ms)
 ```
 
-### Visit Data Flow (After Mutation)
+### Pub Data Flow (Subsequent Users - CDN Hit)
 ```
-User adds visit → createVisit() → Write to Firestore → 
-Invalidate cache → Next getUserVisits() → Fetch fresh data
+User 2 loads map → sessionStorage miss → Fetch Cloud Function →
+CDN HIT (serves cached response) → sessionStorage caches → User sees map (50ms)
 ```
+
+### Pub Data Flow (Same User - sessionStorage Hit)
+```
+User 1 navigates back → sessionStorage HIT → User sees map (10ms)
+```
+
+### Visit Data Flow (Firestore Persistence)
+```
+User loads visits → getUserVisits() → Firestore SDK checks IndexedDB →
+Cache miss → Query Firestore → Cache in IndexedDB → Return data (300ms)
+
+User reloads page → getUserVisits() → Firestore SDK checks IndexedDB →
+Cache HIT → Return data (20ms)
+```
+
+## Cache Bypass Mechanism
+
+**For Pub Data:**
+```typescript
+// Normal load (uses all caches)
+await getAllPubs()
+
+// Bypass all caches (for admin/testing)
+await getAllPubs(true) // Adds ?nocache=1 to URL
+```
+
+**For Visit Data:**
+- No bypass needed - session-scoped cache refreshes on new session
 
 ## Error Handling
 
-1. **Firestore read failure:** Cache not populated; error thrown/logged as before
-2. **Cache corruption:** Invalid data treated as cache miss; re-fetch
-3. **TTL calculation errors:** Fail-safe to cache miss (fresh fetch)
-4. **Memory exhaustion:** Unlikely (<1MB); if needed, implement LRU eviction
+1. **Cloud Function failure:** Throw error; UI shows error state (no fallback to Firestore - function is the source)
+2. **CDN failure:** Automatically routes to function (Firebase Hosting handles this)
+3. **sessionStorage failure:** Skip sessionStorage cache; fetch from function
+4. **Firestore persistence failure:** SDK falls back to network-only mode automatically
+5. **JSON parse errors:** Clear corrupted cache; refetch
 
 ## Performance Targets
 
-| Metric | Current | Target | Measurement |
-|--------|---------|--------|-------------|
-| Pub data read latency (cache hit) | 300ms | <50ms | Console timing |
-| Firestore reads per user session | ~10-15 | 1-2 | Firebase console |
-| Memory usage | 0 | <1MB | Chrome DevTools |
-| Cache hit rate | 0% | >80% | Telemetry logs |
+| Scenario | Current | Target | Cache Layer |
+|----------|---------|--------|-------------|
+| First global pub load | 300ms | 300-500ms | None (cold function)|
+| Subsequent user pub load (CDN) | 300ms | <50ms | CDN cache |
+| Same user pub load (session) | 300ms | <10ms | sessionStorage |
+| First visit load (session) | 300ms | 300ms | None |
+| Subsequent visit load (session) | 300ms | <20ms | IndexedDB |
+| Firestore pub reads per 24h | ~500 | 1 | CDN |
+| Firestore visit reads per session | ~10 | 1 | Persistence |
 
 ## Testing Strategy
 
-1. **Unit tests for cachingService:**
-   - TTL expiry behavior
-   - Manual invalidation
-   - Type safety
+1. **Cloud Function tests:**
+   - Returns valid pub data with cache headers
+   - Respects `?nocache=1` parameter
+   - Handles Firestore errors gracefully
 
-2. **Integration tests for firebaseDataService:**
-   - Cache hit/miss paths
-   - Invalidation on mutations
-   - Firestore error handling with cache
+2. **pubDataService tests:**
+   - sessionStorage caching behavior
+   - Fallback on cache corruption
+   - nocache parameter passed correctly
 
-3. **E2E scenarios:**
-   - Full user session with cached data
-   - Manual refresh flows
-   - Multi-user isolation
+3. **Firestore persistence tests:**
+   - Verify `enableIndexedDbPersistence()` called
+   - Test graceful degradation on failure
+   - Multi-tab warning scenario
+
+4. **Integration tests:**
+   - End-to-end pub data flow (sessionStorage → CDN → function)
+   - Visit data flow with persistence
+   - Cache cleared on logout
+
+5. **E2E tests:**
+   - Load map, verify Network tab shows CDN cache hits
+   - Logout and verify caches cleared
+   - Test `?nocache=1` bypasses CDN
 
 ## Migration Plan
 
-1. **Phase 1:** Implement cachingService (no behavior change)
-2. **Phase 2:** Integrate caching into getAllPubs() (pub caching enabled)
-3. **Phase 3:** Integrate caching into getUserVisits() (visit caching enabled)
-4. **Phase 4:** Add manual refresh UI (optional future work)
+1. **Phase 1:** Enable Firestore persistence (visit data caching)
+2. **Phase 2:** Create Cloud Function `getPubs` with cache headers
+3. **Phase 3:** Create `pubDataService` with sessionStorage wrapper
+4. **Phase 4:** Update components to use `pubDataService.getAllPubs()`
+5. **Phase 5:** Configure Firebase Hosting rewrites for `/api/pubs`
 
 Each phase is independently testable and deployable.
 
@@ -250,15 +359,16 @@ Each phase is independently testable and deployable.
 
 ## Security Considerations
 
-- Cache is client-side; no security boundary changes
-- User-specific data isolated by `visits:${userId}` keys
-- No sensitive data in cache beyond what's already in Firestore
-- Cache invalidation on logout handled by `clearVisits()`
+- Cloud Function is public (pub data is public anyway)
+- Visit data remains protected by Firestore security rules
+- sessionStorage is client-side only (no security boundary)
+- `?nocache=1` is not a security risk (just bypasses cache)
+- Firestore persistence respects existing security rules
 
 ## Rollback Plan
 
 If caching causes issues:
-1. Remove caching calls from firebaseDataService
-2. Restore direct Firestore reads
-3. No data migration needed (cache is ephemeral)
-4. Feature flag to toggle caching in production
+1. **Pub data:** Revert to direct Firestore `getAllPubs()` (remove `pubDataService` calls)
+2. **Visit data:** Disable persistence by removing `enableIndexedDbPersistence()` call
+3. No data migration needed (caches are ephemeral or auto-managed)
+4. Cloud Function can remain deployed (used for future features)

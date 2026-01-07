@@ -2,49 +2,111 @@
 
 ## ADDED Requirements
 
-### Requirement: Client-Side Data Caching Service (REQ-FDI-017)
+### Requirement: Firestore SDK Persistence (REQ-FDI-017)
 **Priority:** MUST  
 **Category:** Performance
 
-The system MUST provide a generic client-side caching service for Firestore data with configurable time-to-live (TTL) support.
+The system MUST enable Firestore SDK's built-in persistence to automatically cache all Firestore reads in IndexedDB.
 
 **Acceptance Criteria:**
-- Generic caching service implemented in `cachingService.ts`
-- In-memory Map-based storage for cache entries
-- Each cache entry stores data, timestamp, and TTL
-- Type-safe generic interface supports any data type
-- Cache keys follow pattern: `{entity}:{identifier}` (e.g., `pubs:all`, `visits:${userId}`)
-- TTL specified in milliseconds
-- Automatic expiry on `get()` if TTL exceeded
-- Manual invalidation via `invalidate(key)` method
-- Global invalidation via `invalidateAll()` method
-- No persistence to localStorage or IndexedDB (memory-only)
+- `enableIndexedDbPersistence(db)` called during Firebase initialization
+- Persistence enabled after Firestore database instance created
+- Graceful handling if persistence fails (multi-tab or unsupported browser)
+- Console logs success/failure of persistence enablement
+- Cache persists across page refreshes
+- All `getDocs()` and `getDoc()` calls automatically use cache
+- Works offline automatically with cached data
+- No explicit cache invalidation needed (SDK manages cache lifecycle)
 
-#### Scenario: Cache Entry with Valid TTL
-**Given** pub data is cached with 24-hour TTL  
-**And** 10 hours have elapsed since cache write  
-**When** `cachingService.get('pubs:all')` is called  
-**Then** cached pub data is returned  
-**And** no Firestore read occurs
+#### Scenario: Enable Persistence on App Initialization
+**Given** the application is starting up  
+**And** Firebase SDK is initialized  
+**When** `enableIndexedDbPersistence(db)` is called  
+**Then** persistence is enabled successfully  
+**And** console logs "✅ Firestore persistence enabled"  
+**And** all subsequent Firestore reads check IndexedDB first
 
-#### Scenario: Cache Entry Expired TTL
-**Given** pub data is cached with 24-hour TTL  
-**And** 25 hours have elapsed since cache write  
-**When** `cachingService.get('pubs:all')` is called  
-**Then** null is returned (cache miss)  
-**And** cache entry is removed from memory
+#### Scenario: Persistence Fails Due to Multiple Tabs
+**Given** the user has the application open in multiple tabs  
+**When** `enableIndexedDbPersistence(db)` is called in a second tab  
+**Then** persistence fails with code 'failed-precondition'  
+**And** console warns "⚠️ Firestore persistence failed: Multiple tabs open"  
+**And** Firestore falls back to network-only mode  
+**And** the application continues to function normally
 
-#### Scenario: Manual Cache Invalidation
-**Given** visit data is cached for user "uid-123"  
-**When** `cachingService.invalidate('visits:uid-123')` is called  
-**Then** cached entry is immediately removed  
-**And** next `get('visits:uid-123')` returns null
+#### Scenario: Persistence Unsupported in Browser
+**Given** the browser does not support IndexedDB  
+**When** `enableIndexedDbPersistence(db)` is called  
+**Then** persistence fails with code 'unimplemented'  
+**And** console warns "⚠️ Firestore persistence not supported in this browser"  
+**And** Firestore falls back to network-only mode  
+**And** the application continues to function normally
 
-#### Scenario: Global Cache Invalidation
-**Given** multiple cache entries exist (`pubs:all`, `visits:uid-123`, `visits:uid-456`)  
-**When** `cachingService.invalidateAll()` is called  
-**Then** all cache entries are removed  
-**And** all subsequent `get()` calls return null
+#### Scenario: Cached Visit Data Loads Instantly
+**Given** Firestore persistence is enabled  
+**And** visit data for user "uid-123" was previously loaded  
+**When** the page is refreshed  
+**And** `getUserVisits('uid-123')` is called  
+**Then** Firestore SDK checks IndexedDB cache first  
+**And** cached visit data is returned in <20ms  
+**And** no network request to Firestore occurs
+
+---
+
+### Requirement: Cloud Function for Pub Data with CDN Caching (REQ-FDI-018)
+**Priority:** MUST  
+**Category:** Performance
+
+The system MUST provide an HTTP Cloud Function that serves pub data with cache headers for CDN caching.
+
+**Acceptance Criteria:**
+- Cloud Function `getPubs` implemented in `functions/src/callable/getPubs.ts`
+- Function queries Firestore `pubs` collection and returns JSON
+- Returns HTTP header: `Cache-Control: public, max-age=86400` (24 hours)
+- Firebase Hosting CDN caches response globally for 24 hours
+- Supports `?nocache=1` query parameter to bypass cache
+- When `?nocache=1` present, returns `Cache-Control: no-cache, no-store, must-revalidate`
+- CORS enabled for cross-origin requests
+- Returns 200 OK with `{ pubs: Pub[] }` on success
+- Returns 500 Error with `{ error: string }` on Firestore failure
+- Function endpoint routed via Firebase Hosting rewrite
+
+#### Scenario: Serve Pub Data with Cache Headers
+**Given** the Cloud Function `getPubs` is deployed  
+**And** Firestore contains 1000 pubs  
+**When** a client requests `/api/pubs`  
+**Then** the function queries Firestore `pubs` collection  
+**And** returns JSON: `{ pubs: [...] }` with 1000 pub objects  
+**And** response includes header `Cache-Control: public, max-age=86400`  
+**And** Firebase Hosting CDN caches the response for 24 hours  
+**And** subsequent requests within 24h are served from CDN (<50ms)
+
+#### Scenario: Cache Bypass with nocache Parameter
+**Given** the Cloud Function `getPubs` is deployed  
+**When** a client requests `/api/pubs?nocache=1`  
+**Then** the function queries Firestore (bypasses any internal caching)  
+**And** returns fresh pub data  
+**And** response includes header `Cache-Control: no-cache, no-store, must-revalidate`  
+**And** CDN does not cache the response  
+**And** next request without `?nocache=1` uses normal caching
+
+#### Scenario: CDN Cache Hit for Pub Data
+**Given** user A requested `/api/pubs` 2 hours ago  
+**And** CDN cached the response with 24h TTL  
+**When** user B requests `/api/pubs` from a different location  
+**Then** Firebase Hosting CDN serves the cached response  
+**And** no Cloud Function invocation occurs  
+**And** response is delivered in <50ms globally  
+**And** user B receives same pub data as user A
+
+#### Scenario: Firestore Query Error in Function
+**Given** Firestore is unavailable  
+**When** a client requests `/api/pubs`  
+**Then** the function catches the Firestore error  
+**And** logs error to console: "Error fetching pubs: {error}"  
+**And** returns status 500  
+**And** returns JSON: `{ error: "Failed to fetch pubs" }`  
+**And** no data is cached by CDN
 
 ---
 
@@ -55,59 +117,72 @@ The system MUST provide a generic client-side caching service for Firestore data
 **Category:** Functional
 
 **Changes:**
-- ADD: `getAllPubs()` checks cache before Firestore read
-- ADD: Pub data cached with 24-hour TTL
-- ADD: Cache miss triggers Firestore read and cache update
+- REMOVE: Direct `getAllPubs()` Firestore reads
+- ADD: `getAllPubs()` fetches from Cloud Function via HTTP
+- ADD: sessionStorage caching layer for same-session instant loads
 
-The system MUST provide methods to retrieve pub data from Firestore with caching to reduce read operations, while maintaining proper error handling and data validation.
+The system MUST provide methods to retrieve pub data via Cloud Function with multi-layer caching.
 
 **Updated Acceptance Criteria:**
-- `getAllPubs()` checks cache via `cachingService.get('pubs:all')` before Firestore read
-- Cache hit returns cached data without Firestore read
-- Cache miss or expired TTL triggers Firestore read
-- Successful Firestore read updates cache with 24-hour TTL
-- Firestore errors do not populate cache (throw/log as before)
-- `getPubById(pubId)` continues direct Firestore reads (no caching for single-pub queries)
+- `getAllPubs()` checks sessionStorage for cached data first
+- sessionStorage hit returns data in <10ms
+- sessionStorage miss triggers HTTP request to `/api/pubs`
+- Cloud Function request hits CDN cache if available (<50ms)
+- CDN miss triggers Cloud Function execution (queries Firestore, ~300-500ms)
+- Successful response cached in sessionStorage for current session
+- `getAllPubs(true)` bypasses all caches (adds `?nocache=1` to URL)
 - All methods return properly typed Pub objects
-- Invalid or missing fields in Firestore documents are handled gracefully
-- Network errors are caught and logged
-- Empty results return empty array or null (not error)
-- Query results are validated against Pub interface schema
+- sessionStorage cache cleared on logout
+- Network errors are caught and thrown to caller
+- Empty results handled gracefully
 - Queries have 10-second timeout
-- Console logs "Returning cached pub data" on cache hits
 
-#### Scenario: Retrieve All Pubs with Cache Hit
+#### Scenario: Retrieve Pubs with sessionStorage Hit
 **ADDED:**
-**Given** pub data was cached 5 hours ago with 24-hour TTL  
-**And** the Firestore `pubs` collection has not been accessed since  
+**Given** pub data was fetched 10 minutes ago in the same browser session  
+**And** sessionStorage contains valid cached pub data  
 **When** `getAllPubs()` is called  
-**Then** cache is checked first  
+**Then** sessionStorage is checked first  
 **And** cached pub array is returned  
-**And** no Firestore read occurs  
-**And** console logs "Returning cached pub data"  
+**And** no HTTP request occurs  
+**And** console logs "Returning sessionStorage cached pub data"  
+**And** the operation completes in <10ms
+
+#### Scenario: Retrieve Pubs with CDN Hit (sessionStorage Miss)
+**ADDED:**
+**Given** this is a new browser session (sessionStorage empty)  
+**And** Firebase CDN has cached `/api/pubs` response from 5 hours ago  
+**When** `getAllPubs()` is called  
+**Then** sessionStorage check returns null  
+**And** HTTP request made to `/api/pubs`  
+**And** Firebase CDN serves cached response  
+**And** pub data is cached in sessionStorage  
 **And** the operation completes in <50ms
 
-#### Scenario: Retrieve All Pubs with Cache Miss
+#### Scenario: Retrieve Pubs with Cloud Function (CDN Miss)
 **ADDED:**
-**Given** no pub data is cached (first load or expired TTL)  
+**Given** this is the first global request in 24h (CDN cache expired)  
 **When** `getAllPubs()` is called  
-**Then** cache is checked and returns null  
-**And** Firestore `pubs` collection is queried  
-**And** query results are validated and returned  
-**And** results are cached with 24-hour TTL  
-**And** the operation completes within 2 seconds
+**Then** sessionStorage check returns null  
+**And** HTTP request made to `/api/pubs`  
+**And** CDN cache miss routes to Cloud Function  
+**And** Cloud Function queries Firestore  
+**And** Function returns pub data with cache headers  
+**And** CDN caches response for 24h  
+**And** pub data is cached in sessionStorage  
+**And** the operation completes in 300-500ms
 
-#### Scenario: Firestore Error Does Not Cache
+#### Scenario: Cache Bypass for Admin Refresh
 **ADDED:**
-**Given** cache is empty (no cached pub data)  
-**And** Firestore is unavailable (network error)  
-**When** `getAllPubs()` is called  
-**Then** cache check returns null  
-**And** Firestore read is attempted  
-**And** Firestore throws error  
-**And** error is logged to console  
-**And** no data is written to cache  
-**And** error is thrown to caller
+**Given** admin needs to force refresh pub data  
+**When** `getAllPubs(true)` is called  
+**Then** sessionStorage is not checked  
+**And** HTTP request made to `/api/pubs?nocache=1`  
+**And** CDN and Cloud Function caches bypassed  
+**And** Cloud Function queries Firestore directly  
+**And** fresh pub data returned  
+**And** data is NOT cached in sessionStorage  
+**And** next `getAllPubs()` call uses normal caching
 
 ---
 
@@ -116,66 +191,51 @@ The system MUST provide methods to retrieve pub data from Firestore with caching
 **Category:** Functional
 
 **Changes:**
-- ADD: `getUserVisits()` checks cache before Firestore read
-- ADD: Visit data cached with infinite TTL (manual invalidation only)
-- ADD: Visit mutations invalidate cache for affected user
+- ADD: Visit data automatically cached by Firestore SDK persistence
+- REMOVE: Custom cache invalidation logic (SDK handles this)
+- ADD: Cache cleared on logout (session-scoped)
 
-The system MUST provide methods to manage visit data in Firestore with caching and automatic invalidation on mutations.
+The system MUST provide methods to manage visit data with automatic SDK-based caching.
 
 **Updated Acceptance Criteria:**
-- `getUserVisits(userId)` checks cache via `cachingService.get(\`visits:${userId}\`)` before Firestore read
-- Cache hit returns cached visit data without Firestore read
-- Cache miss triggers Firestore read and cache update with infinite TTL
-- Visit data cached per user (isolated by userId)
-- `createVisit()` invalidates cache for `visits:${userId}` after successful write
-- `updateVisit()` invalidates cache for affected user after successful update
-- `deleteVisit()` invalidates cache for affected user after successful delete
-- Cache invalidation forces fresh Firestore read on next `getUserVisits()` call
+- `getUserVisits(userId)` uses standard Firestore `getDocs()` call
+- Firestore SDK automatically checks IndexedDB cache before network
+- Cache hit returns visit data in <20ms
+- Cache miss queries Firestore and caches result automatically
+- Visit data cached per user (Firestore SDK handles isolation)
+- No explicit cache invalidation on `createVisit()`, `updateVisit()`, `deleteVisit()` needed
+- Cache persists across page refreshes (IndexedDB)
+- Cache cleared on logout via Firestore SDK methods (future enhancement)
 - All methods return properly typed Visit objects
 - Validation and error handling unchanged from previous behavior
-- Console logs "Returning cached visit data for user {userId}" on cache hits
 
-#### Scenario: Retrieve User Visits with Cache Hit
+#### Scenario: Retrieve User Visits with SDK Cache Hit
 **ADDED:**
-**Given** visit data for user "uid-123" was cached earlier in session  
-**And** no visit mutations have occurred since  
+**Given** Firestore persistence is enabled  
+**And** visit data for user "uid-123" was loaded earlier in current or previous session  
 **When** `getUserVisits('uid-123')` is called  
-**Then** cache is checked first  
+**Then** Firestore SDK checks IndexedDB cache first  
 **And** cached visit array is returned  
-**And** no Firestore read occurs  
-**And** console logs "Returning cached visit data for user uid-123"  
-**And** the operation completes in <50ms
+**And** no network request to Firestore occurs  
+**And** the operation completes in <20ms
 
-#### Scenario: Visit Creation Invalidates Cache
+#### Scenario: Visit Creation Automatically Cached
 **ADDED:**
-**Given** visit data for user "uid-123" is cached  
+**Given** Firestore persistence is enabled  
+**And** user creates a new visit for pub "pub-42"  
 **When** `createVisit({ userId: 'uid-123', pubId: 'pub-42', ... })` is called  
 **And** Firestore write succeeds  
-**Then** cache entry `visits:uid-123` is invalidated  
-**And** next `getUserVisits('uid-123')` triggers fresh Firestore read
+**Then** Firestore SDK automatically updates IndexedDB cache  
+**And** next `getUserVisits('uid-123')` includes the new visit  
+**And** data is served from cache (no network request)
 
-#### Scenario: Visit Update Invalidates Cache
+#### Scenario: Cross-Device Changes Reflected on New Session
 **ADDED:**
-**Given** visit data for user "uid-123" is cached  
-**And** visit "visit-999" belongs to user "uid-123"  
-**When** `updateVisit('visit-999', { rating: 5 })` is called  
-**And** Firestore update succeeds  
-**Then** cache entry `visits:uid-123` is invalidated  
-**And** next `getUserVisits('uid-123')` triggers fresh Firestore read
-
-#### Scenario: Visit Deletion Invalidates Cache
-**ADDED:**
-**Given** visit data for user "uid-123" is cached  
-**And** visit "visit-888" belongs to user "uid-123"  
-**When** `deleteVisit('visit-888')` is called  
-**And** Firestore delete succeeds  
-**Then** cache entry `visits:uid-123` is invalidated  
-**And** next `getUserVisits('uid-123')` triggers fresh Firestore read
-
-#### Scenario: Multi-User Cache Isolation
-**ADDED:**
-**Given** visit data for users "uid-123" and "uid-456" are both cached  
-**When** `createVisit({ userId: 'uid-123', ... })` invalidates "uid-123" cache  
-**Then** cache entry `visits:uid-456` remains valid  
-**And** `getUserVisits('uid-456')` returns cached data  
-**And** `getUserVisits('uid-123')` triggers fresh Firestore read
+**Given** user adds a visit from device A  
+**And** visit is written to Firestore  
+**When** user logs in on device B (new session)  
+**And** `getUserVisits('uid-123')` is called for the first time  
+**Then** Firestore SDK queries Firestore (fresh session)  
+**And** receives all visits including new one from device A  
+**And** caches complete visit list in IndexedDB  
+**And** subsequent calls on device B use cached data

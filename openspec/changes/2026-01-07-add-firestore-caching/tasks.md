@@ -1,235 +1,283 @@
 # Implementation Tasks
 
 ## Overview
-This task list implements client-side caching for Firestore data to reduce read operations by >90%. Tasks are ordered for incremental, testable progress.
+This task list implements caching for Firestore data using Firebase's built-in features: Cloud Functions with CDN caching for pub data, and Firestore SDK persistence for visit data. Tasks are ordered for incremental, testable progress.
 
 ## Pre-Implementation
 - [ ] Review and approve proposal.md, design.md, and spec deltas
-- [ ] Ensure all stakeholders understand caching strategy and TTL values
+- [ ] Ensure Firebase Hosting and Cloud Functions are enabled in Firebase project
 - [ ] Confirm Firebase emulator is available for testing
 
-## Phase 1: Caching Service Foundation
-### Task 1.1: Implement Generic Caching Service
-- [ ] Create `Wetherspooning/src/services/cachingService.ts`
-- [ ] Define `CacheEntry<T>` interface with `data`, `timestamp`, `ttl` fields
-- [ ] Implement in-memory Map storage for cache entries
-- [ ] Implement `get<T>(key: string): T | null` with TTL validation
-- [ ] Implement `set<T>(key: string, data: T, ttl: number): void`
-- [ ] Implement `invalidate(key: string): void`
-- [ ] Implement `invalidateAll(): void`
-- [ ] Add cache expiry logic in `get()` (auto-remove expired entries)
-- [ ] Export singleton instance
+## Phase 1: Firestore SDK Persistence (Visit Data Caching)
+### Task 1.1: Enable Firestore Persistence
+- [ ] Open `Wetherspooning/src/lib/firebase.ts`
+- [ ] Import `enableIndexedDbPersistence` from `firebase/firestore`
+- [ ] Call `enableIndexedDbPersistence(db)` after Firestore init
+- [ ] Add `.then()` handler to log "✅ Firestore persistence enabled"
+- [ ] Add `.catch()` handler for error codes: 'failed-precondition', 'unimplemented'
+- [ ] Log appropriate warnings for each error type
+- [ ] Ensure graceful fallback if persistence fails (no throw)
 
 **Validation:**
-- Service exports type-safe interface
-- No runtime errors on import
+- App loads without errors
+- Console logs success message in normal case
+- Console logs appropriate warning when multiple tabs open
 - TypeScript compilation succeeds
 
 **Dependencies:** None
 
 ---
 
-### Task 1.2: Create Cache Configuration Constants
-- [ ] Add `CACHE_CONFIG` object to `cachingService.ts` or separate config file
-- [ ] Define `PUBS_TTL: 24 * 60 * 60 * 1000` (24 hours)
-- [ ] Define `VISITS_TTL: Infinity` (never expire)
-- [ ] Document TTL values and rationale in code comments
+### Task 1.2: Test Firestore Persistence in Browser
+- [ ] Run Firebase emulator
+- [ ] Load map page and trigger visit data load
+- [ ] Check browser DevTools → Application → IndexedDB
+- [ ] Verify Firestore persistence database exists
+- [ ] Reload page and observe Network tab (no visits query on second load)
+- [ ] Test multi-tab scenario (open second tab, verify warning logged)
 
 **Validation:**
-- Constants are exported and importable
-- TypeScript recognizes constant values
+- IndexedDB contains Firestore cache
+- Visit data loads from cache on reload (<20ms)
+- Multi-tab warning appears correctly
 
 **Dependencies:** Task 1.1
 
 ---
 
-### Task 1.3: Unit Test Caching Service
-- [ ] Create `Wetherspooning/src/services/__tests__/cachingService.test.ts`
-- [ ] Test: `get()` returns null for missing key
-- [ ] Test: `set()` and `get()` round-trip with valid TTL
-- [ ] Test: `get()` returns null for expired TTL (mock time or use short TTL)
-- [ ] Test: `invalidate()` removes entry
-- [ ] Test: `invalidateAll()` clears all entries
-- [ ] Test: Type safety with generic types (compile-time check)
-- [ ] Test: Multiple cache keys are isolated
+### Task 1.3: Update useAuth to Handle Cache Lifecycle
+- [ ] Open `Wetherspooning/src/composables/useAuth.ts`
+- [ ] Note: Firestore SDK cache persists beyond logout (by design for offline access)
+- [ ] Add comment documenting cache behavior: "Firestore persistence cache remains for offline access; naturally refreshes on next session"
+- [ ] Verify `clearVisits()` still called on logout (clears reactive state)
 
 **Validation:**
-- All tests pass
-- Coverage >90% for cachingService.ts
+- Logout clears reactive visit state
+- Firestore cache persists in IndexedDB (expected behavior)
+- Next login refreshes visit data from Firestore
 
-**Dependencies:** Task 1.1, 1.2
+**Dependencies:** Task 1.1
 
 ---
 
-## Phase 2: Pub Data Caching Integration
-### Task 2.1: Refactor getAllPubs() for Caching
-- [ ] Import `cachingService` into `firebaseDataService.ts`
-- [ ] Define cache key constant: `PUBS_CACHE_KEY = 'pubs:all'`
-- [ ] Modify `getAllPubs()` to check cache before Firestore read
-- [ ] On cache hit: log "Returning cached pub data" and return cached array
-- [ ] On cache miss: proceed with existing Firestore query logic
-- [ ] After successful Firestore read: call `cachingService.set(PUBS_CACHE_KEY, pubs, CACHE_CONFIG.PUBS_TTL)`
-- [ ] Ensure errors do not populate cache (existing error handling preserved)
+## Phase 2: Cloud Function for Pub Data
+### Task 2.1: Create Cloud Function getPubs
+- [ ] Create `functions/src/callable/getPubs.ts`
+- [ ] Import `onRequest` from `firebase-functions/v2/https`
+- [ ] Import Firestore methods: `getDocs`, `collection`
+- [ ] Implement function with CORS enabled: `{ cors: true }`
+- [ ] Check `req.query.nocache === '1'` for cache bypass
+- [ ] Set cache headers:  
+  - Normal: `Cache-Control: public, max-age=86400`  
+  - Bypass: `Cache-Control: no-cache, no-store, must-revalidate`
+- [ ] Query Firestore `pubs` collection
+- [ ] Return JSON: `{ pubs: [...] }` with status 200
+- [ ] Handle errors: log to console, return status 500 with `{ error: string }`
 
 **Validation:**
-- `getAllPubs()` compiles without errors
-- Existing unit tests for `getAllPubs()` still pass
-- Manual test: first call logs Firestore read, second call logs cache hit
+- Function exports correctly
+- TypeScript compiles without errors
+- Function signature matches v2 https.onRequest
 
-**Dependencies:** Task 1.1, 1.2
+**Dependencies:** None
 
 ---
 
-### Task 2.2: Test Pub Data Caching Behavior
-- [ ] Update existing `firebaseDataService.test.ts` to mock `cachingService`
-- [ ] Test: `getAllPubs()` on cache miss queries Firestore and caches result
-- [ ] Test: `getAllPubs()` on cache hit returns cached data without Firestore query
-- [ ] Test: Firestore error does not cache invalid data
-- [ ] Test: Cache TTL expiry triggers fresh Firestore read (mock expired cache)
+### Task 2.2: Export and Deploy Cloud Function
+- [ ] Open `functions/src/index.ts`
+- [ ] Export getPubs: `export { getPubs } from './callable/getPubs'`
+- [ ] Build functions: `npm run build` in `functions/` directory
+- [ ] Deploy function: `firebase deploy --only functions:getPubs`
+- [ ] Test deployed function URL manually (browser or curl)
+- [ ] Verify cache headers in response (use browser DevTools Network tab)
 
 **Validation:**
-- All tests pass
-- Tests verify cache interactions (spies/mocks on cachingService)
+- Function deploys successfully
+- Function URL accessible
+- Response includes correct cache headers
+- Response contains valid pub data JSON
 
 **Dependencies:** Task 2.1
 
 ---
 
-### Task 2.3: E2E Test Pub Caching in Browser
-- [ ] Run Firebase emulator
-- [ ] Load map page and observe Network tab (Firestore read occurs)
-- [ ] Reload page and verify no Firestore read (cache hit)
-- [ ] Check console for "Returning cached pub data" log
-- [ ] Clear cache manually (`cachingService.invalidateAll()` in console) and reload
-- [ ] Verify Firestore read occurs again
+### Task 2.3: Configure Firebase Hosting Rewrite
+- [ ] Open `firebase.json`
+- [ ] Add rewrite rule in `hosting.rewrites` array:  
+  ```json
+  {
+    "source": "/api/pubs",
+    "function": "getPubs"
+  }
+  ```
+- [ ] Deploy hosting config: `firebase deploy --only hosting`
+- [ ] Test `/api/pubs` endpoint via hosting URL
+- [ ] Verify CDN caching by making multiple requests (check X-Cache-Status header)
 
 **Validation:**
-- Observable reduction in Firestore reads
-- Map loads faster on cache hits (<100ms vs ~300ms)
+- `/api/pubs` route resolves to Cloud Function
+- First request hits function (cache miss)
+- Subsequent requests within 24h hit CDN (cache hit)
 
-**Dependencies:** Task 2.1
+**Dependencies:** Task 2.2
 
 ---
 
-## Phase 3: Visit Data Caching Integration
-### Task 3.1: Refactor getUserVisits() for Caching
-- [ ] Define cache key factory: `VISITS_CACHE_KEY = (userId: string) => \`visits:${userId}\``
-- [ ] Modify `getUserVisits(userId)` to check cache before Firestore read
-- [ ] On cache hit: log "Returning cached visit data for user {userId}" and return cached array
-- [ ] On cache miss: proceed with existing Firestore query logic
-- [ ] After successful Firestore read: call `cachingService.set(VISITS_CACHE_KEY(userId), visits, CACHE_CONFIG.VISITS_TTL)`
-- [ ] Ensure errors return empty array (existing behavior preserved)
+## Phase 3: Client-Side Pub Data Service with sessionStorage
+### Task 3.1: Create pubDataService
+- [ ] Create `Wetherspooning/src/services/pubDataService.ts`
+- [ ] Import `Pub` type from `firebaseDataService`
+- [ ] Define `SESSION_CACHE_KEY = 'pubs_cache'`
+- [ ] Define interface `CachedPubData { pubs: Pub[], timestamp: number }`
+- [ ] Implement `getAllPubs(nocache = false): Promise<Pub[]>`
+- [ ] Check sessionStorage for cached data (skip if `nocache === true`)
+- [ ] On cache hit: parse JSON, log "Returning sessionStorage cached pub data", return pubs
+- [ ] On cache miss or error: fetch from Cloud Function URL
+- [ ] Build URL: `${VITE_FIREBASE_FUNCTIONS_URL}/getPubs${nocache ? '?nocache=1' : ''}`
+- [ ] Fetch data, check response.ok, parse JSON
+- [ ] Cache in sessionStorage (skip if `nocache === true`)
+- [ ] Implement `clearPubCache()`: remove from sessionStorage
 
 **Validation:**
-- `getUserVisits()` compiles without errors
-- Existing unit tests for `getUserVisits()` still pass
+- Service exports `getAllPubs` and `clearPubCache`
+- TypeScript compiles without errors
+- Function signature matches expected usage
 
-**Dependencies:** Task 1.1, 1.2
+**Dependencies:** Task 2.3
 
 ---
 
-### Task 3.2: Add Cache Invalidation to Visit Mutations
-- [ ] Modify `createVisit()` to invalidate cache after successful Firestore write
-- [ ] Add `cachingService.invalidate(VISITS_CACHE_KEY(visit.userId))` after write succeeds
-- [ ] Modify `updateVisit()` to fetch visit, update Firestore, then invalidate cache for `visit.userId`
-- [ ] Modify `deleteVisit()` to fetch visit, delete from Firestore, then invalidate cache for `visit.userId`
-- [ ] Ensure invalidation only occurs after successful Firestore operation (not on error)
+### Task 3.2: Add Environment Variable for Functions URL
+- [ ] Open `Wetherspooning/.env` (or create if missing)
+- [ ] Add `VITE_FIREBASE_FUNCTIONS_URL=https://your-project.cloudfunctions.net` (production URL)
+- [ ] For emulator: `VITE_FIREBASE_FUNCTIONS_URL=http://localhost:5001/your-project/us-central1`
+- [ ] Update `.env.example` with placeholder
+- [ ] Document in README how to configure this variable
 
 **Validation:**
-- Visit mutation functions compile without errors
-- Manual test: create visit, observe cache invalidation, verify next load fetches fresh data
+- Environment variable accessible in code via `import.meta.env.VITE_FIREBASE_FUNCTIONS_URL`
+- Variable changes based on dev vs production environment
+
+**Dependencies:** None
+
+---
+
+### Task 3.3: Test pubDataService
+- [ ] Create `Wetherspooning/src/services/__tests__/pubDataService.test.ts`
+- [ ] Mock `fetch` global function
+- [ ] Mock sessionStorage (use jest-localstorage-mock or similar)
+- [ ] Test: `getAllPubs()` on sessionStorage miss fetches from function
+- [ ] Test: `getAllPubs()` on sessionStorage hit returns cached data without fetch
+- [ ] Test: `getAllPubs(true)` bypasses sessionStorage and adds `?nocache=1`
+- [ ] Test: `clearPubCache()` removes data from sessionStorage
+- [ ] Test: Corrupted sessionStorage JSON triggers re-fetch
+
+**Validation:**
+- All tests pass
+- Coverage >90% for pubDataService.ts
 
 **Dependencies:** Task 3.1
 
 ---
 
-### Task 3.3: Test Visit Data Caching and Invalidation
-- [ ] Update `firebaseDataService.test.ts` to mock `cachingService` for visit operations
-- [ ] Test: `getUserVisits()` on cache miss queries Firestore and caches result
-- [ ] Test: `getUserVisits()` on cache hit returns cached data without Firestore query
-- [ ] Test: `createVisit()` invalidates cache for affected user
-- [ ] Test: `updateVisit()` invalidates cache for affected user
-- [ ] Test: `deleteVisit()` invalidates cache for affected user
-- [ ] Test: Multi-user isolation (user A's cache not invalidated by user B's mutation)
+## Phase 4: Integrate pubDataService into Components
+### Task 4.1: Update PubLocationsMap to Use pubDataService
+- [ ] Open `Wetherspooning/src/views/PubLocationsMap.vue`
+- [ ] Replace `import { getAllPubs } from '@/services/firebaseDataService'` with `import { getAllPubs } from '@/services/pubDataService'`
+- [ ] No changes to usage (function signature unchanged)
+- [ ] Test in browser: load map, check Network tab for `/api/pubs` request
+- [ ] Reload page: verify no network request (sessionStorage hit)
 
 **Validation:**
-- All tests pass
-- Tests verify cache invalidation on mutations
+- Map loads successfully with pub data
+- First load triggers HTTP request to `/api/pubs`
+- Subsequent loads use sessionStorage (no network request)
+- Console logs indicate cache hits/misses
 
-**Dependencies:** Task 3.2
+**Dependencies:** Task 3.1
 
 ---
 
-### Task 3.4: E2E Test Visit Caching in Browser
-- [ ] Run Firebase emulator with test user account
-- [ ] Load map page and trigger `loadVisits()` (observe Firestore read)
-- [ ] Add a visit via UI (verify Firestore write + cache invalidation)
-- [ ] Reload visit data (verify fresh Firestore read occurs)
-- [ ] Navigate away and back (verify cache miss due to invalidation)
-- [ ] Login/logout and verify cache isolation per user
+### Task 4.2: Update useAuth to Clear Pub Cache on Logout
+- [ ] Open `Wetherspooning/src/composables/useAuth.ts`
+- [ ] Import `clearPubCache` from `@/services/pubDataService`
+- [ ] Call `clearPubCache()` in `logout()` function after `clearVisits()`
+- [ ] Add comment: "Clear sessionStorage pub cache on logout"
 
 **Validation:**
-- Visit mutations trigger cache invalidation
-- Next load after mutation fetches fresh data
-- Cache isolation between users verified
+- Logout clears sessionStorage pub cache
+- Next login fetches fresh pub data
 
-**Dependencies:** Task 3.2
+**Dependencies:** Task 3.1
 
 ---
 
-## Phase 4: Testing and Validation
-### Task 4.1: Update Integration Tests
-- [ ] Verify all existing tests in `Wetherspooning/src/services/__tests__/` pass
-- [ ] Add integration test for full pub data flow (cache miss → Firestore → cache hit)
-- [ ] Add integration test for full visit data flow with mutation (load → cache → mutate → invalidate → reload)
-- [ ] Ensure tests do not leak cache state between test cases (call `invalidateAll()` in `beforeEach`)
+## Phase 5: Testing and Validation
+### Task 5.1: Integration Tests for Caching Flows
+- [ ] Update `firebaseDataService.test.ts` to verify Firestore persistence behavior
+- [ ] Add test: Visit data uses SDK persistence (mock IndexedDB if needed)
+- [ ] Update `PubLocationsMap.test.ts` to mock pubDataService
+- [ ] Test: Component loads pubs from pubDataService
+- [ ] Test: Loading state updates correctly
 
 **Validation:**
-- All tests pass in CI/local environment
+- All existing tests pass
+- New cache-related tests pass
 - No test flakiness due to cache state
 
-**Dependencies:** Task 2.2, 3.3
+**Dependencies:** Task 3.3, 4.1
 
 ---
 
-### Task 4.2: Manual QA Checklist
-- [ ] Load map page multiple times, verify cache hits reduce Firestore reads
-- [ ] Add/update/delete visit, verify cache invalidation and fresh data on next load
-- [ ] Test with multiple users (different Firebase UIDs), verify cache isolation
-- [ ] Test cache expiry by manually advancing browser time or waiting 24h (pub cache)
-- [ ] Test offline scenario (cached data available during network outage)
-- [ ] Verify console logs show cache hits/misses as expected
-- [ ] Verify no regressions in existing features (map, sidebar, filters, search)
+### Task 5.2: E2E Testing Checklist
+- [ ] **Pub Data:**
+  - [ ] Load map (first global load) → verify Cloud Function invoked
+  - [ ] Reload page → verify sessionStorage cache hit (<10ms)
+  - [ ] Open in new tab → verify CDN cache hit (<50ms)
+  - [ ] Wait 24h or manually expire CDN → verify fresh function call
+  - [ ] Test `?nocache=1` bypasses all caches
+- [ ] **Visit Data:**
+  - [ ] Load visits → verify Firestore query
+  - [ ] Reload page → verify IndexedDB cache hit (<20ms)
+  - [ ] Add visit → verify immediate UI update
+  - [ ] Reload → verify new visit in cache
+  - [ ] Login on different device → verify cross-device data sync
+- [ ] **Error Scenarios:**
+  - [ ] Cloud Function fails → verify error handling
+  - [ ] Firestore unavailable → verify error handling
+  - [ ] Corrupted cache → verify re-fetch behavior
 
 **Validation:**
-- All QA scenarios pass
-- No user-facing regressions
+- All scenarios pass
+- No regressions in existing features
 
-**Dependencies:** All previous tasks
+**Dependencies:** Task 5.1
 
 ---
 
-### Task 4.3: Performance Benchmarking
-- [ ] Measure initial page load time (fresh cache vs cache hit)
-- [ ] Record Firestore read count per user session (before and after caching)
-- [ ] Document cache hit rate after 1 week of usage (if possible)
-- [ ] Compare memory usage (Chrome DevTools) before/after caching
+### Task 5.3: Performance Benchmarking
+- [ ] Measure initial pub load time (cold function start): target <1s
+- [ ] Measure CDN cache hit: target <100ms
+- [ ] Measure sessionStorage hit: target <20ms
+- [ ] Measure visit cache hit (IndexedDB): target <20ms
+- [ ] Record Firestore read count before and after implementation
+- [ ] Document results in task comments or README
 
 **Validation:**
-- >90% reduction in Firestore reads
-- >50% faster page loads on cache hits
-- <1MB memory overhead
+- Pub data: 95%+ reduction in Firestore reads
+- Visit data: 90%+ reduction in Firestore reads
+- Performance targets met
 
-**Dependencies:** Task 4.2
+**Dependencies:** Task 5.2
 
 ---
 
-## Phase 5: Documentation and Deployment
-### Task 5.1: Update Code Documentation
-- [ ] Add JSDoc comments to `cachingService.ts` explaining TTL behavior
-- [ ] Document cache keys and TTL values in code comments
-- [ ] Update `firebaseDataService.ts` comments to mention caching layer
-- [ ] Add inline comments for cache invalidation logic in mutation functions
+## Phase 6: Documentation and Deployment
+### Task 6.1: Update Code Documentation
+- [ ] Add JSDoc to `pubDataService.ts` explaining caching layers
+- [ ] Add comments to `getPubs.ts` explaining cache headers
+- [ ] Update `firebase.ts` with persistence behavior comments
+- [ ] Document sessionStorage cache key and structure
 
 **Validation:**
 - Code review confirms documentation clarity
@@ -239,38 +287,40 @@ This task list implements client-side caching for Firestore data to reduce read 
 
 ---
 
-### Task 5.2: Update Project README
-- [ ] Add section to `Wetherspooning/README.md` explaining caching strategy
-- [ ] Document cache TTL values and rationale
-- [ ] Explain how to manually clear cache (for developers)
-- [ ] Note that caching is transparent to users (no UI changes)
+### Task 6.2: Update Project README
+- [ ] Add section to `Wetherspooning/README.md` explaining caching architecture
+- [ ] Document that pub data uses Cloud Function + CDN + sessionStorage
+- [ ] Document that visit data uses Firestore SDK persistence
+- [ ] Explain cache TTLs and session-scoped lifecycle
+- [ ] Note `?nocache=1` parameter for admin/testing
 
 **Validation:**
-- README clearly explains caching behavior
-- Developers can understand cache architecture from README
+- README clearly explains caching strategy
+- Developers understand cache architecture
 
-**Dependencies:** Task 5.1
+**Dependencies:** Task 6.1
 
 ---
 
-### Task 5.3: Deploy and Monitor
+### Task 6.3: Deploy to Production
 - [ ] Merge feature branch to main
-- [ ] Deploy to production (or staging first)
+- [ ] Deploy Cloud Function: `firebase deploy --only functions:getPubs`
+- [ ] Deploy Hosting config: `firebase deploy --only hosting`
+- [ ] Deploy frontend: (follow project deployment process)
 - [ ] Monitor Firebase console for Firestore read reduction
+- [ ] Monitor Cloud Function invocations (should be ~1 per 24h)
 - [ ] Monitor error logs for cache-related issues
-- [ ] Collect user feedback (if any performance improvements noticed)
-- [ ] Track cache hit rate via console logs (or add telemetry if needed)
 
 **Validation:**
 - Deployment successful with no errors
-- Firestore reads reduced by >90% in production metrics
+- Firestore reads reduced by >90% in production
 - No user-reported issues
 
 **Dependencies:** All previous tasks
 
 ---
 
-### Task 5.4: Archive Change
+### Task 6.4: Archive Change
 - [ ] Move `openspec/changes/2026-01-07-add-firestore-caching/` to `openspec/changes/archive/2026-01-07-add-firestore-caching/`
 - [ ] Update affected specs in `openspec/specs/` with merged requirements from deltas
 - [ ] Run `openspec validate --strict` to confirm archive consistency
@@ -280,17 +330,19 @@ This task list implements client-side caching for Firestore data to reduce read 
 - `openspec validate --strict` passes
 - Archived change no longer listed in `openspec list`
 
-**Dependencies:** Task 5.3
+**Dependencies:** Task 6.3
 
 ---
 
 ## Risk Mitigation
-- **Stale cache risk:** TTL set to match data update frequency (24h for pubs); manual invalidation for visits
-- **Memory leak risk:** Cache is session-scoped; cleared on page refresh/logout
-- **Testing complexity:** Mock cachingService in unit tests; use real cache in E2E tests
+- **Cold start latency:** CDN caching minimizes impact after first global request
+- **Cache stale risk:** 24h TTL matches pub update frequency; visits are session-scoped
+- **Browser compatibility:** Firestore persistence gracefully degrades if unsupported
+- **Multi-tab issues:** Firestore handles multi-tab scenarios with warnings
 
 ## Rollback Plan
 If caching causes production issues:
-1. Remove cache checks from `getAllPubs()` and `getUserVisits()` (revert to direct Firestore reads)
-2. Deploy hotfix
-3. No data migration needed (cache is ephemeral)
+1. **Pub data:** Revert components to use `firebaseDataService.getAllPubs()` (direct Firestore reads)
+2. **Visit data:** Remove `enableIndexedDbPersistence()` call in `firebase.ts`
+3. **Cloud Function:** Can remain deployed (unused if clients revert)
+4. No data migration needed (caches are ephemeral or auto-managed)
