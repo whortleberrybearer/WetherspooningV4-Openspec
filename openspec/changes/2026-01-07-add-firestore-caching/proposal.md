@@ -56,7 +56,6 @@ Implement a multi-tier caching strategy:
 
 ### User-Facing Changes
 - Faster initial page loads (cached data)
-- Optional "Refresh Data" button in UI for manual cache invalidation
 - No breaking changes to existing functionality
 
 ### Technical Changes

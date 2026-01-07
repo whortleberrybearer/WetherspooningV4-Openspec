@@ -171,16 +171,7 @@ export async function deleteVisit(visitId: string): Promise<void> {
 }
 ```
 
-### 3. Manual Cache Refresh (Future Enhancement)
 
-Add refresh function for future UI integration:
-
-```typescript
-export async function refreshPubData(): Promise<Pub[]> {
-  cachingService.invalidate('pubs:all')
-  return await getAllPubs()
-}
-```
 
 ## Data Flow Diagrams
 
@@ -256,7 +247,6 @@ Each phase is independently testable and deployable.
 2. **Cache warming:** Preload cache on app initialization
 3. **Telemetry:** Log cache hit/miss rates to analytics
 4. **Advanced invalidation:** Support tag-based invalidation for related data
-5. **Offline support:** Persist cache to IndexedDB for offline access
 
 ## Security Considerations
 
