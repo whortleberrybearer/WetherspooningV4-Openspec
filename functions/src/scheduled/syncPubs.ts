@@ -148,8 +148,15 @@ export async function runFullSync(count?: number, start: number = 0): Promise<{ 
     // Process entries with matching and change detection
     const result = await processPubEntries(entriesToProcess, existingPubs);
     
-    // Mark unprocessed open pubs as closed (only in full sync)
-    const closedPubs = markClosedPubs(result.processedIds, existingPubs);
+    // Mark unprocessed open pubs as closed (only when processing complete sitemap)
+    let closedPubs: Pub[] = [];
+    if (start === 0 && count === undefined) {
+      // Complete sync - run closure detection
+      closedPubs = markClosedPubs(result.processedIds, existingPubs);
+    } else {
+      // Partial sync - skip closure detection
+      console.log(`⚠️  Skipping closure detection (partial sync: start=${start}, count=${count ?? 'all'})`);
+    }
     
     // Combine all pubs to write
     const allPubsToWrite = [...result.pubsToWrite, ...closedPubs];
