@@ -36,6 +36,7 @@ export const syncPubsOnDemand = onCall(
     region: 'europe-west2',
     memory: '256MiB',
     timeoutSeconds: 600,
+    maxInstances: 1,
   },
   async (request): Promise<SyncResponse> => {
     const { auth, data } = request;
@@ -46,6 +47,9 @@ export const syncPubsOnDemand = onCall(
       console.error('❌ WETHERSPOONING_ADMIN_USER_ID environment variable not set');
       throw new HttpsError('internal', 'Server configuration error: WETHERSPOONING_ADMIN_USER_ID not set');
     }
+
+    const startTime = Date.now();
+    console.log(`🚀 Sync function invoked at ${new Date().toISOString()}`);
 
     // Authorization: Check if user is authenticated
     if (!auth) {
@@ -91,7 +95,8 @@ export const syncPubsOnDemand = onCall(
 
       try {
         const result = await runFullSync(count, start);
-        console.log(`✅ On-demand full sync completed: ${result.successCount} successful, ${result.failureCount} failed`);
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+        console.log(`✅ On-demand full sync completed in ${duration}s: ${result.successCount} successful, ${result.failureCount} failed`);
 
         return {
           mode: 'full',
@@ -125,7 +130,8 @@ export const syncPubsOnDemand = onCall(
 
       try {
         const result = await runUpdateSync(sinceDate);
-        console.log(`✅ On-demand update sync completed: ${result.successCount} successful, ${result.failureCount} failed`);
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+        console.log(`✅ On-demand update sync completed in ${duration}s: ${result.successCount} successful, ${result.failureCount} failed`);
 
         return {
           mode: 'update',
