@@ -21,20 +21,21 @@ Additionally, future server-side processing requirements for pub data necessitat
 Leverage Firebase's built-in caching capabilities and CDN infrastructure for maximum simplicity and effectiveness:
 
 ### 1. Cloud Function + CDN Caching for Pub Data
-- Create HTTPS callable Cloud Function `getPubs` that returns pub data as JSON
-- Function queries Firestore and returns data with HTTP cache headers: `Cache-Control: public, max-age=86400` (24h)
+- Create HTTPS onRequest Cloud Function `getPubs` that returns pub data as JSON
+- Cache headers configured in `firebase.json` hosting section: `Cache-Control: public, max-age=86400, s-maxage=86400` (24h)
 - Firebase Hosting CDN caches response globally (shared across all users)
-- Client-side sessionStorage provides instant loads within same browser session
-- Optional `?nocache=1` query parameter bypasses server-side cache for admin/testing
+- Client-side sessionStorage provides instant loads within same browser session (no TTL - valid until session ends)
+- `bypassCache` parameter on client forces fresh server fetch (still caches the result)
 - Future server-side processing requirements easily integrated into the function
+- Simpler function code - no parameter handling or header logic needed
 
 ### 2. Firestore SDK Built-In Persistence for Visit Data
-- Enable `enableIndexedDbPersistence()` on Firestore initialization
-- Firestore SDK automatically caches all reads in IndexedDB
+- Firestore SDK automatically enables persistence when IndexedDB is available
+- Automatic cache management - no manual configuration needed
 - Cache serves data instantly on subsequent loads
-- Cache cleared on logout (session-scoped)
+- Cache persists across sessions automatically
 - No custom invalidation logic needed - Firestore handles cache management
-- Supports offline access out-of-the-box
+- Supports session-scoped data access
 
 ### 3. Session-Based Cache Lifecycle
 - Pub data persists in sessionStorage across authentication state changes (same for all users)

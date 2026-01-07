@@ -47,10 +47,10 @@ This document outlines the technical architecture for implementing caching of Fi
 ┌────────────────▼───────────────┐  ┌────────────▼───────────────────┐
 │  Cloud Function: getPubs       │  │  Firestore SDK Persistence     │
 │  ┌──────────────────────────┐  │  │  ┌──────────────────────────┐ │
-│  │ 1. Query Firestore pubs  │  │  │  │ enableIndexedDbPersistence│ │
-│  │ 2. Return JSON + headers │  │  │  │ - Auto caches all reads  │ │
-│  │ 3. CDN caches response   │  │  │  │ - Serves from IndexedDB  │ │
-│  └──────────────────────────┘  │  │  │ - Offline support        │ │
+│  │ 1. Query Firestore pubs  │  │  │  │ Automatic IndexedDB cache│ │
+│  │ 2. Return JSON           │  │  │  │ - Auto caches all reads  │ │
+│  │ (Headers in firebase.json│  │  │  │ - Serves from IndexedDB  │ │
+│  └──────────────────────────┘  │  │  │ - Session-scoped         │ │
 └────────────────┬───────────────┘  │  └──────────────────────────┘ │
                  │                  └────────────────┬───────────────┘
                  │                                   │
@@ -68,7 +68,7 @@ This document outlines the technical architecture for implementing caching of Fi
 
 **Location:** `functions/src/callable/getPubs.ts`
 
-**Purpose:** Serve pub data with HTTP cache headers for CDN caching
+**Purpose:** Serve pub data for CDN caching
 
 **Implementation:**
 ```typescript
@@ -77,19 +77,9 @@ import { getDocs, collection } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
 export const getPubs = onRequest(
-  { cors: true },
+  { cors: true, region: 'europe-west2' },
   async (req, res) => {
     try {
-      // Check for cache bypass parameter
-      const nocache = req.query.nocache === '1'
-      
-      // Set cache headers (24 hours)
-      if (!nocache) {
-        res.set('Cache-Control', 'public, max-age=86400')
-      } else {
-        res.set('Cache-Control', 'no-cache, no-store, must-revalidate')
-      }
-      
       // Query Firestore
       const snapshot = await getDocs(collection(db, 'pubs'))
       const pubs = snapshot.docs.map(doc => doc.data())
@@ -104,9 +94,10 @@ export const getPubs = onRequest(
 ```
 
 **Cache Behavior:**
-- Normal requests: `Cache-Control: public, max-age=86400` (24 hours)
-- `?nocache=1`: `Cache-Control: no-cache, no-store, must-revalidate`
+- Cache headers configured in `firebase.json` hosting section
+- `Cache-Control: public, max-age=86400, s-maxage=86400` (24 hours)
 - Firebase Hosting CDN respects cache headers automatically
+- Simpler function - no parameter handling needed
 
 ### 2. pubDataService.ts (New)
 
@@ -118,31 +109,26 @@ export const getPubs = onRequest(
 ```typescript
 import type { Pub } from './firebaseDataService'
 
-const SESSION_CACHE_KEY = 'pubs_cache'
+const CACHE_KEY = 'wetherspooning_pubs_cache'
 
-interface CachedPubData {
-  pubs: Pub[]
-  timestamp: number
-}
-
-export async function getAllPubs(nocache = false): Promise<Pub[]> {
+export async function getAllPubs(bypassCache = false): Promise<Pub[]> {
   // Check sessionStorage first (instant load within session)
-  if (!nocache) {
-    const cached = sessionStorage.getItem(SESSION_CACHE_KEY)
+  if (!bypassCache) {
+    const cached = sessionStorage.getItem(CACHE_KEY)
     if (cached) {
       try {
-        const { pubs } = JSON.parse(cached) as CachedPubData
+        const pubs = JSON.parse(cached) as Pub[]
         console.log('Returning sessionStorage cached pub data')
         return pubs
       } catch (error) {
         console.warn('Invalid cached pub data, refetching')
-        sessionStorage.removeItem(SESSION_CACHE_KEY)
+        sessionStorage.removeItem(CACHE_KEY)
       }
     }
   }
   
   // Fetch from Cloud Function (will hit CDN cache if available)
-  const url = `${import.meta.env.VITE_FIREBASE_FUNCTIONS_URL}/getPubs${nocache ? '?nocache=1' : ''}`
+  const url = `${import.meta.env.VITE_FIREBASE_FUNCTIONS_URL}/api/pubs`
   
   try {
     const response = await fetch(url)
@@ -152,13 +138,8 @@ export async function getAllPubs(nocache = false): Promise<Pub[]> {
     
     const { pubs } = await response.json()
     
-    // Cache in sessionStorage for instant loads within this session
-    if (!nocache) {
-      sessionStorage.setItem(SESSION_CACHE_KEY, JSON.stringify({
-        pubs,
-        timestamp: Date.now()
-      }))
-    }
+    // Always cache the result in sessionStorage
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify(pubs))
     
     console.log(`Fetched ${pubs.length} pubs from Cloud Function`)
     return pubs
@@ -168,6 +149,12 @@ export async function getAllPubs(nocache = false): Promise<Pub[]> {
   }
 }
 ```
+
+**Cache Behavior:**
+- `bypassCache=false`: Check sessionStorage → use if exists
+- `bypassCache=true`: Fetch from server → cache the result
+- No TTL check: sessionStorage cleared automatically on session end
+- Simpler logic: session-scoped cache always valid
 
 **Cache Layers:**
 1. **sessionStorage** (10ms) - Instant loads within same browser session
@@ -180,7 +167,7 @@ export async function getAllPubs(nocache = false): Promise<Pub[]> {
 
 **Changes:**
 ```typescript
-import { getFirestore, connectFirestoreEmulator, enableIndexedDbPersistence } from 'firebase/firestore'
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
 
 export const db = getFirestore(app)
 
@@ -189,14 +176,8 @@ if (import.meta.env.DEV) {
   console.log('🔥 Connected to Firestore Emulator')
 }
 
-// Enable Firestore persistence for automatic caching
-enableIndexedDbPersistence(db)
-  .then(() => {
-    console.log('✅ Firestore persistence enabled')
-  })
-  .catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('⚠️ Firestore persistence failed: Multiple tabs open')
+// Firestore SDK automatically enables persistence when IndexedDB is available
+console.log('✅ Firestore initialized with automatic persistence')
     } else if (err.code === 'unimplemented') {
       console.warn('⚠️ Firestore persistence not supported in this browser')
     } else {
@@ -206,12 +187,49 @@ enableIndexedDbPersistence(db)
 ```
 
 **Behavior:**
-- All `getDocs()`, `getDoc()` calls automatically check IndexedDB cache first
-- Cache persists across page refreshes until explicitly cleared
-- Works offline automatically
-- Gracefully falls back to network-only if persistence unavailable
+**Behavior:**
+- Automatic for visit queries
+- Session-scoped persistence
 
-### 4. useAuth.ts - Clear Cache on Logout (Modified)
+### 4. Firebase Hosting Configuration (Modified)
+
+**Location:** `firebase.json`
+
+**Changes:**
+```json
+{
+  "hosting": {
+    "headers": [
+      {
+        "source": "/api/pubs",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400, s-maxage=86400"
+          }
+        ]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/api/pubs",
+        "function": {
+          "functionId": "getPubs",
+          "region": "europe-west2"
+        }
+      }
+    ]
+  }
+}
+```
+
+**Benefits:**
+- Cleaner Cloud Function code (no header logic)
+- Centralized cache configuration
+- Firebase Hosting applies headers automatically
+- CDN caches responses for 24h globally
+
+### 5. useAuth.ts - Cache Behavior on Logout (Modified)
 
 **Location:** `Wetherspooning/src/composables/useAuth.ts`
 
@@ -302,19 +320,19 @@ await getAllPubs(true) // Adds ?nocache=1 to URL
 ## Testing Strategy
 
 1. **Cloud Function tests:**
-   - Returns valid pub data with cache headers
-   - Respects `?nocache=1` parameter
+   - Returns valid pub data
    - Handles Firestore errors gracefully
+   - Simple implementation without parameter handling
 
 2. **pubDataService tests:**
-   - sessionStorage caching behavior
+   - sessionStorage caching behavior (no TTL check)
    - Fallback on cache corruption
-   - nocache parameter passed correctly
+   - bypassCache parameter behavior (fetch and cache)
 
 3. **Firestore persistence tests:**
-   - Verify `enableIndexedDbPersistence()` called
-   - Test graceful degradation on failure
-   - Multi-tab warning scenario
+   - Verify automatic persistence initialization
+   - Test graceful automatic degradation
+   - Session persistence behavior
 
 4. **Integration tests:**
    - End-to-end pub data flow (sessionStorage → CDN → function)

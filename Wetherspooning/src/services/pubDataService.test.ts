@@ -96,39 +96,37 @@ describe('pubDataService', () => {
       expect(global.fetch).not.toHaveBeenCalled()
     })
 
-    it('should bypass cache when bypassCache is true', async () => {
+    it('should bypass cache and still cache result when bypassCache is true', async () => {
       // Seed cache
       sessionStorageMock.setItem('wetherspooning_pubs_cache', JSON.stringify(mockPubs))
-      sessionStorageMock.setItem('wetherspooning_pubs_cache_timestamp', Date.now().toString())
 
-      const mockResponse = { pubs: mockPubs }
+      const newMockPubs = [...mockPubs, { ...mockPubs[0], id: 'pub-3', name: 'New Pub' }]
+      const mockResponse = { pubs: newMockPubs }
       ;(global.fetch as any).mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse
       })
 
-      await getAllPubs(true)
+      const pubs = await getAllPubs(true)
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:5001/test-project/europe-west2/api/pubs?nocache=1'
+        'http://localhost:5001/test-project/europe-west2/api/pubs'
       )
+      expect(pubs).toEqual(newMockPubs)
+      
+      // Verify the new data was cached
+      const cached = JSON.parse(sessionStorageMock.getItem('wetherspooning_pubs_cache')!)
+      expect(cached).toEqual(newMockPubs)
     })
 
-    it('should fetch fresh data if cache is expired', async () => {
-      // Seed cache with old timestamp (25 hours ago)
-      const oldTimestamp = Date.now() - 25 * 60 * 60 * 1000
+    it('should use cache even if very old (no TTL check)', async () => {
+      // Seed cache (no timestamp needed anymore)
       sessionStorageMock.setItem('wetherspooning_pubs_cache', JSON.stringify(mockPubs))
-      sessionStorageMock.setItem('wetherspooning_pubs_cache_timestamp', oldTimestamp.toString())
 
-      const mockResponse = { pubs: mockPubs }
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse
-      })
+      const cachedPubs = await getAllPubs()
 
-      await getAllPubs()
-
-      expect(global.fetch).toHaveBeenCalled()
+      expect(cachedPubs).toEqual(mockPubs)
+      expect(global.fetch).not.toHaveBeenCalled()
     })
 
     it('should throw error on fetch failure', async () => {
@@ -144,12 +142,10 @@ describe('pubDataService', () => {
   describe('clearPubCache', () => {
     it('should clear sessionStorage cache', () => {
       sessionStorageMock.setItem('wetherspooning_pubs_cache', JSON.stringify(mockPubs))
-      sessionStorageMock.setItem('wetherspooning_pubs_cache_timestamp', Date.now().toString())
 
       clearPubCache()
 
       expect(sessionStorageMock.getItem('wetherspooning_pubs_cache')).toBeNull()
-      expect(sessionStorageMock.getItem('wetherspooning_pubs_cache_timestamp')).toBeNull()
     })
   })
 })

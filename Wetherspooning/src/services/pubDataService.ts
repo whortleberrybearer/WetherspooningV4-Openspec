@@ -1,8 +1,6 @@
 import type { Pub } from './firebaseDataService'
 
 const CACHE_KEY = 'wetherspooning_pubs_cache'
-const CACHE_TIMESTAMP_KEY = 'wetherspooning_pubs_cache_timestamp'
-const CACHE_TTL = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
 
 /**
  * Service for fetching pub data with sessionStorage caching.
@@ -15,19 +13,8 @@ const CACHE_TTL = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
  * Cache lifecycle:
  * - sessionStorage persists for browser session (survives logout, cleared on tab close)
  * - CDN cache expires after 24h (Cache-Control: max-age=86400)
- * - Bypass cache with ?nocache=1 parameter
+ * - bypassCache forces fresh server fetch (still caches the result)
  */
-
-/**
- * Check if sessionStorage cache is valid
- */
-function isCacheValid(): boolean {
-  const timestamp = sessionStorage.getItem(CACHE_TIMESTAMP_KEY)
-  if (!timestamp) return false
-
-  const age = Date.now() - parseInt(timestamp, 10)
-  return age < CACHE_TTL
-}
 
 /**
  * Get pubs from sessionStorage cache
@@ -35,7 +22,7 @@ function isCacheValid(): boolean {
 function getCachedPubs(): Pub[] | null {
   try {
     const cached = sessionStorage.getItem(CACHE_KEY)
-    if (!cached || !isCacheValid()) {
+    if (!cached) {
       return null
     }
 
@@ -52,7 +39,6 @@ function getCachedPubs(): Pub[] | null {
 function setCachedPubs(pubs: Pub[]): void {
   try {
     sessionStorage.setItem(CACHE_KEY, JSON.stringify(pubs))
-    sessionStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString())
   } catch (error) {
     console.error('Error storing pub cache:', error)
   }
@@ -62,15 +48,15 @@ function setCachedPubs(pubs: Pub[]): void {
  * Fetch all pubs with multi-layer caching.
  * 
  * Cache flow:
- * 1. Check sessionStorage (instant)
- * 2. If miss, fetch from /api/pubs (CDN or Cloud Function)
- * 3. Store in sessionStorage for subsequent requests
+ * 1. If not bypassCache, check sessionStorage (instant)
+ * 2. If cache miss or bypassCache, fetch from /api/pubs (CDN or Cloud Function)
+ * 3. Always cache the result in sessionStorage
  * 
- * @param bypassCache - Force fresh fetch from Firestore (for admin/testing)
+ * @param bypassCache - Force fresh fetch from server (still caches the result)
  * @returns Promise resolving to array of all pubs
  */
 export async function getAllPubs(bypassCache = false): Promise<Pub[]> {
-  // Step 1: Check sessionStorage cache
+  // Step 1: Check sessionStorage cache (unless bypassing)
   if (!bypassCache) {
     const cached = getCachedPubs()
     if (cached) {
@@ -82,7 +68,7 @@ export async function getAllPubs(bypassCache = false): Promise<Pub[]> {
   // Step 2: Fetch from Cloud Function (via CDN)
   try {
     const functionsUrl = import.meta.env.VITE_FIREBASE_FUNCTIONS_URL || ''
-    const url = `${functionsUrl}/api/pubs${bypassCache ? '?nocache=1' : ''}`
+    const url = `${functionsUrl}/api/pubs`
     
     const response = await fetch(url)
     if (!response.ok) {
@@ -92,11 +78,9 @@ export async function getAllPubs(bypassCache = false): Promise<Pub[]> {
     const data = await response.json()
     const pubs = data.pubs as Pub[]
 
-    // Step 3: Store in sessionStorage cache
-    if (!bypassCache) {
-      setCachedPubs(pubs)
-      console.log('✅ Pub data cached in sessionStorage')
-    }
+    // Step 3: Always cache the result
+    setCachedPubs(pubs)
+    console.log('✅ Pub data cached in sessionStorage')
 
     console.log(`✅ Loaded ${pubs.length} pubs from Cloud Function`)
     return pubs
@@ -111,6 +95,5 @@ export async function getAllPubs(bypassCache = false): Promise<Pub[]> {
  */
 export function clearPubCache(): void {
   sessionStorage.removeItem(CACHE_KEY)
-  sessionStorage.removeItem(CACHE_TIMESTAMP_KEY)
   console.log('✅ Pub cache cleared')
 }
