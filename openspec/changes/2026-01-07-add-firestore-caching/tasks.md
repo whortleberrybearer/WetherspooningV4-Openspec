@@ -47,12 +47,14 @@ This task list implements caching for Firestore data using Firebase's built-in f
 
 ### Task 1.3: Update useAuth to Handle Cache Lifecycle
 - [ ] Open `Wetherspooning/src/composables/useAuth.ts`
-- [ ] Note: Firestore SDK cache persists beyond logout (by design for offline access)
-- [ ] Add comment documenting cache behavior: "Firestore persistence cache remains for offline access; naturally refreshes on next session"
-- [ ] Verify `clearVisits()` still called on logout (clears reactive state)
+- [ ] Add comment documenting cache behavior:
+  - "Pub cache in sessionStorage persists (user-agnostic data)"
+  - "Firestore persistence cache remains for offline access; naturally refreshes on next session"
+- [ ] Verify `clearVisits()` still called on logout (clears user-specific reactive state)
 
 **Validation:**
-- Logout clears reactive visit state
+- Logout clears reactive visit state only
+- Pub cache persists in sessionStorage (expected behavior)
 - Firestore cache persists in IndexedDB (expected behavior)
 - Next login refreshes visit data from Firestore
 
@@ -169,8 +171,8 @@ This task list implements caching for Firestore data using Firebase's built-in f
 - [ ] Test: `getAllPubs()` on sessionStorage miss fetches from function
 - [ ] Test: `getAllPubs()` on sessionStorage hit returns cached data without fetch
 - [ ] Test: `getAllPubs(true)` bypasses sessionStorage and adds `?nocache=1`
-- [ ] Test: `clearPubCache()` removes data from sessionStorage
 - [ ] Test: Corrupted sessionStorage JSON triggers re-fetch
+- [ ] Test: sessionStorage persists across multiple calls in same session
 
 **Validation:**
 - All tests pass
@@ -193,20 +195,6 @@ This task list implements caching for Firestore data using Firebase's built-in f
 - First load triggers HTTP request to `/api/pubs`
 - Subsequent loads use sessionStorage (no network request)
 - Console logs indicate cache hits/misses
-
-**Dependencies:** Task 3.1
-
----
-
-### Task 4.2: Update useAuth to Clear Pub Cache on Logout
-- [ ] Open `Wetherspooning/src/composables/useAuth.ts`
-- [ ] Import `clearPubCache` from `@/services/pubDataService`
-- [ ] Call `clearPubCache()` in `logout()` function after `clearVisits()`
-- [ ] Add comment: "Clear sessionStorage pub cache on logout"
-
-**Validation:**
-- Logout clears sessionStorage pub cache
-- Next login fetches fresh pub data
 
 **Dependencies:** Task 3.1
 

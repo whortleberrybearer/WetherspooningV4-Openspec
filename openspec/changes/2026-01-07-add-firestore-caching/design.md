@@ -167,10 +167,6 @@ export async function getAllPubs(nocache = false): Promise<Pub[]> {
     throw error
   }
 }
-
-export function clearPubCache(): void {
-  sessionStorage.removeItem(SESSION_CACHE_KEY)
-}
 ```
 
 **Cache Layers:**
@@ -221,15 +217,12 @@ enableIndexedDbPersistence(db)
 
 **Changes:**
 ```typescript
-import { clearPubCache } from '@/services/pubDataService'
-
 const logout = async (): Promise<void> => {
   try {
     await signOut(auth)
-    clearVisits()
-    clearPubCache() // Clear sessionStorage pub cache
-    // Note: Firestore persistence cache is NOT cleared here to allow
-    // offline access. It will be naturally overwritten on next session.
+    clearVisits() // Clear user-specific visit state
+    // Note: Pub cache in sessionStorage persists (same for all users)
+    // Note: Firestore persistence cache remains intact (allows offline access)
     console.log('User logged out successfully')
   } catch (error) {
     console.error('Logout error:', error)
@@ -239,9 +232,9 @@ const logout = async (): Promise<void> => {
 ```
 
 **Cache Lifecycle:**
-- **Pub sessionStorage cache:** Cleared on logout
+- **Pub sessionStorage cache:** Persists across logout (user-agnostic data)
 - **Firestore persistence:** Remains intact (allows offline access, naturally refreshes on next session)
-- **Visit state:** Cleared via existing `clearVisits()`
+- **Visit state:** Cleared on logout via existing `clearVisits()`
 
 ## Data Flow Diagrams
 

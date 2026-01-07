@@ -37,8 +37,9 @@ Leverage Firebase's built-in caching capabilities and CDN infrastructure for max
 - Supports offline access out-of-the-box
 
 ### 3. Session-Based Cache Lifecycle
-- All caches naturally cleared on user logout
-- Fresh data loaded on each new session (handles cross-device changes)
+- Pub data persists in sessionStorage across authentication state changes (same for all users)
+- Visit data cleared on user logout (user-specific)
+- Fresh data loaded on new browser session (handles cross-device changes)
 - No manual cache invalidation needed
 - Simpler mental model: session = cache lifetime
 
