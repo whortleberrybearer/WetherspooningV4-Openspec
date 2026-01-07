@@ -123,6 +123,10 @@ export function useAuth() {
 
   /**
    * Log out the current user using Firebase Auth.
+   * 
+   * NOTE: Logout clears user-specific state (auth tokens, user object).
+   * Global pub data caches (sessionStorage, Firestore SDK persistence) remain intact 
+   * as they are not user-specific. Only visit data is user-scoped.
    */
   const logout = async (): Promise<void> => {
     try {

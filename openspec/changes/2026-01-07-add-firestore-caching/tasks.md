@@ -4,19 +4,19 @@
 This task list implements caching for Firestore data using Firebase's built-in features: Cloud Functions with CDN caching for pub data, and Firestore SDK persistence for visit data. Tasks are ordered for incremental, testable progress.
 
 ## Pre-Implementation
-- [ ] Review and approve proposal.md, design.md, and spec deltas
-- [ ] Ensure Firebase Hosting and Cloud Functions are enabled in Firebase project
-- [ ] Confirm Firebase emulator is available for testing
+- [x] Review and approve proposal.md, design.md, and spec deltas
+- [x] Ensure Firebase Hosting and Cloud Functions are enabled in Firebase project
+- [x] Confirm Firebase emulator is available for testing
 
 ## Phase 1: Firestore SDK Persistence (Visit Data Caching)
 ### Task 1.1: Enable Firestore Persistence
-- [ ] Open `Wetherspooning/src/lib/firebase.ts`
-- [ ] Import `enableIndexedDbPersistence` from `firebase/firestore`
-- [ ] Call `enableIndexedDbPersistence(db)` after Firestore init
-- [ ] Add `.then()` handler to log "✅ Firestore persistence enabled"
-- [ ] Add `.catch()` handler for error codes: 'failed-precondition', 'unimplemented'
-- [ ] Log appropriate warnings for each error type
-- [ ] Ensure graceful fallback if persistence fails (no throw)
+- [x] Open `Wetherspooning/src/lib/firebase.ts`
+- [x] Import `enableIndexedDbPersistence` from `firebase/firestore`
+- [x] Call `enableIndexedDbPersistence(db)` after Firestore init
+- [x] Add `.then()` handler to log "✅ Firestore persistence enabled"
+- [x] Add `.catch()` handler for error codes: 'failed-precondition', 'unimplemented'
+- [x] Log appropriate warnings for each error type
+- [x] Ensure graceful fallback if persistence fails (no throw)
 
 **Validation:**
 - App loads without errors
@@ -46,11 +46,11 @@ This task list implements caching for Firestore data using Firebase's built-in f
 ---
 
 ### Task 1.3: Update useAuth to Handle Cache Lifecycle
-- [ ] Open `Wetherspooning/src/composables/useAuth.ts`
-- [ ] Add comment documenting cache behavior:
+- [x] Open `Wetherspooning/src/composables/useAuth.ts`
+- [x] Add comment documenting cache behavior:
   - "Pub cache in sessionStorage persists (user-agnostic data)"
   - "Firestore persistence cache remains for offline access; naturally refreshes on next session"
-- [ ] Verify `clearVisits()` still called on logout (clears user-specific reactive state)
+- [x] Verify `clearVisits()` still called on logout (clears user-specific reactive state)
 
 **Validation:**
 - Logout clears reactive visit state only
@@ -64,17 +64,17 @@ This task list implements caching for Firestore data using Firebase's built-in f
 
 ## Phase 2: Cloud Function for Pub Data
 ### Task 2.1: Create Cloud Function getPubs
-- [ ] Create `functions/src/callable/getPubs.ts`
-- [ ] Import `onRequest` from `firebase-functions/v2/https`
-- [ ] Import Firestore methods: `getDocs`, `collection`
-- [ ] Implement function with CORS enabled: `{ cors: true }`
-- [ ] Check `req.query.nocache === '1'` for cache bypass
-- [ ] Set cache headers:  
+- [x] Create `functions/src/callable/getPubs.ts`
+- [x] Import `onRequest` from `firebase-functions/v2/https`
+- [x] Import Firestore methods: `getDocs`, `collection`
+- [x] Implement function with CORS enabled: `{ cors: true }`
+- [x] Check `req.query.nocache === '1'` for cache bypass
+- [x] Set cache headers:  
   - Normal: `Cache-Control: public, max-age=86400`  
   - Bypass: `Cache-Control: no-cache, no-store, must-revalidate`
-- [ ] Query Firestore `pubs` collection
-- [ ] Return JSON: `{ pubs: [...] }` with status 200
-- [ ] Handle errors: log to console, return status 500 with `{ error: string }`
+- [x] Query Firestore `pubs` collection
+- [x] Return JSON: `{ pubs: [...] }` with status 200
+- [x] Handle errors: log to console, return status 500 with `{ error: string }`
 
 **Validation:**
 - Function exports correctly
@@ -104,8 +104,8 @@ This task list implements caching for Firestore data using Firebase's built-in f
 ---
 
 ### Task 2.3: Configure Firebase Hosting Rewrite
-- [ ] Open `firebase.json`
-- [ ] Add rewrite rule in `hosting.rewrites` array:  
+- [x] Open `firebase.json`
+- [x] Add rewrite rule in `hosting.rewrites` array:  
   ```json
   {
     "source": "/api/pubs",
@@ -127,18 +127,18 @@ This task list implements caching for Firestore data using Firebase's built-in f
 
 ## Phase 3: Client-Side Pub Data Service with sessionStorage
 ### Task 3.1: Create pubDataService
-- [ ] Create `Wetherspooning/src/services/pubDataService.ts`
-- [ ] Import `Pub` type from `firebaseDataService`
-- [ ] Define `SESSION_CACHE_KEY = 'pubs_cache'`
-- [ ] Define interface `CachedPubData { pubs: Pub[], timestamp: number }`
-- [ ] Implement `getAllPubs(nocache = false): Promise<Pub[]>`
-- [ ] Check sessionStorage for cached data (skip if `nocache === true`)
-- [ ] On cache hit: parse JSON, log "Returning sessionStorage cached pub data", return pubs
-- [ ] On cache miss or error: fetch from Cloud Function URL
-- [ ] Build URL: `${VITE_FIREBASE_FUNCTIONS_URL}/getPubs${nocache ? '?nocache=1' : ''}`
-- [ ] Fetch data, check response.ok, parse JSON
-- [ ] Cache in sessionStorage (skip if `nocache === true`)
-- [ ] Implement `clearPubCache()`: remove from sessionStorage
+- [x] Create `Wetherspooning/src/services/pubDataService.ts`
+- [x] Import `Pub` type from `firebaseDataService`
+- [x] Define `SESSION_CACHE_KEY = 'pubs_cache'`
+- [x] Define interface `CachedPubData { pubs: Pub[], timestamp: number }`
+- [x] Implement `getAllPubs(nocache = false): Promise<Pub[]>`
+- [x] Check sessionStorage for cached data (skip if `nocache === true`)
+- [x] On cache hit: parse JSON, log "Returning sessionStorage cached pub data", return pubs
+- [x] On cache miss or error: fetch from Cloud Function URL
+- [x] Build URL: `${VITE_FIREBASE_FUNCTIONS_URL}/getPubs${nocache ? '?nocache=1' : ''}`
+- [x] Fetch data, check response.ok, parse JSON
+- [x] Cache in sessionStorage (skip if `nocache === true`)
+- [x] Implement `clearPubCache()`: remove from sessionStorage
 
 **Validation:**
 - Service exports `getAllPubs` and `clearPubCache`
@@ -150,10 +150,10 @@ This task list implements caching for Firestore data using Firebase's built-in f
 ---
 
 ### Task 3.2: Add Environment Variable for Functions URL
-- [ ] Open `Wetherspooning/.env` (or create if missing)
-- [ ] Add `VITE_FIREBASE_FUNCTIONS_URL=https://your-project.cloudfunctions.net` (production URL)
-- [ ] For emulator: `VITE_FIREBASE_FUNCTIONS_URL=http://localhost:5001/your-project/us-central1`
-- [ ] Update `.env.example` with placeholder
+- [x] Open `Wetherspooning/.env` (or create if missing)
+- [x] Add `VITE_FIREBASE_FUNCTIONS_URL=https://your-project.cloudfunctions.net` (production URL)
+- [x] For emulator: `VITE_FIREBASE_FUNCTIONS_URL=http://localhost:5001/your-project/us-central1`
+- [x] Update `.env.example` with placeholder
 - [ ] Document in README how to configure this variable
 
 **Validation:**
@@ -165,14 +165,14 @@ This task list implements caching for Firestore data using Firebase's built-in f
 ---
 
 ### Task 3.3: Test pubDataService
-- [ ] Create `Wetherspooning/src/services/__tests__/pubDataService.test.ts`
-- [ ] Mock `fetch` global function
-- [ ] Mock sessionStorage (use jest-localstorage-mock or similar)
-- [ ] Test: `getAllPubs()` on sessionStorage miss fetches from function
-- [ ] Test: `getAllPubs()` on sessionStorage hit returns cached data without fetch
-- [ ] Test: `getAllPubs(true)` bypasses sessionStorage and adds `?nocache=1`
-- [ ] Test: Corrupted sessionStorage JSON triggers re-fetch
-- [ ] Test: sessionStorage persists across multiple calls in same session
+- [x] Create `Wetherspooning/src/services/__tests__/pubDataService.test.ts`
+- [x] Mock `fetch` global function
+- [x] Mock sessionStorage (use jest-localstorage-mock or similar)
+- [x] Test: `getAllPubs()` on sessionStorage miss fetches from function
+- [x] Test: `getAllPubs()` on sessionStorage hit returns cached data without fetch
+- [x] Test: `getAllPubs(true)` bypasses sessionStorage and adds `?nocache=1`
+- [x] Test: Corrupted sessionStorage JSON triggers re-fetch
+- [x] Test: sessionStorage persists across multiple calls in same session
 
 **Validation:**
 - All tests pass
@@ -184,9 +184,9 @@ This task list implements caching for Firestore data using Firebase's built-in f
 
 ## Phase 4: Integrate pubDataService into Components
 ### Task 4.1: Update PubLocationsMap to Use pubDataService
-- [ ] Open `Wetherspooning/src/views/PubLocationsMap.vue`
-- [ ] Replace `import { getAllPubs } from '@/services/firebaseDataService'` with `import { getAllPubs } from '@/services/pubDataService'`
-- [ ] No changes to usage (function signature unchanged)
+- [x] Open `Wetherspooning/src/views/PubLocationsMap.vue`
+- [x] Replace `import { getAllPubs } from '@/services/firebaseDataService'` with `import { getAllPubs } from '@/services/pubDataService'`
+- [x] No changes to usage (function signature unchanged)
 - [ ] Test in browser: load map, check Network tab for `/api/pubs` request
 - [ ] Reload page: verify no network request (sessionStorage hit)
 

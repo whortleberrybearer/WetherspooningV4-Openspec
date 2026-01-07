@@ -6,3 +6,4 @@ initializeApp();
 // Export functions
 export { scheduledSyncPubs } from './scheduled/syncPubs';
 export { syncPubsOnDemand } from './callable/syncPubsOnDemand';
+export { getPubs } from './callable/getPubs';

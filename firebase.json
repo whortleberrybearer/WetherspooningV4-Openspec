@@ -38,6 +38,15 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/pubs",
+        "function": {
+          "functionId": "getPubs",
+          "region": "europe-west2"
+        }
+      }
     ]
   }
 }

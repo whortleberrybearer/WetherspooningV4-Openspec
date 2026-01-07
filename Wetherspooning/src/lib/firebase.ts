@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
+import { getFirestore, connectFirestoreEmulator, enableIndexedDbPersistence } from 'firebase/firestore'
 import { getAuth, connectAuthEmulator } from 'firebase/auth'
 
 const firebaseConfig = {
@@ -22,3 +22,18 @@ if (import.meta.env.DEV) {
   console.log('🔥 Connected to Firestore Emulator')
   console.log('🔥 Connected to Auth Emulator')
 }
+
+// Enable Firestore persistence for automatic caching
+enableIndexedDbPersistence(db)
+  .then(() => {
+    console.log('✅ Firestore persistence enabled')
+  })
+  .catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn('⚠️ Firestore persistence failed: Multiple tabs open')
+    } else if (err.code === 'unimplemented') {
+      console.warn('⚠️ Firestore persistence not supported in this browser')
+    } else {
+      console.error('❌ Firestore persistence error:', err)
+    }
+  })
