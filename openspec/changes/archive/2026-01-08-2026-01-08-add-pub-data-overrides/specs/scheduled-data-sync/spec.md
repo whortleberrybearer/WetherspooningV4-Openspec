@@ -145,7 +145,7 @@ The system MUST sync scraped pub data to Firestore while preserving manually set
 
 ---
 
-### Requirement: Pub Matching Strategy (REQ-SDS-007)
+### Requirement: Pub Matching Logic (REQ-SDS-009)
 **Priority:** MUST  
 **Category:** Functional
 
@@ -223,7 +223,7 @@ The system MUST match scraped pubs to existing pubs using a three-tier strategy 
 
 ---
 
-### Requirement: Change Detection (REQ-SDS-008)
+### Requirement: Change Detection (REQ-SDS-010)
 **Priority:** MUST  
 **Category:** Functional
 
