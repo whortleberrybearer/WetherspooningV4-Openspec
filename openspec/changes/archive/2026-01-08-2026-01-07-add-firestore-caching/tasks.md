@@ -18,12 +18,11 @@ Run from root directory:
 ## Phase 1: Firestore SDK Persistence (Visit Data Caching)
 ### Task 1.1: Enable Firestore Persistence
 - [x] Open `Wetherspooning/src/lib/firebase.ts`
-- [x] Import `enableIndexedDbPersistence` from `firebase/firestore`
-- [x] Call `enableIndexedDbPersistence(db)` after Firestore init
-- [x] Add `.then()` handler to log "✅ Firestore persistence enabled"
-- [x] Add `.catch()` handler for error codes: 'failed-precondition', 'unimplemented'
-- [x] Log appropriate warnings for each error type
-- [x] Ensure graceful fallback if persistence fails (no throw)
+- [x] Update imports (removed deprecated enableIndexedDbPersistence)
+- [x] Firestore SDK automatically enables persistence when IndexedDB is available
+- [x] Add console log confirming automatic persistence
+- [x] Simplified implementation - no manual persistence configuration needed
+- [x] Modern SDK handles persistence automatically
 
 **Validation:**
 - App loads without errors
@@ -73,15 +72,12 @@ Run from root directory:
 ### Task 2.1: Create Cloud Function getPubs
 - [x] Create `functions/src/callable/getPubs.ts`
 - [x] Import `onRequest` from `firebase-functions/v2/https`
-- [x] Import Firestore methods: `getDocs`, `collection`
-- [x] Implement function with CORS enabled: `{ cors: true }`
-- [x] Check `req.query.nocache === '1'` for cache bypass
-- [x] Set cache headers:  
-  - Normal: `Cache-Control: public, max-age=86400`  
-  - Bypass: `Cache-Control: no-cache, no-store, must-revalidate`
+- [x] Import Firestore methods from firebase-admin
+- [x] Implement function with CORS enabled: `{ cors: true, region: 'europe-west2' }`
 - [x] Query Firestore `pubs` collection
 - [x] Return JSON: `{ pubs: [...] }` with status 200
 - [x] Handle errors: log to console, return status 500 with `{ error: string }`
+- [x] Cache headers moved to firebase.json (simpler implementation)
 
 **Validation:**
 - Function exports correctly
@@ -93,9 +89,9 @@ Run from root directory:
 ---
 
 ### Task 2.2: Export and Deploy Cloud Function
-- [ ] Open `functions/src/index.ts`
-- [ ] Export getPubs: `export { getPubs } from './callable/getPubs'`
-- [ ] Build functions: `npm run build` in `functions/` directory
+- [x] Open `functions/src/index.ts`
+- [x] Export getPubs: `export { getPubs } from './callable/getPubs'`
+- [x] Build functions: `npm run build` in `functions/` directory
 - [ ] Deploy function: `firebase deploy --only functions:getPubs`
 - [ ] Test deployed function URL manually (browser or curl)
 - [ ] Verify cache headers in response (use browser DevTools Network tab)
@@ -112,11 +108,15 @@ Run from root directory:
 
 ### Task 2.3: Configure Firebase Hosting Rewrite
 - [x] Open `firebase.json`
+- [x] Add `headers` section with Cache-Control for `/api/pubs`
 - [x] Add rewrite rule in `hosting.rewrites` array:  
   ```json
   {
     "source": "/api/pubs",
-    "function": "getPubs"
+    "function": {
+      "functionId": "getPubs",
+      "region": "europe-west2"
+    }
   }
   ```
 - [ ] Deploy hosting config: `firebase deploy --only hosting`
@@ -136,16 +136,16 @@ Run from root directory:
 ### Task 3.1: Create pubDataService
 - [x] Create `Wetherspooning/src/services/pubDataService.ts`
 - [x] Import `Pub` type from `firebaseDataService`
-- [x] Define `SESSION_CACHE_KEY = 'pubs_cache'`
-- [x] Define interface `CachedPubData { pubs: Pub[], timestamp: number }`
-- [x] Implement `getAllPubs(nocache = false): Promise<Pub[]>`
-- [x] Check sessionStorage for cached data (skip if `nocache === true`)
-- [x] On cache hit: parse JSON, log "Returning sessionStorage cached pub data", return pubs
-- [x] On cache miss or error: fetch from Cloud Function URL
-- [x] Build URL: `${VITE_FIREBASE_FUNCTIONS_URL}/getPubs${nocache ? '?nocache=1' : ''}`
+- [x] Define `CACHE_KEY = 'wetherspooning_pubs_cache'`
+- [x] Implement `getAllPubs(bypassCache = false): Promise<Pub[]>`
+- [x] Check sessionStorage for cached data (skip if `bypassCache === true`)
+- [x] On cache hit: parse JSON, log message, return pubs
+- [x] On cache miss or bypassCache: fetch from Cloud Function URL
+- [x] Build URL: `${VITE_FIREBASE_FUNCTIONS_URL}/api/pubs` (no query params)
 - [x] Fetch data, check response.ok, parse JSON
-- [x] Cache in sessionStorage (skip if `nocache === true`)
+- [x] Always cache the result in sessionStorage
 - [x] Implement `clearPubCache()`: remove from sessionStorage
+- [x] Removed TTL check - sessionStorage valid until session ends
 
 **Validation:**
 - Service exports `getAllPubs` and `clearPubCache`
@@ -159,9 +159,9 @@ Run from root directory:
 ### Task 3.2: Add Environment Variable for Functions URL
 - [x] Open `Wetherspooning/.env` (or create if missing)
 - [x] Add `VITE_FIREBASE_FUNCTIONS_URL=https://your-project.cloudfunctions.net` (production URL)
-- [x] For emulator: `VITE_FIREBASE_FUNCTIONS_URL=http://localhost:5001/your-project/us-central1`
+- [x] For emulator: `VITE_FIREBASE_FUNCTIONS_URL=http://localhost:5001/your-project/europe-west2`
 - [x] Update `.env.example` with placeholder
-- [ ] Document in README how to configure this variable
+- [x] Document in DEVELOPMENT.md and QUICKSTART.md
 
 **Validation:**
 - Environment variable accessible in code via `import.meta.env.VITE_FIREBASE_FUNCTIONS_URL`
@@ -172,14 +172,15 @@ Run from root directory:
 ---
 
 ### Task 3.3: Test pubDataService
-- [x] Create `Wetherspooning/src/services/__tests__/pubDataService.test.ts`
+- [x] Create `Wetherspooning/src/services/pubDataService.test.ts`
 - [x] Mock `fetch` global function
-- [x] Mock sessionStorage (use jest-localstorage-mock or similar)
+- [x] Mock sessionStorage
 - [x] Test: `getAllPubs()` on sessionStorage miss fetches from function
 - [x] Test: `getAllPubs()` on sessionStorage hit returns cached data without fetch
-- [x] Test: `getAllPubs(true)` bypasses sessionStorage and adds `?nocache=1`
+- [x] Test: `getAllPubs(true)` bypasses sessionStorage, fetches, and caches result
 - [x] Test: Corrupted sessionStorage JSON triggers re-fetch
-- [x] Test: sessionStorage persists across multiple calls in same session
+- [x] Test: sessionStorage persists (no TTL check)
+- [x] Removed TTL-related tests
 
 **Validation:**
 - All tests pass
@@ -269,10 +270,10 @@ Run from root directory:
 
 ## Phase 6: Documentation and Deployment
 ### Task 6.1: Update Code Documentation
-- [ ] Add JSDoc to `pubDataService.ts` explaining caching layers
-- [ ] Add comments to `getPubs.ts` explaining cache headers
-- [ ] Update `firebase.ts` with persistence behavior comments
-- [ ] Document sessionStorage cache key and structure
+- [x] Add JSDoc to `pubDataService.ts` explaining caching layers
+- [x] Add comments to `getPubs.ts` explaining cache behavior
+- [x] Update `firebase.ts` with persistence behavior comments
+- [x] Document sessionStorage cache key and structure
 
 **Validation:**
 - Code review confirms documentation clarity
@@ -283,11 +284,13 @@ Run from root directory:
 ---
 
 ### Task 6.2: Update Project README
-- [ ] Add section to `Wetherspooning/README.md` explaining caching architecture
-- [ ] Document that pub data uses Cloud Function + CDN + sessionStorage
-- [ ] Document that visit data uses Firestore SDK persistence
-- [ ] Explain cache TTLs and session-scoped lifecycle
-- [ ] Note `?nocache=1` parameter for admin/testing
+- [x] Created comprehensive DEVELOPMENT.md with caching architecture
+- [x] Created QUICKSTART.md for daily development workflow
+- [x] Document that pub data uses Cloud Function + CDN + sessionStorage
+- [x] Document that visit data uses Firestore SDK persistence
+- [x] Explain session-scoped cache lifecycle (no TTL)
+- [x] Document bypassCache parameter for testing
+- [x] Updated main README with links to guides
 
 **Validation:**
 - README clearly explains caching strategy

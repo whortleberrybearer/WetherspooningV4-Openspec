@@ -5,7 +5,7 @@
 **Date:** 2026-01-07  
 **Status:** DRAFT
 
-## Problem Statement
+## Why
 
 The application currently makes direct Firestore reads on every page load and user interaction, resulting in unnecessary costs and latency:
 
@@ -44,45 +44,47 @@ Leverage Firebase's built-in caching capabilities and CDN infrastructure for max
 - No manual cache invalidation needed
 - Simpler mental model: session = cache lifetime
 
+## What Changes
+
+### Code Changes
+- **New Cloud Function:** `functions/src/callable/getPubs.ts` - Serves pub data via HTTPS
+- **New Service:** `Wetherspooning/src/services/pubDataService.ts` - sessionStorage caching wrapper
+- **Modified:** `Wetherspooning/src/lib/firebase.ts` - Automatic Firestore persistence
+- **Modified:** `Wetherspooning/src/views/PubLocationsMap.vue` - Uses pubDataService
+- **Modified:** `Wetherspooning/src/composables/useAuth.ts` - Cache behavior documentation
+- **Modified:** `firebase.json` - Cache headers and hosting rewrites
+- **New Tests:** `pubDataService.test.ts` - Unit tests for caching logic
+
+### Configuration Changes
+- Environment variable: `VITE_FIREBASE_FUNCTIONS_URL`
+- Firebase hosting headers for `/api/pubs` endpoint
+- Firebase hosting rewrite rule for Cloud Function
+
 ## Impact Analysis
 
 ### Benefits
 - **Reduced Firestore reads:** 95%+ reduction in pub data reads (1 globally per 24h via CDN vs current ~10-50 per day per user)
 - **Reduced visit reads:** 90%+ reduction via Firestore SDK persistence (1 per session vs current ~5-10 per session)
 - **Improved performance:** CDN cache hits <50ms globally; sessionStorage <10ms; Firestore persistence <20ms
-- **Lower costs:** Dramatic reduction in Firebase billing - CDN caching means zero Firestore reads after first global request
-- **Better offline experience:** Firestore persistence provides full offline support automatically
-- **Scalability:** Cloud function already in place for future server-side processing
+- **Lower costs:** Dramatic reduction in Firebase billing
+- **Better UX:** Firestore persistence provides automatic offline support
+- **Scalability:** Cloud function ready for future server-side processing
 - **Simpler implementation:** Leverages Firebase built-in features instead of custom code
-- **Global CDN:** Pub data cached on Firebase's CDN edge nodes worldwide
-CDN TTL for pubs (matches update frequency) and session-scoped visit cache
-- **Cold start latency:** Cloud function cold starts (~1-2s) mitigated by CDN cache hits and function keep-alive
-- **Cross-device visit sync:** Handled by session-scoped cache - fresh data loaded on each new session
-- **Cache bypass needed:** `?nocache=1` parameter available for admin scenarios
-- **Multiple tabs:** Firestore persistence handles multi-tab scenarios automatically
-- **Browser compatibility:** Firestore persistence gracefully degrades if IndexedDB unavailableces
-- **Cache inconsistency:** Manual refresh option + automatic TTL expiry ensure data freshness
-- **Testing complexity:** Requires cache mock/stub infrastructure - addressed in tasks
+
+### Risks
+- **Cold start latency:** Cloud function cold starts (~1-2s) mitigated by CDN cache
+- **Multi-tab scenarios:** Firestore persistence handles automatically
+- **Browser compatibility:** Graceful degradation if IndexedDB unavailable
 
 ### User-Facing Changes
 - Faster initial page loads (cached data)
 - No breaking changes to existing functionality
-Cloud Function `functions/src/callable/getPubs.ts` with cache headers
-- Modified `Wetherspooning/src/services/firebaseDataService.ts` to call function for pub data
-- Added `enableIndexedDbPersistence()` to `Wetherspooning/src/lib/firebase.ts`
-- New `pubDataService.ts` with sessionStorage caching wrapper
-- Updated `useAuth.ts` to clear Firestore cache on logout
-- Updated tests to handle cached data scenarios and cache bypasr
-- New cache configuration in environment/constants
-- Updated tests to handle cached vs fresh data scenarios
 
 ## Affected Capabilities
-Enable Firestore persistence; add Cloud Function for pub data
-- **pub-visit-data** - Visit data uses Firestore SDK persistence (session-scoped)
+
+- **firebase-data-integration** - Adds automatic Firestore persistence
+- **pub-visit-data** - Visit data uses Firestore SDK persistence
 - **pub-locations-map** - Pub data loaded via Cloud Function with CDN caching
-- **scheduled-data-sync** - Cloud function integration point for future pub data processing visit data retrieval
-- **pub-visit-data** - Update visit data loading to use cache with invalidation
-- **pub-locations-map** - Update to use cached pub data source
 
 No new capabilities are introduced.
 
@@ -95,22 +97,18 @@ No new capabilities are introduced.
 ## Alternatives Considered
 ustom client-side caching service** - Rejected in favor of Firestore SDK's built-in persistence
 2. **Direct Firestore reads with custom cache** - Rejected; SDK persistence is battle-tested and simpler
+
+1. **Custom client-side caching service** - Rejected in favor of Firestore SDK's built-in persistence
+2. **Direct Firestore reads with custom cache** - Rejected; SDK persistence is battle-tested and simpler
 3. **Service Worker caching** - Rejected as overkill; CDN + sessionStorage sufficient
 4. **Real-time listeners for visit data** - Rejected; session-scoped cache simpler for low-traffic site
-5. **Service Worker caching** - Rejected as overkill for API-level caching needs
-4. **No caching (status quo)** - Rejected due to cost and performance concerns
+5. **No caching (status quo)** - Rejected due to cost and performance concerns
 
 ## Success Metrics
-pub reads reduced to ~1 per 24h globally (measurable via Firebase console)
+
+- Firestore pub reads reduced to ~1 per 24h globally (measurable via Firebase console)
 - Firestore visit reads reduced by >90% per user session
 - Cloud Function invocations for pubs: ~1 per 24h (rest served by CDN)
 - Initial page load time <100ms on CDN cache hits
 - sessionStorage cache hits provide <10ms pub data loads within session
-- Zero user complaints about stale data
 - All existing tests pass with caching enabled
-- Offline functionality works for visit datad
-- Cache hit rate >80% in production telemetry
-
-## Open Questions
-
-None - requirements are clear and scoped.
