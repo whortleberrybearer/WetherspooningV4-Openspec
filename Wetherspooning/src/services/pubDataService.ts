@@ -67,8 +67,8 @@ export async function getAllPubs(bypassCache = false): Promise<Pub[]> {
 
   // Step 2: Fetch from Cloud Function (via CDN)
   try {
-    const functionsUrl = import.meta.env.VITE_FIREBASE_FUNCTIONS_URL || ''
-    const url = `${functionsUrl}/api/pubs`
+    const hostingUrl = import.meta.env.VITE_HOSTING_URL || ''
+    const url = `${hostingUrl}/api/pubs`
     
     const response = await fetch(url)
     if (!response.ok) {

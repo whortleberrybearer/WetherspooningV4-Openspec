@@ -94,7 +94,7 @@ VITE_GOOGLE_MAPS_MAP_ID=your_map_id
 
 # Development (Emulator) - Use these values
 VITE_FIREBASE_PROJECT_ID=demo-wetherspooning
-VITE_FIREBASE_FUNCTIONS_URL=http://localhost:5001/demo-wetherspooning/europe-west2
+VITE_HOSTING_URL=http://127.0.0.1:5000
 
 # Production - Get from Firebase Console
 # VITE_FIREBASE_API_KEY=...

@@ -27,7 +27,7 @@ Object.defineProperty(window, 'sessionStorage', {
 vi.stubGlobal('import', {
   meta: {
     env: {
-      VITE_FIREBASE_FUNCTIONS_URL: 'http://localhost:5001/test-project/europe-west2'
+      VITE_HOSTING_URL: 'http://localhost:5000'
     }
   }
 })

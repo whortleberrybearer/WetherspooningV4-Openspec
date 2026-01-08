@@ -38,8 +38,8 @@ VITE_FIREBASE_STORAGE_BUCKET=demo-wetherspooning.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
 VITE_FIREBASE_APP_ID=1:123456789:web:abc123
 
-# Cloud Functions URL (Emulator)
-VITE_FIREBASE_FUNCTIONS_URL=http://localhost:5001/demo-wetherspooning/europe-west2
+# Firebase Hosting URL (Emulator)
+VITE_HOSTING_URL=http://127.0.0.1:5000
 ```
 
 #### Backend (`functions/.env`)
@@ -169,7 +169,7 @@ lsof -ti:8080 | xargs kill -9
 
 ### Frontend Can't Connect to Emulators
 1. Check `Wetherspooning/.env` has correct emulator URLs
-2. Ensure `VITE_FIREBASE_FUNCTIONS_URL=http://localhost:5001/demo-wetherspooning/europe-west2`
+2. Ensure `VITE_HOSTING_URL=http://127.0.0.1:5000`
 3. Check browser console for connection errors
 
 ### "Data already seeded" Warning
