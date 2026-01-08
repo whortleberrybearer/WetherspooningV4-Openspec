@@ -68,7 +68,8 @@ import { AlertCircle } from 'lucide-vue-next'
 import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
 import { useTheme } from '@/composables/useTheme'
-import { getAllPubs, type Pub } from '@/services/firebaseDataService'
+import { getAllPubs } from '@/services/pubDataService'
+import type { Pub } from '@/services/firebaseDataService'
 
 const mapContainer = ref<HTMLElement | null>(null)
 const map = shallowRef<google.maps.Map | null>(null)

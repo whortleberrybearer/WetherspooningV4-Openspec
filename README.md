@@ -8,16 +8,51 @@ Wetherspooning is a website that displays the locations of Wetherspoons pubs and
 - **Visit Tracking** - Track which pubs you've visited
 - **User Authentication** - Secure login and signup with Firebase Auth
 - **Automated Data Sync** - Daily scheduled sync of pub data from Wetherspoon's website
+- **Caching Architecture** - Multi-layer caching with CDN and browser storage for optimal performance
 
 ## Project Structure
 
 - `/Wetherspooning` - Vue.js frontend application
 - `/functions` - Firebase Cloud Functions for backend services ([README](functions/README.md))
 - `/openspec` - Project specifications and change proposals
+- `/scripts` - Development and deployment scripts
+
+## Local Development
+
+**📖 [Complete Development Guide](DEVELOPMENT.md)** | **⚡ [Quick Reference](QUICKSTART.md)**
+
+Quick start:
+```bash
+# Install dependencies
+npm install
+cd functions && npm install
+cd ../Wetherspooning && npm install
+cd ..
+
+# Build functions
+npm run functions:build
+
+# Start emulators (Terminal 1)
+npm run dev
+
+# Seed test data (Terminal 2, first time only)
+npm run seed
+
+# Start frontend (Terminal 3)
+cd Wetherspooning && npm run dev
+```
+
+Open http://localhost:5173 and login with `test@example.com` / `password123`
+
+## Documentation
+
+- **[Development Guide](DEVELOPMENT.md)** - Complete local setup and workflow
+- **[Quick Reference](QUICKSTART.md)** - Cheat sheet for daily development
+- **[Functions README](functions/README.md)** - Cloud Functions documentation
 
 ## Getting Started
 
-See the [functions README](functions/README.md) for information about the scheduled pub sync feature.
+For first-time setup, see the [Development Guide](DEVELOPMENT.md).
 
 ## Deployment
 

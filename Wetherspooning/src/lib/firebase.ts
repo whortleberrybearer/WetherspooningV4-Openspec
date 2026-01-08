@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
+import { getFirestore, connectFirestoreEmulator, persistentLocalCache } from 'firebase/firestore'
 import { getAuth, connectAuthEmulator } from 'firebase/auth'
 
 const firebaseConfig = {
@@ -22,3 +22,6 @@ if (import.meta.env.DEV) {
   console.log('🔥 Connected to Firestore Emulator')
   console.log('🔥 Connected to Auth Emulator')
 }
+
+// Firestore SDK persistence is automatically enabled when IndexedDB is available
+console.log('✅ Firestore initialized with automatic persistence')

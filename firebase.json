@@ -38,6 +38,26 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "headers": [
+      {
+        "source": "/api/pubs",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400, s-maxage=86400"
+          }
+        ]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/api/pubs",
+        "function": {
+          "functionId": "getPubs",
+          "region": "europe-west2"
+        }
+      }
     ]
   }
 }

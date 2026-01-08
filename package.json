@@ -1,6 +1,10 @@
 {
   "scripts": {
-    "emulator": "firebase emulators:start --project demo-wetherspooning"
+    "dev": "npm run emulator",
+    "emulator": "firebase emulators:start --project demo-wetherspooning --import=.emulator-data --export-on-exit",
+    "emulator:clear": "firebase emulators:start --project demo-wetherspooning",
+    "seed": "node scripts/seedEmulator.js",
+    "functions:build": "cd functions && npm run build"
   },
   "devDependencies": {
     "firebase-admin": "^13.6.0"
