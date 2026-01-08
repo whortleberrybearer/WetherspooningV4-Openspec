@@ -50,4 +50,4 @@ jobs:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_WETHERSPOONING }}
           PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
         with:
-          args: deploy --only hosting,functions,firestore
+          args: deploy --only hosting,functions,firestore --force
