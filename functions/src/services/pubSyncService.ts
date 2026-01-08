@@ -53,6 +53,7 @@ function positionsEqual(
 
 /**
  * Checks if scraped pub data differs from existing pub data.
+ * Only compares scraped fields - override fields are ignored in change detection.
  * @param existing The existing pub record
  * @param scraped The scraped pub data
  * @returns true if any field has changed, false if all fields are identical
@@ -112,6 +113,8 @@ export async function getExistingPubByUrl(url: string): Promise<Pub | null> {
 export async function syncPubToFirestore(pubData: ScrapedPubData): Promise<void> {
   try {
     const db = getFirestore();
+    // Only include scraped fields - override fields (countyOverride, townCityOverride) 
+    // are not set here and will be preserved by merge: true
     const pubDoc: Omit<Pub, 'lastSyncedAt'> & { lastSyncedAt: Timestamp } = {
       id: pubData.id,
       name: pubData.name,
@@ -134,6 +137,7 @@ export async function syncPubToFirestore(pubData: ScrapedPubData): Promise<void>
       Object.entries(pubDoc).filter(([_, value]) => value !== undefined)
     );
     
+    // merge: true preserves existing fields not in cleanedDoc (e.g., countyOverride, townCityOverride)
     await db.collection('pubs').doc(pubData.id).set(cleanedDoc, { merge: true });
     
     console.log(`✓ Synced pub to Firestore: ${pubData.id}`);

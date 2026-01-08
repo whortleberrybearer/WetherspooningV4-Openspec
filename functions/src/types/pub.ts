@@ -12,8 +12,10 @@ export interface Pub {
   imageUrl: string;
   address: string;
   townCity: string;
+  townCityOverride?: string;
   country?: string;
   county?: string;
+  countyOverride?: string;
   position: Position | null;
   openState: string;
   isHotel: boolean;
