@@ -3,6 +3,7 @@
     "id": "de48abe6-fe2f-4fa7-9132-30c970f44540",
     "name": "The Moon Under Water",
     "townCity": "Sheffield",
+    "townCityOverride": "Sheffield City Centre",
     "address": "71 Bridge Street, Sheffield, South Yorkshire, S18 2BO",
     "county": "South Yorkshire",
     "region": "Yorkshire and the Humber",
@@ -21,6 +22,7 @@
     "townCity": "Canterbury",
     "address": "124 Market Place, Canterbury, Kent, ME47 5VM",
     "county": "Kent",
+    "countyOverride": "East Kent",
     "region": "South East England",
     "country": "England",
     "position": {
@@ -95,8 +97,10 @@
     "id": "4b656b30-9a53-44e9-8fe4-64eae99d02ac",
     "name": "The Golden Lion",
     "townCity": "Sheffield",
+    "townCityOverride": "Sheffield",
     "address": "105 Church Street, Sheffield, South Yorkshire, S52 1XL",
     "county": "South Yorkshire",
+    "countyOverride": "Yorkshire",
     "region": "Yorkshire and the Humber",
     "country": "England",
     "position": {
