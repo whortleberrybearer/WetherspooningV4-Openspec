@@ -56,13 +56,16 @@ interface Visit {
 }
 ```
 
-## Prerequisites
+## Local Development Setup
 
-- Node.js (^20.19.0 || >=22.12.0)
-- Google Maps API key
-- Java Runtime (for Firebase Emulator) - [Download JDK](https://www.oracle.com/java/technologies/downloads/)
-- Firebase CLI (for local development) - Installed in setup steps below
-- Firebase project (for production) or Firebase Emulator (for local development)
+**For complete local development instructions, see the root [DEVELOPMENT.md](../DEVELOPMENT.md) guide.**
+
+Quick setup:
+1. Install Node.js and Java
+2. Configure Google Maps API key in `.env`
+3. Run `npm install` in root, functions, and Wetherspooning directories
+4. Start emulators: `npm run dev` (from root)
+5. Start frontend: `npm run dev` (from Wetherspooning)
 
 ## Google Maps API Setup
 
@@ -80,74 +83,26 @@ interface Visit {
    - Add HTTP referrers for production domains
    - Limit to Maps JavaScript API only
 
-### 1. Install Dependencies
+## Environment Configuration
 
-Install dependencies in the Wetherspooning directory:
-```sh
-cd Wetherspooning
-npm install
-```
+Copy `.env.example` to `.env` and configure:
 
-Install dependencies in the root directory (for Firebase scripts):
-```sh
-cd ..
-npm install
-```
-
-### 2. Install Firebase CLI
-
-Install Firebase CLI globally:
-```sh
-npm install -g firebase-tools
-```
-
-Verify installation:
-```sh
-firebase --version
-```
-
-### 3. Install Java (Required for Emulator)
-
-The Firebase Emulator requires Java. Install Java 17 or later:
-
-**Windows:**
-```sh
-winget install Oracle.JDK.23
-```
-
-Verify installation:
-```sh
-java -version
-```
-
-### 4. Environment Configuration
-
-1. Copy the example environment file:
-```sh
-cd Wetherspooning
-cp .env.example .env
-```
-
-2. Edit `.env` and add your API credentials:
-
-**For Local Development (Emulator):**
 ```env
-# Google Maps
-VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
-VITE_GOOGLE_MAPS_MAP_ID=your_map_id_here
+# Required: Google Maps
+VITE_GOOGLE_MAPS_API_KEY=your_api_key
+VITE_GOOGLE_MAPS_MAP_ID=your_map_id
 
-# Firebase (demo values for emulator - no need to change)
-VITE_FIREBASE_API_KEY=demo-api-key
-VITE_FIREBASE_AUTH_DOMAIN=demo-wetherspooning.firebaseapp.com
+# Development (Emulator) - Use these values
 VITE_FIREBASE_PROJECT_ID=demo-wetherspooning
-VITE_FIREBASE_STORAGE_BUCKET=demo-wetherspooning.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
-VITE_FIREBASE_APP_ID=1:123456789:web:abcdef123456
+VITE_FIREBASE_FUNCTIONS_URL=http://localhost:5001/demo-wetherspooning/europe-west2
+
+# Production - Get from Firebase Console
+# VITE_FIREBASE_API_KEY=...
+# VITE_FIREBASE_AUTH_DOMAIN=...
+# etc.
 ```
 
-**For Production:**
-Get Firebase credentials from [Firebase Console](https://console.firebase.google.com/) > Project Settings > General
-```env
+See [.env.example](.env.example) for all available options.
 # Google Maps
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 VITE_GOOGLE_MAPS_MAP_ID=your_map_id_here

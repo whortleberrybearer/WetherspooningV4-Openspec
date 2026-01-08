@@ -13,8 +13,7 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/",
-    "emulator": "firebase emulators:start --project demo-wetherspooning"
+    "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.0.2",

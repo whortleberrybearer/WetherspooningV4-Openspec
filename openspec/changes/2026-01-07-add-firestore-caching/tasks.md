@@ -8,6 +8,13 @@ This task list implements caching for Firestore data using Firebase's built-in f
 - [x] Ensure Firebase Hosting and Cloud Functions are enabled in Firebase project
 - [x] Confirm Firebase emulator is available for testing
 
+**Testing Setup:**
+Run from root directory:
+1. `npm run functions:build` - Build Cloud Functions
+2. `npm run dev` - Start emulators (Terminal 1)
+3. `cd Wetherspooning && npm run dev` - Start frontend (Terminal 2)
+4. Open http://localhost:5173
+
 ## Phase 1: Firestore SDK Persistence (Visit Data Caching)
 ### Task 1.1: Enable Firestore Persistence
 - [x] Open `Wetherspooning/src/lib/firebase.ts`

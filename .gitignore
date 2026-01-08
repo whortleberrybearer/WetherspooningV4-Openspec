@@ -3,6 +3,7 @@ service-account-key.json
 .firebaserc
 *-debug.log
 .firebase/
+.emulator-data/
 
 # Dependencies
 node_modules/
