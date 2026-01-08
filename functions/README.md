@@ -225,6 +225,61 @@ firebase deploy --only functions:scheduledSyncPubs
 firebase deploy --only functions:syncPubsOnDemand
 ```
 
+## Pub Data Overrides
+
+The system supports manual correction of `county` and `townCity` fields when scraped data is incorrect.
+
+### How Overrides Work
+
+- **Scraped fields** (`county`, `townCity`) are always preserved and never manually modified
+- **Override fields** (`countyOverride`, `townCityOverride`) take precedence when returning data to clients
+- Overrides are applied server-side by the `getPubs` function before returning data
+- Sync operations preserve override fields while updating scraped fields
+
+### Setting Overrides
+
+To correct pub data, add override fields via Firestore console:
+
+1. Go to Firestore console > `pubs` collection
+2. Find the pub document to correct
+3. Add field `countyOverride` or `townCityOverride` with the correct value
+4. Save the document
+
+**Example:**
+
+If a pub has incorrect scraped data:
+```json
+{
+  "county": "London",
+  "townCity": "City of London"
+}
+```
+
+Add override fields:
+```json
+{
+  "county": "London",
+  "countyOverride": "Greater London",
+  "townCity": "City of London",
+  "townCityOverride": "London"
+}
+```
+
+Clients will receive the corrected values:
+```json
+{
+  "county": "Greater London",
+  "townCity": "London"
+}
+```
+
+### Override Persistence
+
+- Overrides persist across scheduled syncs
+- The sync service only updates scraped fields (`county`, `townCity`)
+- Override fields remain unchanged unless manually modified
+- To remove an override, delete the override field from Firestore
+
 ### First-Time Deployment of On-Demand Sync
 
 Before deploying the `syncPubsOnDemand` function for the first time:

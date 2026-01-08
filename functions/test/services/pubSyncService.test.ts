@@ -352,6 +352,51 @@ describe('pubSyncService', () => {
       expect(writtenData.country).toBe('England');
       expect(writtenData.county).toBe('Greater London');
     });
+
+    it('should not include countyOverride in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'Westminster',
+        county: 'London',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.county).toBe('London');
+      expect('countyOverride' in writtenData).toBe(false);
+    });
+
+    it('should not include townCityOverride in written data', async () => {
+      const pubData: ScrapedPubData = {
+        id: 'test-pub',
+        name: 'Test Pub',
+        url: 'https://example.com/test-pub',
+        imageUrl: 'https://example.com/image.jpg',
+        address: '123 Test Street',
+        townCity: 'City of London',
+        position: { lat: 51.5, lng: -0.1 },
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+      };
+
+      await syncPubToFirestore(pubData);
+
+      const writtenData = mockSet.mock.calls[0][0];
+      expect(writtenData.townCity).toBe('City of London');
+      expect('townCityOverride' in writtenData).toBe(false);
+    });
   });
 
   describe('getExistingPub', () => {
@@ -639,6 +684,34 @@ describe('pubSyncService', () => {
         openState: 'Closed'
       };
       const result = hasDataChanged(basePub, scraped);
+      expect(result).toBe(true);
+    });
+
+    it('should ignore countyOverride in change detection', () => {
+      const pub = { ...basePub, county: 'London', countyOverride: 'Greater London' };
+      const scraped = { ...baseScraped, county: 'London' };
+      const result = hasDataChanged(pub, scraped);
+      expect(result).toBe(false);
+    });
+
+    it('should ignore townCityOverride in change detection', () => {
+      const pub = { ...basePub, townCity: 'City of London', townCityOverride: 'London' };
+      const scraped = { ...baseScraped, townCity: 'City of London' };
+      const result = hasDataChanged(pub, scraped);
+      expect(result).toBe(false);
+    });
+
+    it('should detect scraped county change even when override exists', () => {
+      const pub = { ...basePub, county: 'London', countyOverride: 'Greater London' };
+      const scraped = { ...baseScraped, county: 'Greater London' };
+      const result = hasDataChanged(pub, scraped);
+      expect(result).toBe(true);
+    });
+
+    it('should detect scraped townCity change even when override exists', () => {
+      const pub = { ...basePub, townCity: 'City of London', townCityOverride: 'London' };
+      const scraped = { ...baseScraped, townCity: 'Westminster' };
+      const result = hasDataChanged(pub, scraped);
       expect(result).toBe(true);
     });
   });
