@@ -718,25 +718,19 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
   let statusBadge = ''
   let badgeColor = '#22c55e' // green for Open
   let badgeText = openState
-  let badgeIcon = ''
   
   if (openState === 'Closed') {
     badgeColor = '#ef4444' // red
-    badgeIcon = '✕'
   } else if (openState === 'Temporary Closed') {
     badgeColor = '#f97316' // orange
-    badgeIcon = '⚠'
   } else if (openState.startsWith('Opening')) {
     badgeColor = '#f97316' // orange
-    badgeIcon = '⚠'
   } else if (openState.startsWith('Reopening')) {
     badgeColor = '#f97316' // orange
-    badgeIcon = '⚠'
   }
   
   if (openState !== 'Open') {
-    const iconDisplay = badgeIcon ? `${badgeIcon} ` : ''
-    statusBadge = `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: ${badgeColor}; color: white;">${iconDisplay}${badgeText}</span>`
+    statusBadge = `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: ${badgeColor}; color: white;">${badgeText}</span>`
   }
   
   // Location type badge
@@ -867,9 +861,9 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
       ${imageHtml}
       <h3 class="iw-title">${pub.name}${ratingDisplay}</h3>
       <div class="iw-badges">
+        ${visitBadge}
         ${statusBadge}
         ${locationBadge}
-        ${visitBadge}
       </div>
       <p class="iw-address">${pub.address}</p>
       ${websiteLink}
