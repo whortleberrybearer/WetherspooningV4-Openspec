@@ -394,86 +394,38 @@ The system MUST set up Firebase Functions in the project.
 **And** build script compiles TypeScript to JavaScript in `lib/` directory
 
 ### Requirement: Full Sync Execution (REQ-SDS-003)
-**Priority:** MUST  
-**Category:** Functional
 
-The system MUST support full sync mode which processes all sitemap entries, updates existing pubs, and marks missing pubs as closed **only when processing the complete sitemap**.
+The system MUST extract pub data from individual pub pages including opening state, with support for reopening dates.
 
-**Acceptance Criteria:**
-- Full sync loads all existing pubs from Firestore at initialization
-- Full sync processes all sitemap entries (or a specified subset via count/start parameters)
-- Matching logic is applied to find existing pubs for each sitemap entry
-- Change detection determines which pubs need database writes
-- Matched pub IDs are tracked in a set during processing
-- **[MODIFIED]** Closure detection runs **only when processing the complete sitemap** (i.e., when `start === 0` AND `count === undefined`)
-- **[ADDED]** When processing a partial subset (start > 0 OR count is specified), closure detection is skipped and logged
-- When closure detection runs, unmatched open pubs are marked as closed
-- All writes (updates, new pubs, closures) are batched and committed to Firestore
-- Function logs summary: total processed, new, updated, closed, skipped, errors
+**MODIFIED Acceptance Criteria:**
+- Open state is extracted from `<p class="open-status">` element with logic for "Opening soon", "Closed temporarily", "Reopening", or "Open"
+- For "Opening soon" status, extract opening date from sibling `<p class="opening-closing-time">` and format as "Opening dd/MM/yyyy"
+- **ADDED:** For "Reopening" status (detected in sibling `<p class="opening-closing-time">`), extract date and format as "Reopening dd/MM/yyyy"
+- For "Closed temporarily" status, set as "Temporary Closed"
+- Default to "Open" for all other cases
 
-**Changes:**
-- Added: Closure detection conditional logic based on sync parameters
-- Added: Logging when closure detection is skipped
+#### Scenario: Extract Reopening State with Date
+**Given** a pub page with `<p class="open-status is-style-highlight-red">` containing "Closed"  
+**And** a sibling `<p class="opening-closing-time">` containing "Reopening Monday 12 January 2026"  
+**When** the scraper extracts the pub data  
+**Then** the `openState` is set to "Reopening 12/01/2026"  
+**And** the date format is dd/MM/yyyy  
 
-#### Scenario: Full Sync with Complete Sitemap (Closure Detection Runs)
-**Given** the sitemap contains 100 pub entries  
-**And** Firestore has 102 existing pubs (98 in sitemap, 4 removed)  
-**And** no `start` or `count` parameters are provided  
-**When** a full sync runs  
-**Then** `start` defaults to 0 and `count` is undefined  
-**And** all 102 existing pubs are loaded from Firestore  
-**And** all 100 sitemap entries are processed  
-**And** 98 pubs are matched to existing records  
-**And** 2 new pubs are created  
-**And** **closure detection runs because it's a complete sync**  
-**And** 4 unmatched pubs are marked as closed  
-**And** logs indicate:
-- "📍 Loaded 102 existing pubs from Firestore"
-- "📋 Processing 100 of 100 pubs (start: 0, count: all)"
-- "✅ Full sync complete: 100 processed, 2 new, 50 updated, 4 closed, 48 skipped, 0 errors"
+#### Scenario: Extract Reopening State Without Valid Date
+**Given** a pub page with text indicating "Reopening" but no parseable date  
+**When** the scraper attempts to extract the opening state  
+**Then** the `openState` is set to "Reopening dd/MM/yyyy" with a fallback date or "Unknown" if date parsing fails  
 
-#### Scenario: Partial Sync with Start Position (No Closure Detection)
-**Given** the sitemap contains 800 pub entries  
-**And** Firestore has 795 existing pubs  
-**And** a full sync is requested with `start: 50` and no `count`  
-**When** the full sync runs  
-**Then** all 795 existing pubs are loaded from Firestore  
-**And** sitemap entries from index 50 to 799 are processed (750 pubs)  
-**And** pubs are matched, created, or updated as needed  
-**And** **closure detection is skipped because start > 0**  
-**And** no pubs are marked as closed  
-**And** logs indicate:
-- "📍 Loaded 795 existing pubs from Firestore"
-- "📋 Processing 750 of 800 pubs (start: 50, count: all)"
-- "⚠️ Skipping closure detection (partial sync: start=50)"
-- "✅ Full sync complete: 750 processed, X new, Y updated, 0 closed, Z skipped, E errors"
+#### Scenario: Extract Opening Soon with Date (Existing)
+**Given** a pub page with `<p class="open-status">` containing "Opening soon"  
+**And** a sibling `<p class="opening-closing-time">` containing a valid date  
+**When** the scraper extracts the pub data  
+**Then** the `openState` is formatted as "Opening dd/MM/yyyy"
 
-#### Scenario: Partial Sync with Count Limit (No Closure Detection)
-**Given** the sitemap contains 800 pub entries  
-**And** Firestore has 795 existing pubs  
-**And** a full sync is requested with `count: 100` and `start: 0`  
-**When** the full sync runs  
-**Then** all 795 existing pubs are loaded from Firestore  
-**And** the first 100 sitemap entries are processed  
-**And** pubs are matched, created, or updated as needed  
-**And** **closure detection is skipped because count is limited**  
-**And** no pubs are marked as closed  
-**And** logs indicate:
-- "📍 Loaded 795 existing pubs from Firestore"
-- "📋 Processing 100 of 800 pubs (start: 0, count: 100)"
-- "⚠️ Skipping closure detection (partial sync: count=100)"
-- "✅ Full sync complete: 100 processed, X new, Y updated, 0 closed, Z skipped, E errors"
-
-#### Scenario: Partial Sync with Both Start and Count (No Closure Detection)
-**Given** the sitemap contains 800 pub entries  
-**And** a full sync is requested with `start: 200` and `count: 50`  
-**When** the full sync runs  
-**Then** sitemap entries from index 200 to 249 are processed (50 pubs)  
-**And** **closure detection is skipped because both start > 0 AND count is specified**  
-**And** no pubs are marked as closed  
-**And** logs indicate:
-- "⚠️ Skipping closure detection (partial sync: start=200, count=50)"
-- "✅ Full sync complete: 50 processed, X new, Y updated, 0 closed, Z skipped, E errors"
+#### Scenario: Extract Temporarily Closed State (Existing)
+**Given** a pub page with `<p class="open-status">` containing "Closed temporarily"  
+**When** the scraper extracts the pub data  
+**Then** the `openState` is set to "Temporary Closed"
 
 ---
 

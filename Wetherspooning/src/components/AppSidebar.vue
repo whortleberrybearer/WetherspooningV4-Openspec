@@ -421,7 +421,7 @@ const handleLogout = () => {
 
 const isPubClosed = (pub: Pub): boolean => {
   const state = pub.openState || 'Open'
-  return state.toLowerCase().includes('closed')
+  return state === 'Closed'
 }
 
 const filteredPubs = computed(() => {

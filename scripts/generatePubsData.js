@@ -80,6 +80,34 @@ function generatePostcode(county) {
   return `${prefix}${area} ${sector}${unit}`;
 }
 
+function getOpenState(index) {
+  // Distribute opening states:
+  // 70% Open, 10% Closed, 8% Temporary Closed, 5% Opening Soon, 4% Opening [date], 3% Reopening [date]
+  const rand = Math.random();
+  
+  if (rand < 0.70) return "Open";
+  if (rand < 0.80) return "Closed";
+  if (rand < 0.88) return "Temporary Closed";
+  if (rand < 0.93) return "Opening Soon";
+  if (rand < 0.97) {
+    // Opening with specific date (next 1-30 days)
+    const daysAhead = Math.floor(Math.random() * 30) + 1;
+    const openingDate = new Date(2026, 0, 9 + daysAhead); // January 9, 2026 + days
+    const day = String(openingDate.getDate()).padStart(2, '0');
+    const month = String(openingDate.getMonth() + 1).padStart(2, '0');
+    const year = openingDate.getFullYear();
+    return `Opening ${day}/${month}/${year}`;
+  }
+  
+  // Reopening with specific date (next 1-30 days)
+  const daysAhead = Math.floor(Math.random() * 30) + 1;
+  const reopeningDate = new Date(2026, 0, 9 + daysAhead);
+  const day = String(reopeningDate.getDate()).padStart(2, '0');
+  const month = String(reopeningDate.getMonth() + 1).padStart(2, '0');
+  const year = reopeningDate.getFullYear();
+  return `Reopening ${day}/${month}/${year}`;
+}
+
 function getImageUrl(openState, imageIndex) {
   // Closed pubs never have images
   if (openState === "Closed") {
@@ -87,7 +115,9 @@ function getImageUrl(openState, imageIndex) {
   }
   
   // Open pubs: 70% chance of having an image
-  if (Math.random() < 0.7) {
+  // Other states: 50% chance
+  const threshold = openState === "Open" ? 0.7 : 0.5;
+  if (Math.random() < threshold) {
     return wetherspoonImages[imageIndex % wetherspoonImages.length];
   }
   
@@ -175,7 +205,7 @@ function generatePubs() {
   for (let i = 0; i < 70 && pubs.length < 100; i++) {
     const location = locations[Math.floor(Math.random() * 20)]; // England locations
     const pubName = pubNames[pubs.length % pubNames.length];
-    const openState = Math.random() < 0.85 ? "Open" : "Closed"; // 85% open
+    const openState = getOpenState(i);
     const streetNumber = Math.floor(Math.random() * 200) + 1;
     const streetName = ["High Street", "Market Place", "Church Street", "Bridge Street", "Station Road"][Math.floor(Math.random() * 5)];
     const postcode = generatePostcode(location.county);
@@ -208,7 +238,7 @@ function generatePubs() {
   for (let i = 0; i < 15 && pubs.length < 100; i++) {
     const location = locations[20 + (i % 5)]; // Scotland locations
     const pubName = pubNames[pubs.length % pubNames.length];
-    const openState = Math.random() < 0.85 ? "Open" : "Closed";
+    const openState = getOpenState(i + 70);
     const streetNumber = Math.floor(Math.random() * 200) + 1;
     const streetName = ["George Street", "High Street", "Princes Street", "Union Street"][Math.floor(Math.random() * 4)];
     const postcode = generatePostcode(location.county);
@@ -239,7 +269,7 @@ function generatePubs() {
   for (let i = 0; i < 10 && pubs.length < 100; i++) {
     const location = locations[25 + (i % 4)]; // Wales locations
     const pubName = pubNames[pubs.length % pubNames.length];
-    const openState = Math.random() < 0.85 ? "Open" : "Closed";
+    const openState = getOpenState(i + 85);
     const streetNumber = Math.floor(Math.random() * 200) + 1;
     const streetName = ["High Street", "St Mary Street", "Queen Street"][Math.floor(Math.random() * 3)];
     const postcode = generatePostcode(location.county);
@@ -270,7 +300,7 @@ function generatePubs() {
   for (let i = 0; i < 5 && pubs.length < 100; i++) {
     const location = locations[29 + (i % 2)]; // Northern Ireland locations
     const pubName = pubNames[pubs.length % pubNames.length];
-    const openState = Math.random() < 0.85 ? "Open" : "Closed";
+    const openState = getOpenState(i + 95);
     const streetNumber = Math.floor(Math.random() * 200) + 1;
     const streetName = ["High Street", "Royal Avenue", "Donegall Place"][Math.floor(Math.random() * 3)];
     const postcode = generatePostcode(location.county);
@@ -311,9 +341,14 @@ const withRegion = pubs.filter(p => p.region).length;
 const withoutRegion = pubs.length - withRegion;
 
 console.log(`✅ Generated ${pubs.length} pubs to ${outputPath}`);
-console.log(`   Open: ${pubs.filter(p => p.openState === 'Open').length}, Closed: ${pubs.filter(p => p.openState === 'Closed').length}`);
+console.log(`\nOpening States:`);
+console.log(`   Open: ${pubs.filter(p => p.openState === 'Open').length}`);
+console.log(`   Closed: ${pubs.filter(p => p.openState === 'Closed').length}`);
+console.log(`   Temporary Closed: ${pubs.filter(p => p.openState === 'Temporary Closed').length}`);
+console.log(`   Opening Soon: ${pubs.filter(p => p.openState === 'Opening Soon').length}`);
+console.log(`   Opening [date]: ${pubs.filter(p => p.openState.startsWith('Opening ') && p.openState !== 'Opening Soon').length}`);
+console.log(`   Reopening [date]: ${pubs.filter(p => p.openState.startsWith('Reopening ')).length}`);
+console.log(`\nData Quality:`);
 console.log(`   With position: ${pubs.filter(p => p.position !== null).length}, Without position: ${pubs.filter(p => p.position === null).length}`);
 console.log(`   With country: ${withCountry}, Without country: ${withoutCountry}`);
 console.log(`   With region: ${withRegion}, Without region: ${withoutRegion}`);
-console.log(`   With position: ${pubs.filter(p => p.position !== null).length}`);
-console.log(`   Without position: ${pubs.filter(p => p.position === null).length}`);

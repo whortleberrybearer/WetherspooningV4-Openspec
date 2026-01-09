@@ -2,7 +2,15 @@
   <Dialog :open="isOpen" @update:open="(val) => $emit('update:isOpen', val)">
     <DialogContent class="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>{{ pub?.name }}</DialogTitle>
+        <div class="flex items-center gap-2">
+          <DialogTitle class="flex-1">{{ pub?.name }}</DialogTitle>
+          <Badge 
+            v-if="pub?.openState && pub.openState !== 'Open'" 
+            :class="getStateBadgeClass(pub.openState)"
+          >
+            {{ pub.openState }}
+          </Badge>
+        </div>
         <DialogDescription v-if="pub">
           {{ pub.address }}
         </DialogDescription>
@@ -162,8 +170,16 @@ const notes = ref('')
 
 const isPubClosed = computed(() => {
   const state = props.pub?.openState || 'Open'
-  return state.toLowerCase().includes('closed')
+  return state === 'Closed'
 })
+
+const getStateBadgeClass = (openState: string): string => {
+  if (openState === 'Closed') return 'bg-red-500 text-white hover:bg-red-600'
+  if (openState === 'Temporary Closed') return 'bg-orange-500 text-white hover:bg-orange-600'
+  if (openState.startsWith('Opening')) return 'bg-orange-500 text-white hover:bg-orange-600'
+  if (openState.startsWith('Reopening')) return 'bg-orange-500 text-white hover:bg-orange-600'
+  return 'bg-gray-500 text-white hover:bg-gray-600'
+}
 
 const currentVisit = computed(() => {
   if (!props.pub) return null
