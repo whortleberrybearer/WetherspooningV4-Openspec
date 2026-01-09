@@ -538,6 +538,46 @@ describe('pubScraperService', () => {
       expect(result?.openState).toBe('Temporary Closed');
     });
 
+    it('should extract openState as Reopening with date', async () => {
+      const htmlWithReopening = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">Test Pub</h1>
+        <div class="pub-address-inner"><span>123 Test St</span></div>
+        <p class="open-status is-style-highlight-red">Closed</p>
+        <p class="opening-closing-time">Reopening Monday 12 January 2026</p>
+      </body></html>`;
+      const url = 'https://example.com/pubs/test-pub/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithReopening,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result?.openState).toBe('Reopening 12/01/2026');
+    });
+
+    it('should extract openState as Reopening Soon when date is invalid', async () => {
+      const htmlWithReopening = `<!DOCTYPE html><html><body>
+        <h1 class="wp-block-heading">Test Pub</h1>
+        <div class="pub-address-inner"><span>123 Test St</span></div>
+        <p class="open-status is-style-highlight-red">Closed</p>
+        <p class="opening-closing-time">Reopening soon</p>
+      </body></html>`;
+      const url = 'https://example.com/pubs/test-pub/';
+      const imageUrl = 'https://example.com/image.jpg';
+      
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithReopening,
+      });
+
+      const result = await scrapePubData(url, imageUrl);
+
+      expect(result?.openState).toBe('Reopening Soon');
+    });
+
     it('should extract isHotel as true when Accommodation facility exists', async () => {
       const htmlWithHotel = `<!DOCTYPE html><html><body>
         <h1 class="wp-block-heading">Test Pub</h1>

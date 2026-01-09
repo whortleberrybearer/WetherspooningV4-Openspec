@@ -331,6 +331,24 @@ function extractOpenState(html: string): string {
     return 'Temporary Closed';
   }
   
+  // Check for "Reopening" text in any opening-closing-time paragraph
+  const openingClosingNodes = $('p.opening-closing-time').not('.open-status');
+  for (let i = 0; i < openingClosingNodes.length; i++) {
+    const text = $(openingClosingNodes[i]).text().trim();
+    if (text.toLowerCase().startsWith('reopening')) {
+      // Extract the date from "Reopening Monday 12 January 2026"
+      const date = new Date(text.substring('reopening'.length).trim());
+      if (!isNaN(date.getTime())) {
+        // Format as dd/MM/yyyy
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `Reopening ${day}/${month}/${year}`;
+      }
+      return 'Reopening Soon';
+    }
+  }
+  
   // Default to Open for all other cases
   return 'Open';
 }

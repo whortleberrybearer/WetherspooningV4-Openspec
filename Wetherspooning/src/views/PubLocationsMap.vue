@@ -283,7 +283,7 @@ const checkProximity = (lat: number, lng: number): Pub | null => {
     if (!pub.position) return false
     
     // Filter out closed pubs
-    const isClosed = pub.openState?.toLowerCase().includes('closed') || false
+    const isClosed = pub.openState === 'Closed'
     return !isClosed
   })
 
@@ -442,12 +442,11 @@ const createMarkers = () => {
   filteredPubsForMap.value.forEach((pub) => {
     // Position is guaranteed to exist by filteredPubsForMap filter
     if (!pub.position) {
-      console.warn(`Pub ${pub.name} is missing position (should have been filtered)`);
-      return
+      console.warn(`Pub ${pub.name} is missing position (should have been filtered)`);      return
     }
 
     // Check if pub is closed and visited for visual differentiation
-    const isClosed = pub.openState?.toLowerCase().includes('closed') || false
+    const isClosed = pub.openState === 'Closed'
     const visited = isVisited(pub.id)
 
     // Create enhanced pin marker with SVG
@@ -488,17 +487,54 @@ const createMarkers = () => {
       </svg>
     `
     
-    // Add closed state badge if pub is closed
-    if (isClosed) {
+    // Add state badge based on openState
+    const openState = pub.openState || 'Open'
+    if (openState !== 'Open') {
       const badge = document.createElement('div')
-      badge.className = 'closed-badge'
+      badge.className = 'state-badge'
+      
+      // Determine badge color and content based on state
+      let badgeColor = '#6b7280' // gray default
+      let badgeIcon = ''
+      
+      if (openState === 'Closed') {
+        badgeColor = '#ef4444' // red
+        badgeIcon = `
+          <svg viewBox="0 0 12 12" style="width: 10px; height: 10px;">
+            <line x1="3" y1="3" x2="9" y2="9" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <line x1="9" y1="3" x2="3" y2="9" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        `
+      } else if (openState === 'Temporary Closed') {
+        badgeColor = '#f97316' // orange
+        badgeIcon = `
+          <svg viewBox="0 0 12 12" style="width: 10px; height: 10px;">
+            <path d="M6 3 L6 7 M6 9 L6 9.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        `
+      } else if (openState.startsWith('Opening')) {
+        badgeColor = '#3b82f6' // blue
+        badgeIcon = `
+          <svg viewBox="0 0 12 12" style="width: 10px; height: 10px;">
+            <circle cx="6" cy="6" r="3" fill="white"/>
+          </svg>
+        `
+      } else if (openState.startsWith('Reopening')) {
+        badgeColor = '#a855f7' // purple
+        badgeIcon = `
+          <svg viewBox="0 0 12 12" style="width: 10px; height: 10px;">
+            <path d="M3 6 L6 9 L9 6" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        `
+      }
+      
       badge.style.cssText = `
         position: absolute;
         top: -4px;
         right: -4px;
         width: 18px;
         height: 18px;
-        background: #ef4444;
+        background: ${badgeColor};
         border: 2px solid white;
         border-radius: 50%;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -507,14 +543,7 @@ const createMarkers = () => {
         justify-content: center;
       `
       
-      // Add X icon in the badge
-      badge.innerHTML = `
-        <svg viewBox="0 0 12 12" style="width: 10px; height: 10px;">
-          <line x1="3" y1="3" x2="9" y2="9" stroke="white" stroke-width="2" stroke-linecap="round"/>
-          <line x1="9" y1="3" x2="3" y2="9" stroke="white" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-      `
-      
+      badge.innerHTML = badgeIcon
       markerElement.appendChild(badge)
     }
     
@@ -659,7 +688,7 @@ const updateClusters = () => {
 const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement) => {
   if (!infoWindow.value) return
 
-  const isClosed = pub.openState?.toLowerCase().includes('closed') || false
+  const openState = pub.openState || 'Open'
   const visited = isVisited(pub.id)
   
   // Theme-aware colors
@@ -685,10 +714,24 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
     `
   }
   
-  // Status badge
-  const statusBadge = isClosed 
-    ? `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: hsl(var(--destructive)); color: hsl(var(--destructive-foreground));">Closed</span>`
-    : `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #22c55e; color: white;">Open</span>`
+  // Status badge with color coding
+  let statusBadge = ''
+  let badgeColor = '#22c55e' // green for Open
+  let badgeText = openState
+  
+  if (openState === 'Closed') {
+    badgeColor = '#ef4444' // red
+  } else if (openState === 'Temporary Closed') {
+    badgeColor = '#f97316' // orange
+  } else if (openState.startsWith('Opening')) {
+    badgeColor = '#3b82f6' // blue
+  } else if (openState.startsWith('Reopening')) {
+    badgeColor = '#a855f7' // purple
+  }
+  
+  if (openState !== 'Open') {
+    statusBadge = `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: ${badgeColor}; color: white;">${badgeText}</span>`
+  }
   
   // Location type badge
   let locationBadge = ''
