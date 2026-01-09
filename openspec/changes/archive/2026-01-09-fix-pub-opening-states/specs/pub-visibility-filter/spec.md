@@ -50,7 +50,9 @@ The system MUST filter pubs based on their exact openState value, distinguishing
 
 ---
 
-### Requirement: Pub Count Statistics (REQ-PVF-005) **NEW**
+## ADDED Requirements
+
+### Requirement: Pub Count Statistics (REQ-PVF-008)
 
 **Priority:** MUST  
 **Category:** Functional

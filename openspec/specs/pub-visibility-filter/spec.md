@@ -38,52 +38,50 @@ The system MUST provide a toggle control labeled "Show Closed Pubs" that allows 
 ---
 
 ### Requirement: Filter Pubs by Open State (REQ-PVF-002)
-**Priority:** MUST  
-**Category:** Functional
 
-The system MUST filter both map markers and sidebar entries based on their `openState` field value when the toggle is OFF.
+The system MUST filter pubs based on their exact openState value, distinguishing between permanently closed and other non-open states.
 
-**Acceptance Criteria:**
-- Map markers for pubs with `openState` containing "closed" (case-insensitive) are hidden when toggle is OFF
-- Sidebar displays only open pubs when toggle is OFF
+**MODIFIED Acceptance Criteria:**
+- Map markers for pubs with `openState === 'Closed'` (exact match) are hidden when toggle is OFF
+- **REMOVED:** Case-insensitive "closed" matching
+- **ADDED:** Pubs with states "Temporary Closed", "Reopening dd/MM/yyyy" are shown when toggle is OFF
+- Pubs with states "Opening dd/MM/yyyy", "Opening Soon" are shown when toggle is OFF
+- Sidebar displays pubs where `openState !== 'Closed'` when toggle is OFF
 - Sidebar displays all pubs when toggle is ON
-- Closed pubs in sidebar (when shown) are visually differentiated (muted colors, reduced opacity)
+- Permanently closed pubs (openState === 'Closed') in sidebar (when shown) are visually differentiated
+- **ADDED:** Non-open pubs (Temporary Closed, Reopening, Opening Soon) are visually differentiated from fully open pubs
 - Pubs with `openState` set to "Open" are always shown when toggle is OFF
 - Pubs without an `openState` field are treated as "Open" (fail-safe)
-- Filtering handles variants: "Closed", "Temporarily Closed", "Permanently Closed"
 - Filter is applied client-side for immediate response
-- Groups (countries/counties) with only closed pubs are hidden when toggle is OFF
+- Groups (countries/counties) with only permanently closed pubs are hidden when toggle is OFF
 
-#### Scenario: Hide Closed Pubs from Map and Sidebar
-**Given** the pub data contains 10 open pubs and 5 closed pubs  
+#### Scenario: Hide Only Permanently Closed Pubs
+**Given** the pub data contains:
+- 8 pubs with `openState === 'Open'`
+- 2 pubs with `openState === 'Temporary Closed'`
+- 1 pub with `openState === 'Reopening 15/03/2026'`
+- 1 pub with `openState === 'Opening Soon'`
+- 3 pubs with `openState === 'Closed'`
 **And** the "Show Closed Pubs" toggle is OFF  
 **When** the pubs are rendered  
-**Then** only the 10 open pubs have markers on the map  
-**And** only the 10 open pubs are listed in the sidebar  
-**And** the 5 closed pubs are not visible in either map or sidebar
+**Then** 12 pubs (all except 'Closed') have markers on the map  
+**And** 12 pubs are listed in the sidebar  
+**And** the 3 permanently closed pubs are not visible
 
-#### Scenario: Handle Missing Open State Field
-**Given** a pub in the data has no `openState` field  
+#### Scenario: Differentiate Non-Open States
+**Given** the sidebar contains pubs with various openState values  
 **And** the "Show Closed Pubs" toggle is OFF  
-**When** the pubs are rendered  
-**Then** the pub without `openState` has a marker on the map (treated as open)  
-**And** the pub appears in the sidebar with normal (non-muted) styling
+**When** the sidebar is rendered  
+**Then** pubs with `openState === 'Open'` use normal styling  
+**And** pubs with "Temporary Closed", "Reopening", or "Opening Soon" states use subtle differentiation (e.g., slight opacity reduction or muted text)  
+**And** all non-permanently-closed pubs remain clearly visible and interactive
 
-#### Scenario: Case-Insensitive Closed Detection
-**Given** the pub data contains pubs with `openState` values: "Closed", "CLOSED", "temporarily closed"  
-**And** the "Show Closed Pubs" toggle is OFF  
-**When** the filter is applied  
-**Then** all pubs with any variation of "closed" in their `openState` have no map markers  
-**And** all pubs with any variation of "closed" are hidden from the sidebar  
-**And** only pubs explicitly marked as "Open" or without `openState` are shown
-
-#### Scenario: Show Closed Pubs When Toggle ON
-**Given** the pub data contains 10 open pubs and 5 closed pubs  
+#### Scenario: Show All Pubs When Toggle ON
+**Given** the pub data contains pubs with all state types  
 **And** the "Show Closed Pubs" toggle is ON  
 **When** the pubs are rendered  
-**Then** all 15 pubs have markers on the map  
-**And** all 15 pubs are listed in the sidebar  
-**And** the 5 closed pubs are visually differentiated in the sidebar
+**Then** all pubs including permanently closed are displayed  
+**And** permanently closed pubs are visually differentiated with stronger muting
 
 ---
 
@@ -274,4 +272,40 @@ The system MUST maintain the toggle state while the user navigates and interacts
 **And** only open pubs continue to have markers on the map  
 **And** the sidebar continues to show only open pubs  
 **And** the filter state is unchanged
+
+### Requirement: Pub Count Statistics (REQ-PVF-008)
+
+**Priority:** MUST  
+**Category:** Functional
+
+The system MUST calculate and display accurate pub counts that reflect operational status.
+
+**Acceptance Criteria:**
+- "Total Pubs" count includes all pubs where `openState !== 'Closed'`
+- "that are now closed" count includes only pubs where `openState === 'Closed'` (exact match)
+- Counts update reactively when toggle state changes
+- Counts reflect current filter state (toggle ON shows all pubs in counts)
+- Country and county group counts exclude permanently closed pubs when toggle is OFF
+- Country and county group counts include all pubs when toggle is ON
+
+#### Scenario: Calculate Total Pubs Excluding Permanently Closed
+**Given** the database contains:
+- 850 pubs with `openState === 'Open'`
+- 15 pubs with `openState === 'Temporary Closed'`
+- 8 pubs with `openState === 'Reopening 15/03/2026'`
+- 5 pubs with `openState === 'Opening Soon'`
+- 22 pubs with `openState === 'Closed'`
+**When** the statistics are calculated  
+**Then** "Total Pubs" displays 878 (850 + 15 + 8 + 5)  
+**And** pubs with `openState === 'Closed'` are excluded from total
+
+#### Scenario: Calculate "that are now closed" Count
+**Given** a user has visited 120 pubs total  
+**And** 15 of those visited pubs now have `openState === 'Closed'`
+**And** 3 of those visited pubs have `openState === 'Temporary Closed'`  
+**When** the "that are now closed" statistic is calculated  
+**Then** it displays 15 (only permanently closed)  
+**And** temporarily closed visited pubs are not counted
+
+---
 

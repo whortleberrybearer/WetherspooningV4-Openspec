@@ -2,7 +2,7 @@
 
 ## MODIFIED Requirements
 
-### Requirement: Extract Pub Data from Individual Pages (REQ-SDS-003)
+### Requirement: Full Sync Execution (REQ-SDS-003)
 
 The system MUST extract pub data from individual pub pages including opening state, with support for reopening dates.
 

@@ -58,7 +58,7 @@ The system MUST display a visual badge indicating the pub's opening state when t
 
 ## MODIFIED Requirements
 
-### Requirement: Display Pub Details in Dialog (REQ-PDS-001)
+### Requirement: Visit Detail Dialog (REQ-PDS-001)
 
 The system MUST display pub details in a dialog including name, address, and opening state badge.
 
