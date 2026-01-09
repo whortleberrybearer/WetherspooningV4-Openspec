@@ -14,10 +14,8 @@ The system MUST display a visual badge indicating the pub's opening state when t
 - Badge shows the exact `openState` value
 - Badge color coding:
   - Green: "Open" (badge hidden as this is default)
-  - Red: "Closed"
-  - Orange: "Temporary Closed"
-  - Blue: "Opening dd/MM/yyyy" or "Opening Soon"
-  - Purple: "Reopening dd/MM/yyyy" or "Reopening Soon"
+  - Red: "Closed" with X icon
+  - Orange: All other non-open states ("Temporary Closed", "Opening dd/MM/yyyy", "Opening Soon", "Reopening dd/MM/yyyy") with warning icon
   - Gray: "Unknown"
 - Badge is only shown when `openState` is not "Open"
 - Badge text matches the `openState` field exactly
@@ -27,7 +25,7 @@ The system MUST display a visual badge indicating the pub's opening state when t
 #### Scenario: Display Reopening State Badge
 **Given** a pub with `openState === 'Reopening 12/01/2026'`  
 **When** the pub detail sheet is opened  
-**Then** a purple badge is displayed  
+**Then** an orange badge is displayed  
 **And** the badge text reads "Reopening 12/01/2026"  
 **And** the badge is positioned in the dialog header
 
@@ -40,7 +38,7 @@ The system MUST display a visual badge indicating the pub's opening state when t
 #### Scenario: Display Opening Soon Badge
 **Given** a pub with `openState === 'Opening Soon'`  
 **When** the pub detail sheet is opened  
-**Then** a blue badge is displayed  
+**Then** an orange badge is displayed  
 **And** the badge text reads "Opening Soon"
 
 #### Scenario: Hide Badge for Open Pubs
@@ -74,7 +72,7 @@ The system MUST display pub details in a dialog including name, address, and ope
 **Given** a pub with `openState === 'Reopening 12/01/2026'`  
 **When** the user opens the pub detail sheet  
 **Then** the dialog displays the pub name in the header  
-**And** a purple "Reopening 12/01/2026" badge is shown  
+**And** an orange "Reopening 12/01/2026" badge is shown  
 **And** the pub address is displayed  
 **And** visit tracking controls are available (if authenticated)
 
@@ -100,8 +98,8 @@ Use the existing `Badge` component from `@/components/ui/badge` with variant and
 function getStateBadgeClass(openState: string): string {
   if (openState === 'Closed') return 'bg-red-500 text-white'
   if (openState === 'Temporary Closed') return 'bg-orange-500 text-white'
-  if (openState.startsWith('Opening')) return 'bg-blue-500 text-white'
-  if (openState.startsWith('Reopening')) return 'bg-purple-500 text-white'
+  if (openState.startsWith('Opening')) return 'bg-orange-500 text-white'
+  if (openState.startsWith('Reopening')) return 'bg-orange-500 text-white'
   return 'bg-gray-500 text-white'
 }
 ```

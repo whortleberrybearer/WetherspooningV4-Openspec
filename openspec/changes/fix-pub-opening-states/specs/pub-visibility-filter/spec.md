@@ -9,7 +9,7 @@ The system MUST filter pubs based on their exact openState value, distinguishing
 **MODIFIED Acceptance Criteria:**
 - Map markers for pubs with `openState === 'Closed'` (exact match) are hidden when toggle is OFF
 - **REMOVED:** Case-insensitive "closed" matching
-- **ADDED:** Pubs with states "Temporary Closed", "Reopening dd/MM/yyyy", "Reopening Soon" are shown when toggle is OFF
+- **ADDED:** Pubs with states "Temporary Closed", "Reopening dd/MM/yyyy" are shown when toggle is OFF
 - Pubs with states "Opening dd/MM/yyyy", "Opening Soon" are shown when toggle is OFF
 - Sidebar displays pubs where `openState !== 'Closed'` when toggle is OFF
 - Sidebar displays all pubs when toggle is ON

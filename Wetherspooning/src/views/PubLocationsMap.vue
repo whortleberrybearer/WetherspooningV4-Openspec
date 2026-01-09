@@ -157,7 +157,7 @@ const filteredPubsForMap = computed(() => {
     filtered = filtered.filter(pub => {
       // Treat missing openState as "Open" (fail-safe)
       const state = pub.openState || 'Open'
-      return !state.toLowerCase().includes('closed')
+      return state !== 'Closed'
     })
   }
   
@@ -513,17 +513,17 @@ const createMarkers = () => {
           </svg>
         `
       } else if (openState.startsWith('Opening')) {
-        badgeColor = '#3b82f6' // blue
+        badgeColor = '#f97316' // orange
         badgeIcon = `
           <svg viewBox="0 0 12 12" style="width: 10px; height: 10px;">
-            <circle cx="6" cy="6" r="3" fill="white"/>
+            <path d="M6 3 L6 7 M6 9 L6 9.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
           </svg>
         `
       } else if (openState.startsWith('Reopening')) {
-        badgeColor = '#a855f7' // purple
+        badgeColor = '#f97316' // orange
         badgeIcon = `
           <svg viewBox="0 0 12 12" style="width: 10px; height: 10px;">
-            <path d="M3 6 L6 9 L9 6" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M6 3 L6 7 M6 9 L6 9.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
           </svg>
         `
       }
@@ -718,19 +718,25 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
   let statusBadge = ''
   let badgeColor = '#22c55e' // green for Open
   let badgeText = openState
+  let badgeIcon = ''
   
   if (openState === 'Closed') {
     badgeColor = '#ef4444' // red
+    badgeIcon = '✕'
   } else if (openState === 'Temporary Closed') {
     badgeColor = '#f97316' // orange
+    badgeIcon = '⚠'
   } else if (openState.startsWith('Opening')) {
-    badgeColor = '#3b82f6' // blue
+    badgeColor = '#f97316' // orange
+    badgeIcon = '⚠'
   } else if (openState.startsWith('Reopening')) {
-    badgeColor = '#a855f7' // purple
+    badgeColor = '#f97316' // orange
+    badgeIcon = '⚠'
   }
   
   if (openState !== 'Open') {
-    statusBadge = `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: ${badgeColor}; color: white;">${badgeText}</span>`
+    const iconDisplay = badgeIcon ? `${badgeIcon} ` : ''
+    statusBadge = `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: ${badgeColor}; color: white;">${iconDisplay}${badgeText}</span>`
   }
   
   // Location type badge

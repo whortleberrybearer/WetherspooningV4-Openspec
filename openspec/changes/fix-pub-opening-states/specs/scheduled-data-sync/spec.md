@@ -23,7 +23,7 @@ The system MUST extract pub data from individual pub pages including opening sta
 #### Scenario: Extract Reopening State Without Valid Date
 **Given** a pub page with text indicating "Reopening" but no parseable date  
 **When** the scraper attempts to extract the opening state  
-**Then** the `openState` is set to "Reopening Soon"  
+**Then** the `openState` is set to "Reopening dd/MM/yyyy" with a fallback date or "Unknown" if date parsing fails  
 
 #### Scenario: Extract Opening Soon with Date (Existing)
 **Given** a pub page with `<p class="open-status">` containing "Opening soon"  
@@ -50,7 +50,6 @@ The system MUST extract pub data from individual pub pages including opening sta
 - `"Opening dd/MM/yyyy"` - New pub opening on specific date
 - **ADDED:** `"Reopening dd/MM/yyyy"` - Temporarily closed pub reopening on specific date
 - `"Opening Soon"` - New pub opening soon (no specific date)
-- **ADDED:** `"Reopening Soon"` - Temporarily closed pub reopening (no specific date)
 - `"Unknown"` - State could not be determined
 
 ---

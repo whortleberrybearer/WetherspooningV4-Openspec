@@ -82,14 +82,14 @@ function generatePostcode(county) {
 
 function getOpenState(index) {
   // Distribute opening states:
-  // 70% Open, 10% Closed, 8% Temporary Closed, 5% Opening, 4% Reopening, 3% Opening Soon/Reopening Soon
+  // 70% Open, 10% Closed, 8% Temporary Closed, 5% Opening Soon, 4% Opening [date], 3% Reopening [date]
   const rand = Math.random();
   
   if (rand < 0.70) return "Open";
   if (rand < 0.80) return "Closed";
   if (rand < 0.88) return "Temporary Closed";
-  if (rand < 0.91) return "Opening Soon";
-  if (rand < 0.93) {
+  if (rand < 0.93) return "Opening Soon";
+  if (rand < 0.97) {
     // Opening with specific date (next 1-30 days)
     const daysAhead = Math.floor(Math.random() * 30) + 1;
     const openingDate = new Date(2026, 0, 9 + daysAhead); // January 9, 2026 + days
@@ -98,7 +98,6 @@ function getOpenState(index) {
     const year = openingDate.getFullYear();
     return `Opening ${day}/${month}/${year}`;
   }
-  if (rand < 0.96) return "Reopening Soon";
   
   // Reopening with specific date (next 1-30 days)
   const daysAhead = Math.floor(Math.random() * 30) + 1;
@@ -348,8 +347,7 @@ console.log(`   Closed: ${pubs.filter(p => p.openState === 'Closed').length}`);
 console.log(`   Temporary Closed: ${pubs.filter(p => p.openState === 'Temporary Closed').length}`);
 console.log(`   Opening Soon: ${pubs.filter(p => p.openState === 'Opening Soon').length}`);
 console.log(`   Opening [date]: ${pubs.filter(p => p.openState.startsWith('Opening ') && p.openState !== 'Opening Soon').length}`);
-console.log(`   Reopening Soon: ${pubs.filter(p => p.openState === 'Reopening Soon').length}`);
-console.log(`   Reopening [date]: ${pubs.filter(p => p.openState.startsWith('Reopening ') && p.openState !== 'Reopening Soon').length}`);
+console.log(`   Reopening [date]: ${pubs.filter(p => p.openState.startsWith('Reopening ')).length}`);
 console.log(`\nData Quality:`);
 console.log(`   With position: ${pubs.filter(p => p.position !== null).length}, Without position: ${pubs.filter(p => p.position === null).length}`);
 console.log(`   With country: ${withCountry}, Without country: ${withoutCountry}`);

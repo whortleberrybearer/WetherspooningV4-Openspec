@@ -61,11 +61,9 @@
 
 - [x] Add Badge component to PubDetailSheet template near pub name
 - [x] Show openState value with appropriate color coding:
-  - Open: Green badge
-  - Closed: Red badge  
-  - Temporarily Closed: Orange badge
-  - Opening Soon: Blue badge
-  - Reopening: Purple badge
+  - Open: Green badge (hidden as default state)
+  - Closed: Red badge with X icon
+  - All other non-open states: Orange badge with warning icon
 - [x] Only show badge when openState is not "Open"
 - [x] Position badge appropriately in dialog header
 
@@ -82,11 +80,11 @@
 
 - [x] Update marker badge logic to show different styles for non-open states
 - [x] Add visual indicators for:
-  - Temporarily Closed: Orange badge
-  - Opening Soon: Blue badge
-  - Reopening: Purple badge with date
-- [x] Maintain existing red badge for permanently closed
-- [x] Update infowindow to show state badge
+  - Temporarily Closed: Orange badge with warning icon
+  - Opening Soon/Opening [date]: Orange badge with warning icon
+  - Reopening [date]: Orange badge with warning icon
+- [x] Maintain existing red badge with X icon for permanently closed
+- [x] Update infowindow to show state badge with consistent colors
 
 **Files:**
 - `Wetherspooning/src/views/PubLocationsMap.vue`

@@ -176,8 +176,8 @@ const isPubClosed = computed(() => {
 const getStateBadgeClass = (openState: string): string => {
   if (openState === 'Closed') return 'bg-red-500 text-white hover:bg-red-600'
   if (openState === 'Temporary Closed') return 'bg-orange-500 text-white hover:bg-orange-600'
-  if (openState.startsWith('Opening')) return 'bg-blue-500 text-white hover:bg-blue-600'
-  if (openState.startsWith('Reopening')) return 'bg-purple-500 text-white hover:bg-purple-600'
+  if (openState.startsWith('Opening')) return 'bg-orange-500 text-white hover:bg-orange-600'
+  if (openState.startsWith('Reopening')) return 'bg-orange-500 text-white hover:bg-orange-600'
   return 'bg-gray-500 text-white hover:bg-gray-600'
 }
 
