@@ -7,18 +7,18 @@
 **Category:** Functional
 
 **Changes:**
-- CLARIFY: Optional fields (rating, notes, visitedAt) use `null` in Firestore but `undefined` in TypeScript/memory
+- CLARIFY: Optional fields (rating, notes, visitedAt) can be `null`, `undefined`, or have a value
 - ADD: Validation must accept both `null` and `undefined` for optional fields
-- ADD: Data loading must normalize `null` to `undefined` for consistency
+- ADD: TypeScript types must allow `null | undefined` for optional fields
 
-The system MUST define and validate the Visit entity structure for both read and write operations, handling `null` values in the database gracefully.
+The system MUST define and validate the Visit entity structure for both read and write operations, handling `null` values gracefully.
 
 **Updated Acceptance Criteria:**
 - Visit interface includes required fields: `id`, `userId`, `pubId`
 - Visit interface includes optional fields: `visitedAt`, `rating`, `notes`
-- **NEW:** Optional fields use `undefined` in TypeScript/application code
-- **NEW:** Firestore may store `null` for cleared optional fields
-- **NEW:** When loading from Firestore, `null` values are normalized to `undefined`
+- **NEW:** Optional fields are typed as `field?: type | null` to allow both undefined and null
+- **NEW:** Firestore stores `null` for cleared optional fields
+- **NEW:** Application code handles both `null` and `undefined` identically
 - `pubId` references a valid pub from the pub data source
 - `userId` references the authenticated user
 - `rating` is between 1 and 5 (inclusive) if provided, or `null`/`undefined`
@@ -35,7 +35,7 @@ The system MUST define and validate the Visit entity structure for both read and
 **Given** a visit document exists in Firestore with `rating: null`
 **When** the visit is loaded via `getUserVisits()`
 **Then** the visit passes validation
-**And** the in-memory Visit object has `rating: undefined`
+**And** the in-memory Visit object has `rating: null`
 **And** no warning is logged about invalid rating
 
 #### Scenario: Load Visit with Null Notes from Firestore
@@ -43,7 +43,7 @@ The system MUST define and validate the Visit entity structure for both read and
 **Given** a visit document exists in Firestore with `notes: null`
 **When** the visit is loaded via `getUserVisits()`
 **Then** the visit passes validation
-**And** the in-memory Visit object has `notes: undefined`
+**And** the in-memory Visit object has `notes: null`
 **And** no warning is logged about invalid notes
 
 #### Scenario: Validate Rating is in Range When Present
@@ -86,7 +86,7 @@ The system MUST allow authenticated users to update an existing visit record, in
 - Can update `visitedAt` to new date or null to clear
 - **NEW:** When rating is set to `null`, Firestore stores `null` (field is not deleted)
 - **NEW:** When notes is set to `null`, Firestore stores `null` (field is not deleted)
-- **NEW:** On next load, `null` values are normalized to `undefined` in memory
+- **NEW:** Application handles `null` values correctly in all operations
 - Persists changes to Firestore
 - Updates local reactive state
 - Returns Promise that resolves when operation completes
@@ -100,7 +100,7 @@ The system MUST allow authenticated users to update an existing visit record, in
 **Given** an authenticated user has a visit with rating 4
 **When** `updateVisit(42, { rating: null })` is called
 **Then** the Firestore document is updated with `rating: null`
-**And** local state is updated with `rating: undefined`
+**And** local state is updated with `rating: null`
 **And** the visit remains valid on subsequent loads
 
 #### Scenario: Clear Notes Sets Null in Database
@@ -108,7 +108,7 @@ The system MUST allow authenticated users to update an existing visit record, in
 **Given** an authenticated user has a visit with notes "Great pub"
 **When** `updateVisit(42, { notes: null })` is called
 **Then** the Firestore document is updated with `notes: null`
-**And** local state is updated with `notes: undefined`
+**And** local state is updated with `notes: null`
 **And** the visit remains valid on subsequent loads
 
 #### Scenario: Firestore Rules Reject Invalid Rating
@@ -141,10 +141,10 @@ The system MUST update local reactive state immediately after successful visit m
 - After `removeVisit()` succeeds, visit is removed from `visits` array
 - `useVisits()` composable exposes readonly `visits` array for components to watch
 - Components can watch `visits` array with deep watching to detect updates to individual visits
-- **NEW:** UI components use optional chaining (`visit?.rating`) to safely access optional fields
+- **NEW:** UI components use optional chaining (`visit?.rating`) and nullish checks to safely access optional fields
 - **NEW:** UI components treat `null` and `undefined` identically for display purposes
-- **NEW:** Rating display only shows stars when `visit?.rating` is a number (not null, not undefined)
-- **NEW:** Notes display only shows content when `visit?.notes` is a non-empty string
+- **NEW:** Rating display only shows stars when `visit?.rating` is a number (handles null and undefined)
+- **NEW:** Notes display only shows content when `visit?.notes` is a truthy non-empty string (handles null and undefined)
 - UI components that depend on visit state re-render automatically
 - Map markers update colors to reflect visit status changes
 - Map info windows update content when visit data changes (create, update, or remove)
@@ -152,7 +152,11 @@ The system MUST update local reactive state immediately after successful visit m
 #### Scenario: Display Rating with Null-Safe Check
 **ADDED:**
 **Given** the map info window is displaying a visited pub
-**And** the visit has `rating: undefined`
+**And** the visit has `rating: null`
+**When** the info window renders the rating display
+**Then** no stars are displayed (conditional check prevents rendering)
+**And** no JavaScript errors occur
+**Given** the visit has `rating: undefined`
 **When** the info window renders the rating display
 **Then** no stars are displayed (conditional check prevents rendering)
 **And** no JavaScript errors occur
@@ -168,6 +172,10 @@ The system MUST update local reactive state immediately after successful visit m
 **Then** no notes preview is displayed
 **And** no JavaScript errors occur
 **Given** the visit has `notes: null`
+**When** the info window renders the notes section
+**Then** no notes preview is displayed
+**And** no JavaScript errors occur
+**Given** the visit has `notes: ""`  (empty string)
 **When** the info window renders the notes section
 **Then** no notes preview is displayed
 **And** no JavaScript errors occur

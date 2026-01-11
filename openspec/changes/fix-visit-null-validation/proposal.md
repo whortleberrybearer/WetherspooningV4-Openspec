@@ -10,10 +10,10 @@ This causes data integrity issues where valid user actions (clearing a rating or
 
 ## What Changes
 - **MODIFIED**: Update `validateVisit()` to accept `null` values for optional fields (rating, notes, visitedAt)
-- **MODIFIED**: Normalize `null` to `undefined` when loading visits from Firestore to maintain consistent in-memory representation
+- **MODIFIED**: Update TypeScript interface to allow `null` for optional fields (rating, notes, visitedAt)
 - **MODIFIED**: Update Firestore rules to validate rating range (1-5) when present
 - **MODIFIED**: Ensure UI components handle both `null` and `undefined` gracefully without breaking
-- **ADDED**: Document that optional visit fields should be treated as `undefined` in TypeScript interfaces, with `null` only for Firestore compatibility
+- **MODIFIED**: Update all null checks to use nullish coalescing and optional chaining consistently
 
 ## Impact
 - **Affected specs**: `pub-visit-data`
@@ -25,4 +25,4 @@ This causes data integrity issues where valid user actions (clearing a rating or
   - `Wetherspooning/src/composables/useVisits.ts` - null handling in updateVisit
 
 ## Migration
-No data migration required. Existing `null` values in Firestore will be automatically normalized to `undefined` when loaded into application memory.
+No data migration required. Existing `null` values in Firestore will remain as `null` and be handled correctly by updated validation and UI code.

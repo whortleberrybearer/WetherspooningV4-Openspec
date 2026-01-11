@@ -1,9 +1,10 @@
 # Implementation Tasks
 
-## 1. Update Data Validation
+## 1. Update Data Validation and Types
 
 - [ ] Modify `validateVisit()` in `firebaseDataService.ts` to accept `null` for optional fields (rating, notes, visitedAt)
-- [ ] Update `docToVisit()` to normalize `null` values to `undefined` for rating, notes, and visitedAt fields
+- [ ] Update `Visit` interface to allow `null | undefined` for rating, notes, and visitedAt fields
+- [ ] Update `validateVisitMutation()` to accept `null` values correctly
 - [ ] Ensure rating validation only checks range when value is not `null` and not `undefined`
 
 ## 2. Update Firestore Security Rules
@@ -28,9 +29,10 @@
 - [ ] Test setting rating to valid values (1-5)
 - [ ] Test that invalid ratings are rejected in UI and validation
 - [ ] Verify no validation errors appear in console for valid null values
-- [ ] Test round-trip: save null → reload → verify undefined in memory
+- [ ] Test round-trip: save null → reload → verify null persists correctly
 
 ## 5. Documentation
 
-- [ ] Update code comments to clarify that `null` in Firestore maps to `undefined` in TypeScript
-- [ ] Document in Visit interface that optional fields use `undefined` in app, `null` in database
+- [ ] Update code comments to clarify that optional fields can be `null` or `undefined`
+- [ ] Document in Visit interface that optional fields accept both `null` and `undefined`
+- [ ] Add JSDoc comments explaining null handling behavior in validation functions
