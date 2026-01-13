@@ -3,14 +3,17 @@ import { getUserVisits, createVisit, updateVisit as updateVisitService, deleteVi
 
 /**
  * Visit information for a pub
+ * 
+ * Note: Optional fields can be null (from Firestore) or undefined (not set).
+ * Both values should be treated identically in application logic.
  */
 export interface Visit {
   id: string  // Firestore auto-generated ID
   userId: string  // Firebase UID
   pubId: string  // Pub GUID
-  visitedAt?: string  // ISO date string
-  rating?: number     // 1-5
-  notes?: string
+  visitedAt?: string | null  // ISO date string, null/undefined if unknown
+  rating?: number | null     // 1-5, null/undefined if not rated
+  notes?: string | null      // User notes, null/undefined if not set
 }
 
 /**

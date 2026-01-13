@@ -13,17 +13,51 @@ service cloud.firestore {
     
     // Visits: Users can only read/write their own visits
     match /visits/{visitId} {
+      // Helper function to validate rating field
+      function isValidRating() {
+        return !('rating' in request.resource.data) ||
+               request.resource.data.rating == null ||
+               (request.resource.data.rating is number && 
+                request.resource.data.rating >= 1 && 
+                request.resource.data.rating <= 5);
+      }
+      
+      // Helper function to validate notes field
+      function isValidNotes() {
+        return !('notes' in request.resource.data) ||
+               request.resource.data.notes == null ||
+               request.resource.data.notes is string;
+      }
+      
+      // Helper function to validate visitedAt field
+      function isValidVisitedAt() {
+        return !('visitedAt' in request.resource.data) ||
+               request.resource.data.visitedAt == null ||
+               request.resource.data.visitedAt is string;
+      }
+      
       // Allow read if user is authenticated and visit belongs to them
       allow read: if request.auth != null 
                   && resource.data.userId == request.auth.uid;
       
       // Allow create if user is authenticated and setting their own userId
+      // and all optional fields are valid
       allow create: if request.auth != null 
-                    && request.resource.data.userId == request.auth.uid;
+                    && request.resource.data.userId == request.auth.uid
+                    && isValidRating()
+                    && isValidNotes()
+                    && isValidVisitedAt();
       
       // Allow update/delete if user is authenticated and visit belongs to them
-      allow update, delete: if request.auth != null 
-                            && resource.data.userId == request.auth.uid;
+      // and all optional fields are valid
+      allow update: if request.auth != null 
+                    && resource.data.userId == request.auth.uid
+                    && isValidRating()
+                    && isValidNotes()
+                    && isValidVisitedAt();
+                    
+      allow delete: if request.auth != null 
+                    && resource.data.userId == request.auth.uid;
     }
   }
 }

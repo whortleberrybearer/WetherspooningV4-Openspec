@@ -33,6 +33,9 @@ export interface Pub {
  * 
  * Represents a single visit by a user to a Wetherspoon pub.
  * Stored in Firestore `visits` collection.
+ * 
+ * Note: Optional fields can be `null` (from Firestore) or `undefined` (not set).
+ * Both values should be treated identically in application logic.
  */
 export interface Visit {
   /** Unique identifier for the visit (Firestore auto-generated) */
@@ -41,12 +44,12 @@ export interface Visit {
   userId: string
   /** GUID of the pub that was visited */
   pubId: string
-  /** ISO 8601 timestamp of when the pub was visited (optional) */
-  visitedAt?: string
-  /** User's rating of the visit, 1-5 stars (optional) */
-  rating?: number
-  /** User's notes about the visit (optional) */
-  notes?: string
+  /** ISO 8601 timestamp of when the pub was visited (optional, can be null or undefined) */
+  visitedAt?: string | null
+  /** User's rating of the visit, 1-5 stars (optional, can be null or undefined) */
+  rating?: number | null
+  /** User's notes about the visit (optional, can be null or undefined) */
+  notes?: string | null
 }
 
 /**
@@ -223,18 +226,26 @@ function validateVisit(docId: string, data: any): data is Visit {
     return false
   }
   
-  // Validate optional rating field (if present)
-  if ('rating' in data) {
+  // Validate optional rating field (if present and not null)
+  if ('rating' in data && data.rating !== null && data.rating !== undefined) {
     if (typeof data.rating !== 'number' || data.rating < 1 || data.rating > 5) {
       console.warn(`Invalid visit document ${docId}: rating must be between 1 and 5`)
       return false
     }
   }
   
-  // Validate optional visitedAt field (if present)
-  if ('visitedAt' in data) {
+  // Validate optional visitedAt field (if present and not null)
+  if ('visitedAt' in data && data.visitedAt !== null && data.visitedAt !== undefined) {
     if (typeof data.visitedAt !== 'string' || !data.visitedAt) {
       console.warn(`Invalid visit document ${docId}: visitedAt must be a non-empty string`)
+      return false
+    }
+  }
+  
+  // Validate optional notes field (if present and not null)
+  if ('notes' in data && data.notes !== null && data.notes !== undefined) {
+    if (typeof data.notes !== 'string') {
+      console.warn(`Invalid visit document ${docId}: notes must be a string`)
       return false
     }
   }
@@ -335,6 +346,9 @@ async function generateNextVisitId(): Promise<number> {
 /**
  * Validate visit data before creating or updating
  * 
+ * Accepts both null and undefined for optional fields (rating, notes, visitedAt).
+ * Both values are considered valid for optional fields.
+ * 
  * @param data - The visit data to validate
  * @param isUpdate - Whether this is an update operation (allows partial data)
  * @throws Error if validation fails with descriptive message
@@ -351,21 +365,21 @@ function validateVisitMutation(data: any, isUpdate: boolean = false): void {
     }
   }
   
-  // Optional rating validation
+  // Optional rating validation (null and undefined are both valid)
   if ('rating' in data && data.rating !== undefined && data.rating !== null) {
     if (typeof data.rating !== 'number' || data.rating < 1 || data.rating > 5) {
       throw new Error('rating must be between 1 and 5')
     }
   }
   
-  // Optional visitedAt validation
+  // Optional visitedAt validation (null and undefined are both valid)
   if ('visitedAt' in data && data.visitedAt !== undefined && data.visitedAt !== null) {
     if (typeof data.visitedAt !== 'string' || data.visitedAt.trim() === '') {
       throw new Error('visitedAt must be a valid ISO 8601 date string')
     }
   }
   
-  // Optional notes validation
+  // Optional notes validation (null and undefined are both valid)
   if ('notes' in data && data.notes !== undefined && data.notes !== null) {
     if (typeof data.notes !== 'string') {
       throw new Error('notes must be a string')
