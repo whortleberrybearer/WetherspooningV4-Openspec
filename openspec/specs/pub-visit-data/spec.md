@@ -58,61 +58,64 @@ The system MUST load visit data from Firestore when a user authenticates.
 **Category:** Functional
 
 **Changes:**
-- CLARIFY: Document that `rating` and `notes` fields already exist in data model
-- ADD: UI must expose rating and notes fields for user input
+- CLARIFY: Optional fields (rating, notes, visitedAt) can be `null`, `undefined`, or have a value
+- ADD: Validation must accept both `null` and `undefined` for optional fields
+- ADD: TypeScript types must allow `null | undefined` for optional fields
 
-The system MUST define and validate the Visit entity structure for both read and write operations, including rating and notes fields.
+The system MUST define and validate the Visit entity structure for both read and write operations, handling `null` values gracefully.
 
 **Updated Acceptance Criteria:**
 - Visit interface includes required fields: `id`, `userId`, `pubId`
 - Visit interface includes optional fields: `visitedAt`, `rating`, `notes`
+- **NEW:** Optional fields are typed as `field?: type | null` to allow both undefined and null
+- **NEW:** Firestore stores `null` for cleared optional fields
+- **NEW:** Application code handles both `null` and `undefined` identically
 - `pubId` references a valid pub from the pub data source
 - `userId` references the authenticated user
-- **EXISTING:** `rating` is between 1 and 5 (inclusive) if provided
-- **EXISTING:** `notes` is a string field for user comments
-- **NEW:** `rating` is exposed in UI for user input (not just database schema)
-- **NEW:** `notes` is exposed in UI for user input (not just database schema)
-- `visitedAt` can be explicitly undefined to indicate unknown date
+- `rating` is between 1 and 5 (inclusive) if provided, or `null`/`undefined`
+- **MODIFIED:** Validation accepts `null` for rating (previously rejected)
+- **MODIFIED:** Validation accepts `null` for notes (previously only checked type when present)
+- **MODIFIED:** Validation accepts `null` for visitedAt (previously only checked type when present)
+- `notes` is a string field for user comments, or `null`/`undefined`
+- `visitedAt` can be `null` or `undefined` to indicate unknown date
 - New visit `id` values are unique and do not conflict with existing visits
-- Invalid visits are logged and skipped during data load
+- **MODIFIED:** Invalid visits are logged but `null` optional fields are not considered invalid
 
-#### Scenario: Create Visit with Rating and Notes
+#### Scenario: Load Visit with Null Rating from Firestore
 **ADDED:**
-**Given** an authenticated user is viewing pub 42  
-**And** the user wants to record their visit with feedback  
-**When** the user adds a visit with rating 4 and notes "Great atmosphere, friendly staff"  
-**Then** the visit is created with `rating: 4`  
-**And** the visit is created with `notes: "Great atmosphere, friendly staff"`  
-**And** the visit is persisted to Firestore  
-**And** the rating and notes are retrievable for display
+**Given** a visit document exists in Firestore with `rating: null`
+**When** the visit is loaded via `getUserVisits()`
+**Then** the visit passes validation
+**And** the in-memory Visit object has `rating: null`
+**And** no warning is logged about invalid rating
 
-#### Scenario: Create Visit with Rating Only
+#### Scenario: Load Visit with Null Notes from Firestore
 **ADDED:**
-**Given** an authenticated user is viewing pub 15  
-**When** the user adds a visit with rating 5 but no notes  
-**Then** the visit is created with `rating: 5`  
-**And** the visit is created with `notes` undefined  
-**And** the visit is persisted to Firestore
+**Given** a visit document exists in Firestore with `notes: null`
+**When** the visit is loaded via `getUserVisits()`
+**Then** the visit passes validation
+**And** the in-memory Visit object has `notes: null`
+**And** no warning is logged about invalid notes
 
-#### Scenario: Create Visit with Notes Only
-**ADDED:**
-**Given** an authenticated user is viewing pub 28  
-**When** the user adds a visit with notes "Needs renovation" but no rating  
-**Then** the visit is created with `rating` undefined  
-**And** the visit is created with `notes: "Needs renovation"`  
-**And** the visit is persisted to Firestore
+#### Scenario: Validate Rating is in Range When Present
+**MODIFIED:**
+**Given** a visit document has `rating: 6`
+**When** the visit is validated
+**Then** validation fails with warning "rating must be between 1 and 5"
+**And** the visit is excluded from the loaded visits array
+**Given** a visit document has `rating: null`
+**When** the visit is validated
+**Then** validation succeeds
+**And** the visit is included in the loaded visits array
 
-#### Scenario: Validate Rating Range
+#### Scenario: Validate Rating is Number or Null
 **ADDED:**
-**Given** an authenticated user is adding a visit  
-**When** the user attempts to set rating to 6  
-**Then** the system rejects the input  
-**And** displays validation error message  
-**When** the user attempts to set rating to 0  
-**Then** the system rejects the input  
-**And** displays validation error message  
-**When** the user sets rating to 3  
-**Then** the input is accepted
+**Given** a visit document has `rating: "3"` (string instead of number)
+**When** the visit is validated
+**Then** validation fails with warning about type mismatch
+**Given** a visit document has `rating: null`
+**When** the visit is validated
+**Then** validation succeeds
 
 ---
 
@@ -303,49 +306,54 @@ The system MUST allow authenticated users to create a new visit record with opti
 **Category:** Functional
 
 **Changes:**
-- ADD: Update visit requirement with rating and notes support
+- CLARIFY: Setting rating or notes to `null` clears the field in Firestore
+- ADD: Firestore rules validate rating range server-side
 
-The system MUST allow authenticated users to update an existing visit record, including rating and notes.
+The system MUST allow authenticated users to update an existing visit record, including clearing rating and notes by setting them to `null`.
 
-**Acceptance Criteria:**
+**Updated Acceptance Criteria:**
 - `updateVisit(pubId: number, updates: { visitedAt?: string | null, rating?: number | null, notes?: string | null })` updates existing visit
 - Only updates fields provided in `updates` parameter
-- **NEW:** Can update `rating` to value 1-5 or null to clear
-- **NEW:** Can update `notes` to new text or null to clear
+- Can update `rating` to value 1-5 or null to clear
+- Can update `notes` to new text or null to clear
 - Can update `visitedAt` to new date or null to clear
+- **NEW:** When rating is set to `null`, Firestore stores `null` (field is not deleted)
+- **NEW:** When notes is set to `null`, Firestore stores `null` (field is not deleted)
+- **NEW:** Application handles `null` values correctly in all operations
 - Persists changes to Firestore
 - Updates local reactive state
 - Returns Promise that resolves when operation completes
 - Throws error if visit does not exist
 - Throws error if user is not authenticated
-- **NEW:** Throws error if rating is outside 1-5 range (when not null)
+- Throws error if rating is outside 1-5 range (when not null)
+- **NEW:** Firestore security rules validate rating is 1-5 or null server-side
 
-#### Scenario: Update Visit Rating and Notes
+#### Scenario: Clear Rating Sets Null in Database
 **ADDED:**
-**Given** an authenticated user has an existing visit for pub 42  
-**And** the visit currently has no rating or notes  
-**When** `updateVisit(42, { rating: 4, notes: "Nice place" })` is called  
-**Then** the visit is updated in Firestore  
-**And** the visit now has `rating: 4`  
-**And** the visit now has `notes: "Nice place"`  
-**And** other fields (visitedAt, userId, pubId) remain unchanged  
-**And** local state reflects the updated visit
+**Given** an authenticated user has a visit with rating 4
+**When** `updateVisit(42, { rating: null })` is called
+**Then** the Firestore document is updated with `rating: null`
+**And** local state is updated with `rating: null`
+**And** the visit remains valid on subsequent loads
 
-#### Scenario: Clear Rating and Notes
+#### Scenario: Clear Notes Sets Null in Database
 **ADDED:**
-**Given** an authenticated user has a visit with rating 3 and notes "Good"  
-**When** `updateVisit(42, { rating: null, notes: null })` is called  
-**Then** the visit is updated in Firestore  
-**And** the visit `rating` field is removed/nullified  
-**And** the visit `notes` field is removed/nullified  
-**And** local state reflects the cleared fields
+**Given** an authenticated user has a visit with notes "Great pub"
+**When** `updateVisit(42, { notes: null })` is called
+**Then** the Firestore document is updated with `notes: null`
+**And** local state is updated with `notes: null`
+**And** the visit remains valid on subsequent loads
 
-#### Scenario: Update Only Rating
+#### Scenario: Firestore Rules Reject Invalid Rating
 **ADDED:**
-**Given** an authenticated user has a visit with notes "Great pub"  
-**When** `updateVisit(42, { rating: 5 })` is called  
-**Then** the visit is updated with `rating: 5`  
-**And** the notes "Great pub" remain unchanged
+**Given** an authenticated user attempts to update a visit via Firestore API
+**When** the update sets `rating: 10`
+**Then** Firestore security rules reject the operation
+**And** an error is returned to the client
+**When** the update sets `rating: null`
+**Then** Firestore security rules accept the operation
+**When** the update sets `rating: 3`
+**Then** Firestore security rules accept the operation
 
 ---
 
@@ -393,40 +401,60 @@ The system MUST allow authenticated users to delete their visit records.
 **Priority:** MUST
 **Category:** Functional
 
-The system MUST update local reactive state immediately after successful visit mutations and expose reactive state to components.
+**Changes:**
+- ADD: UI components must handle both `null` and `undefined` for optional fields
 
-**Acceptance Criteria:**
+The system MUST update local reactive state immediately after successful visit mutations and ensure UI components safely handle `null` and `undefined` values.
+
+**Updated Acceptance Criteria:**
 - After `addVisit()` succeeds, `visitedPubIds` Set includes the new pub ID
 - After `addVisit()` succeeds, `visits` array includes the new visit
 - After `updateVisit()` succeeds, the visit in `visits` array reflects changes
 - After `removeVisit()` succeeds, pub ID is removed from `visitedPubIds` Set
 - After `removeVisit()` succeeds, visit is removed from `visits` array
-- **NEW:** `useVisits()` composable exposes readonly `visits` array for components to watch
-- **NEW:** Components can watch `visits` array with deep watching to detect updates to individual visits
+- `useVisits()` composable exposes readonly `visits` array for components to watch
+- Components can watch `visits` array with deep watching to detect updates to individual visits
+- **NEW:** UI components use optional chaining (`visit?.rating`) and nullish checks to safely access optional fields
+- **NEW:** UI components treat `null` and `undefined` identically for display purposes
+- **NEW:** Rating display only shows stars when `visit?.rating` is a number (handles null and undefined)
+- **NEW:** Notes display only shows content when `visit?.notes` is a truthy non-empty string (handles null and undefined)
 - UI components that depend on visit state re-render automatically
 - Map markers update colors to reflect visit status changes
 - Map info windows update content when visit data changes (create, update, or remove)
 
-#### Scenario: UI Updates After Adding Visit
-**Given** the map is displaying pub 42 with an unvisited marker
-**When** `addVisit(42)` completes successfully
-**Then** the map marker for pub 42 changes color to indicate visited status
-**And** the sidebar shows pub 42 as visited
+#### Scenario: Display Rating with Null-Safe Check
+**ADDED:**
+**Given** the map info window is displaying a visited pub
+**And** the visit has `rating: null`
+**When** the info window renders the rating display
+**Then** no stars are displayed (conditional check prevents rendering)
+**And** no JavaScript errors occur
+**Given** the visit has `rating: undefined`
+**When** the info window renders the rating display
+**Then** no stars are displayed (conditional check prevents rendering)
+**And** no JavaScript errors occur
+**Given** the visit has `rating: 4`
+**When** the info window renders the rating display
+**Then** 4 filled stars and 1 empty star are displayed
 
-#### Scenario: UI Updates After Removing Visit
-**Given** the map is displaying pub 42 with a visited marker
-**When** `removeVisit(42)` completes successfully
-**Then** the map marker for pub 42 changes color to indicate unvisited status
-**And** the sidebar shows pub 42 as not visited
-
-#### Scenario: UI Updates After Updating Visit Date
-**Given** the map info window is open for pub 42
-**And** pub 42 was visited on "2025-11-15"
-**And** the info window shows visit badge with "15/11/25"
-**When** `updateVisit(42, { visitedAt: '2025-12-01T00:00:00Z' })` completes successfully
-**Then** the info window visit badge updates to show "01/12/25"
-**And** the update happens automatically via reactive watch on `visits` array
-**And** the map marker color remains the same (still visited)
+#### Scenario: Display Notes with Null-Safe Check
+**ADDED:**
+**Given** the map info window is displaying a visited pub
+**And** the visit has `notes: undefined`
+**When** the info window renders the notes section
+**Then** no notes preview is displayed
+**And** no JavaScript errors occur
+**Given** the visit has `notes: null`
+**When** the info window renders the notes section
+**Then** no notes preview is displayed
+**And** no JavaScript errors occur
+**Given** the visit has `notes: ""`  (empty string)
+**When** the info window renders the notes section
+**Then** no notes preview is displayed
+**And** no JavaScript errors occur
+**Given** the visit has `notes: "Great atmosphere"`
+**When** the info window renders the notes section
+**Then** the notes preview displays "Great atmosphere"
 
 ---
 
@@ -496,4 +524,46 @@ The system MUST provide a method to retrieve complete visit details including ra
 **Given** an authenticated user has not visited pub 99  
 **When** `getVisit(99)` is called  
 **Then** the method returns `null`
+
+### Requirement: Firestore Security Rules for Visit Validation (REQ-PVD-013)
+**Priority:** MUST
+**Category:** Security
+
+The system MUST validate visit field constraints at the Firestore security rules level to prevent invalid data from being written to the database.
+
+**Acceptance Criteria:**
+- Firestore rules validate `rating` is a number between 1-5 (inclusive) or `null`
+- Firestore rules validate `notes` is a string or `null`
+- Firestore rules validate `visitedAt` is a string or `null`
+- Firestore rules reject documents with invalid types for these fields
+- Firestore rules reject documents with rating values outside 1-5 range
+- Rules apply to both `create` and `update` operations
+- Rules allow visits with all optional fields set to `null`
+
+#### Scenario: Rules Accept Valid Rating Values
+**Given** an authenticated user creates a visit document
+**When** the document has `rating: 3`
+**Then** Firestore rules accept the write
+**When** the document has `rating: null`
+**Then** Firestore rules accept the write
+**When** the document has no rating field
+**Then** Firestore rules accept the write
+
+#### Scenario: Rules Reject Invalid Rating Values
+**Given** an authenticated user creates a visit document
+**When** the document has `rating: 0`
+**Then** Firestore rules reject the write with permission error
+**When** the document has `rating: 6`
+**Then** Firestore rules reject the write with permission error
+**When** the document has `rating: "3"` (string)
+**Then** Firestore rules reject the write with permission error
+
+#### Scenario: Rules Accept Null Notes
+**Given** an authenticated user updates a visit document
+**When** the update sets `notes: null`
+**Then** Firestore rules accept the write
+**When** the update sets `notes: "Some feedback"`
+**Then** Firestore rules accept the write
+**When** the update sets `notes: 123` (number)
+**Then** Firestore rules reject the write with permission error
 
