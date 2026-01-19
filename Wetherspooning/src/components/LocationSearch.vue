@@ -134,34 +134,23 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
-/* Ensure widget is visible and styled */
-.autocomplete-wrapper :deep(input) {
-  height: 2.25rem;
-  border-radius: 0.375rem;
-  border: 1px solid hsl(var(--border));
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-  padding: 0 0.75rem;
-  font-size: 0.875rem;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+/* Apply theme CSS variables to the widget */
+.autocomplete-wrapper :deep(gmp-place-autocomplete) {
+  color-scheme: light;
+  --gmp-place-autocomplete-color-surface: hsl(var(--background));
+  --gmp-place-autocomplete-color-on-surface: hsl(var(--foreground));
+  --gmp-place-autocomplete-color-on-surface-variant: hsl(var(--muted-foreground));
+  --gmp-place-autocomplete-color-outline: hsl(var(--border));
+  --gmp-place-autocomplete-font-family: inherit;
 }
 
-.autocomplete-wrapper :deep(input:focus) {
-  outline: none;
-  border-color: hsl(var(--ring));
-  box-shadow: 0 0 0 3px hsl(var(--ring) / 0.5);
-}
-
-/* Theme customization for the widget */
-:deep(.dark-mode) {
-  --gm-fillcolor: hsl(var(--input));
-  --gm-fontfamily: inherit;
-}
-
-:deep(.dark-mode input) {
-  background: hsl(var(--input)) !important;
-  color: hsl(var(--foreground)) !important;
-  border-color: hsl(var(--border)) !important;
+/* Dark mode overrides */
+.autocomplete-wrapper :deep(.dark-mode) {
+  color-scheme: dark;
+  --gmp-place-autocomplete-color-surface: hsl(var(--input));
+  --gmp-place-autocomplete-color-on-surface: hsl(var(--foreground));
+  --gmp-place-autocomplete-color-on-surface-variant: hsl(var(--muted-foreground));
+  --gmp-place-autocomplete-color-outline: hsl(var(--border));
 }
 
 /* Ensure dropdown is visible */
