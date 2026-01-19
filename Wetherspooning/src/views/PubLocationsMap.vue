@@ -10,13 +10,19 @@
 
     <!-- Main Content -->
     <SidebarInset class="flex-1 relative">
-      <div class="absolute top-4 left-4 z-10 flex items-center gap-3">
-        <SidebarTrigger />
-        <!-- Location Search -->
-        <LocationSearch
-          :is-dark="isDark"
-          @place-changed="handlePlaceChanged"
-        />
+      <div class="absolute top-4 left-4 right-4 md:right-auto z-10">
+        <div class="flex items-center gap-3">
+          <SidebarTrigger class="hidden md:block shrink-0" />
+          <!-- Location Search -->
+          <LocationSearch
+            :is-dark="isDark"
+            @place-changed="handlePlaceChanged"
+          />
+        </div>
+        <!-- Mobile: Trigger below search -->
+        <div class="md:hidden mt-2">
+          <SidebarTrigger />
+        </div>
       </div>
 
       <Alert v-if="error" variant="destructive" class="absolute top-20 left-1/2 -translate-x-1/2 max-w-md z-[1000]">
