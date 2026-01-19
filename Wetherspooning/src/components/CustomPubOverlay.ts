@@ -85,6 +85,7 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
       this.container.setAttribute('aria-label', `Pub information for ${pub.name}`)
       this.container.style.display = 'block'
       this.attachEventListeners()
+      this.draw()
 
       // Move focus to close button
       setTimeout(() => {
