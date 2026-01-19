@@ -70,7 +70,7 @@ import { useVisits } from '@/composables/useVisits'
 import { useTheme } from '@/composables/useTheme'
 import { getAllPubs } from '@/services/pubDataService'
 import type { Pub } from '@/services/firebaseDataService'
-import { CustomPubOverlay } from '@/components/CustomPubOverlay'
+import { createCustomPubOverlay, type CustomPubOverlay } from '@/components/CustomPubOverlay'
 
 const mapContainer = ref<HTMLElement | null>(null)
 const map = shallowRef<google.maps.Map | null>(null)
@@ -211,7 +211,7 @@ const initMap = () => {
   map.value = new google.maps.Map(mapContainer.value, mapOptions)
   
   // Initialize custom pub overlay
-  pubOverlay.value = new CustomPubOverlay({
+  pubOverlay.value = createCustomPubOverlay({
     onClose: () => {
       selectedPub.value = null
       pubOverlay.value?.hide()

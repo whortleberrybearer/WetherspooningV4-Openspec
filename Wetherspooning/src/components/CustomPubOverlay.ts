@@ -9,7 +9,14 @@ interface CustomPubOverlayOptions {
   isVisited: (pubId: string) => boolean
 }
 
-export class CustomPubOverlay extends google.maps.OverlayView {
+export interface CustomPubOverlay extends google.maps.OverlayView {
+  show(pub: Pub, position: google.maps.LatLng, isDark: boolean): void
+  hide(): void
+  update(pub: Pub, isDark: boolean): void
+}
+
+export function createCustomPubOverlay(options: CustomPubOverlayOptions): CustomPubOverlay {
+  class CustomPubOverlayImpl extends google.maps.OverlayView implements CustomPubOverlay {
   private position: google.maps.LatLng | null = null
   private container: HTMLDivElement | null = null
   private pub: Pub | null = null
@@ -24,7 +31,7 @@ export class CustomPubOverlay extends google.maps.OverlayView {
   private closeButtonHandler: (() => void) | null = null
   private actionButtonHandler: (() => void) | null = null
 
-  constructor(options: CustomPubOverlayOptions) {
+  constructor() {
     super()
     this.onClose = options.onClose
     this.onTrackVisit = options.onTrackVisit
@@ -441,4 +448,7 @@ export class CustomPubOverlay extends google.maps.OverlayView {
       this.escKeyHandler = null
     }
   }
+}
+
+  return new CustomPubOverlayImpl() as CustomPubOverlay
 }
