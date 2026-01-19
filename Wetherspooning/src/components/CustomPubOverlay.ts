@@ -71,7 +71,7 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
 
     // Center horizontally and position above the marker with more gap
     const left = point.x - (overlayWidth / 2)
-    const top = point.y - overlayHeight - 50 // Increased gap to fully clear marker
+    const top = point.y - overlayHeight - 60 // Larger gap to ensure marker is never obscured
 
     this.container.style.left = `${left}px`
     this.container.style.top = `${top}px`
