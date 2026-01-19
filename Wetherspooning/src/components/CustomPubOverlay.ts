@@ -147,7 +147,7 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
         : ''
       imageHtml = `
         <div style="margin-bottom: 12px;">
-          <img src="${pub.imageUrl}" alt="${pub.name}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px;" />
+          <img src="${pub.imageUrl}" alt="${pub.name}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px;" />
           ${attribution}
         </div>
       `
