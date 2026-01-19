@@ -96,12 +96,6 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
       this.container.style.display = 'block'
       this.attachEventListeners()
       this.draw()
-
-      // Move focus to close button
-      setTimeout(() => {
-        const closeBtn = this.container?.querySelector('.custom-overlay-close') as HTMLElement
-        closeBtn?.focus()
-      }, 100)
     }
   }
 
