@@ -63,19 +63,13 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
     const point = projection.fromLatLngToDivPixel(this.position)
     if (!point) return
 
-    // Render content if pub exists and not yet rendered
-    if (this.pub && !this.container.innerHTML) {
-      this.container.innerHTML = this.generateContent(this.pub, this.isDark)
-      this.attachEventListeners()
-    }
-
     // Calculate overlay dimensions
     const overlayWidth = this.container.offsetWidth
     const overlayHeight = this.container.offsetHeight
 
-    // Position overlay centered above marker (with offset for gap)
+    // Position overlay centered horizontally and above the marker
     let left = point.x - overlayWidth / 2
-    let top = point.y - overlayHeight - 20 // 20px gap above marker
+    let top = point.y - overlayHeight - 40 // 40px gap above marker (includes marker height)
 
     // Viewport boundary checks
     const map = this.getMap()
@@ -96,7 +90,7 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
       // Prevent overflow on top
       if (top < margin) top = margin
 
-      // Optional: prevent overflow on bottom (less common)
+      // Prevent overflow on bottom
       if (top + overlayHeight > mapHeight - margin) {
         top = mapHeight - overlayHeight - margin
       }
@@ -120,9 +114,9 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
     this.isDark = isDark
 
     if (this.container) {
-      this.container.style.display = 'block'
-      this.container.setAttribute('aria-label', `Pub information for ${pub.name}`)
       this.container.innerHTML = this.generateContent(pub, isDark)
+      this.container.setAttribute('aria-label', `Pub information for ${pub.name}`)
+      this.container.style.display = 'block'
       this.attachEventListeners()
       this.draw()
 
@@ -166,8 +160,6 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
     const buttonTextColor = isDark ? '#1c1917' : '#f8fafc'
     const buttonHoverBg = isDark ? '#e7e5e4' : '#1e293b'
     const linkColor = isDark ? '#a1a1aa' : 'hsl(var(--primary))'
-    const closeBtnBg = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-    const closeBtnHoverBg = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'
     const closeBtnColor = isDark ? '#fafaf9' : '#1f2937'
 
     // Image section with conditional attribution
@@ -298,24 +290,26 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
           position: absolute;
           top: 8px;
           right: 8px;
-          width: 24px;
-          height: 24px;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
-          background: ${closeBtnBg};
-          border: none;
+          background: ${isDark ? '#292524' : '#ffffff'};
+          border: 1px solid ${isDark ? '#44403c' : '#e5e7eb'};
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 10;
           color: ${closeBtnColor};
-          font-size: 16px;
+          font-size: 18px;
           line-height: 1;
           padding: 0;
         }
         
         .custom-overlay-close:hover {
-          background: ${closeBtnHoverBg};
+          background: ${isDark ? '#3c3836' : '#f3f4f6'};
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
         
         .custom-overlay-close:focus {
