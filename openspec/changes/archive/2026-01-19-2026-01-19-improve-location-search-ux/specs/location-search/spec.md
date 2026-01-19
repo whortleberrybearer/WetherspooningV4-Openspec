@@ -1,8 +1,7 @@
-# location-search Specification
+# location-search Specification Delta
 
-## Purpose
-TBD - created by archiving change 2026-01-01-add-location-search. Update Purpose after archive.
-## Requirements
+## MODIFIED Requirements
+
 ### Requirement: Autocomplete Widget Display (REQ-LS-001)
 **Priority:** MUST  
 **Category:** Functional
@@ -45,99 +44,6 @@ TBD - created by archiving change 2026-01-01-add-location-search. Update Purpose
 **And** the widget text color is appropriate for light mode (dark text)  
 **And** the widget border color matches the light theme border color  
 **And** there are no visual inconsistencies with the rest of the application
-
----
-
-### Requirement: Autocomplete Suggestions (REQ-LS-002)
-**Priority:** MUST  
-**Category:** Functional
-
-The Autocomplete widget MUST provide suggestions automatically as users type.
-
-**Acceptance Criteria:**
-- Widget triggers autocomplete requests after user types (managed by widget)
-- Suggestions are displayed in the widget's built-in dropdown
-- Suggestions include location names and addresses
-- Widget handles debouncing automatically
-- Widget manages session tokens automatically
-- Loading state is shown while fetching suggestions (managed by widget)
-- Network errors fail gracefully without crashing the UI
-- User can navigate suggestions via keyboard (handled by widget)
-- User can select a suggestion via click or Enter key
-- Suggestions are cleared when input is cleared
-
-#### Scenario: Widget Shows Suggestions
-**Given** the user has the map view open  
-**When** the user types "London" into the widget  
-**Then** the widget's built-in dropdown of location suggestions appears  
-**And** each suggestion shows the location name and additional context (e.g., "London, UK")  
-**And** suggestions integrate with the current theme
-
-#### Scenario: Widget Handles Debouncing
-**Given** the user is typing rapidly in the widget  
-**When** the user types "Man" quickly  
-**Then** the widget automatically debounces requests  
-**And** only appropriate requests are made (managed by widget)
-
-#### Scenario: Widget Keyboard Navigation
-**Given** autocomplete suggestions are displayed in the widget  
-**When** the user presses the Down arrow key  
-**Then** the widget highlights the first suggestion  
-**When** the user presses Down again  
-**Then** the widget highlights the next suggestion  
-**When** the user presses Enter on a highlighted suggestion  
-**Then** the location is selected and the map centers on it
-
-#### Scenario: Widget Network Error Handling
-**Given** the user types "Paris" into the widget  
-**And** the Google Places API request fails due to network error  
-**When** the error occurs  
-**Then** the widget handles the error gracefully  
-**And** the UI remains functional (no crash)  
-**And** the user can retry by typing again
-
----
-
-### Requirement: Map Centering on Selection (REQ-LS-003)
-**Priority:** MUST  
-**Category:** Functional
-
-When a user selects a location from autocomplete suggestions, the map MUST center on that location.
-
-**Acceptance Criteria:**
-- Selecting a suggestion centers the map on the location's coordinates
-- Map zoom level adjusts to an appropriate level for the location type (e.g., 14 for cities, 16 for addresses)
-- Map pans smoothly to the new location (animated transition)
-- Existing pub markers remain visible and functional
-- Search input is cleared or shows the selected location name
-- User can still interact with the map normally after centering
-- Centering works for all location types (cities, addresses, landmarks)
-
-#### Scenario: Center on City Selection
-**Given** the user has typed "Manchester" into the search input  
-**And** autocomplete suggestions are displayed  
-**When** the user clicks "Manchester, UK" from the suggestions  
-**Then** the map smoothly pans to Manchester's coordinates  
-**And** the zoom level changes to 14  
-**And** pub markers in the Manchester area become visible  
-**And** the search input shows "Manchester, UK" or is cleared  
-**And** the autocomplete dropdown closes
-
-#### Scenario: Center on Address Selection
-**Given** the user has typed "10 Downing Street" into the search input  
-**And** autocomplete suggestions are displayed  
-**When** the user selects "10 Downing Street, London, UK"  
-**Then** the map smoothly pans to the address coordinates  
-**And** the zoom level changes to 16 (closer zoom for specific address)  
-**And** nearby pub markers are visible  
-**And** the autocomplete dropdown closes
-
-#### Scenario: Center on Landmark Selection
-**Given** the user searches for "Big Ben"  
-**When** the user selects "Big Ben, London, UK" from suggestions  
-**Then** the map centers on Big Ben's coordinates  
-**And** the zoom level is appropriate for viewing the area (15-16)  
-**And** the map remains fully interactive
 
 ---
 
@@ -243,4 +149,3 @@ When a user selects a location from autocomplete suggestions, the map MUST cente
 **And** the widget border color updates to match the theme  
 **And** no visual glitches or layout shifts occur  
 **And** the change happens immediately (within 300ms)
-
