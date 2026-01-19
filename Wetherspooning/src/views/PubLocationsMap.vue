@@ -70,6 +70,7 @@ import { useVisits } from '@/composables/useVisits'
 import { useTheme } from '@/composables/useTheme'
 import { getAllPubs } from '@/services/pubDataService'
 import type { Pub } from '@/services/firebaseDataService'
+import { CustomPubOverlay } from '@/components/CustomPubOverlay'
 
 const mapContainer = ref<HTMLElement | null>(null)
 const map = shallowRef<google.maps.Map | null>(null)
@@ -77,7 +78,7 @@ const markers = ref<google.maps.marker.AdvancedMarkerElement[]>([])
 const visitedClusterer = shallowRef<MarkerClusterer | null>(null)
 const unvisitedClusterer = shallowRef<MarkerClusterer | null>(null)
 const pubs = ref<Pub[]>([])
-const infoWindow = ref<google.maps.InfoWindow | null>(null)
+const pubOverlay = shallowRef<CustomPubOverlay | null>(null)
 const error = ref<string>('')
 const showClosedPubs = ref(false)
 const selectedPub = ref<Pub | null>(null)
@@ -114,36 +115,20 @@ watch([visitedPubIds, visits], () => {
   // Recreate markers to reflect visit status changes (checkmark icons)
   createMarkers()
   
-  // Update info window if there's a selected pub
-  if (selectedPub.value && infoWindow.value) {
-    const marker = markers.value.find(m => {
-      const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
-      const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat
-      const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng
-      return lat === selectedPub.value!.position?.lat && lng === selectedPub.value!.position?.lng
-    })
-    if (marker) {
-      showPubInfo(selectedPub.value, marker)
-    }
+  // Update overlay if there's a selected pub
+  if (selectedPub.value && pubOverlay.value) {
+    pubOverlay.value.update(selectedPub.value, isDark.value)
   }
 }, { deep: true })
 
-// Watch for theme changes to update markers and info window
+// Watch for theme changes to update markers and overlay
 watch(isDark, () => {
   // Recreate markers with theme-appropriate colors
   createMarkers()
   
-  // Update info window if there's a selected pub
-  if (selectedPub.value && infoWindow.value) {
-    const marker = markers.value.find(m => {
-      const pos = m.position as google.maps.LatLng | google.maps.LatLngLiteral
-      const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat
-      const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng
-      return lat === selectedPub.value!.position?.lat && lng === selectedPub.value!.position?.lng
-    })
-    if (marker) {
-      showPubInfo(selectedPub.value, marker)
-    }
+  // Update overlay if there's a selected pub
+  if (selectedPub.value && pubOverlay.value) {
+    pubOverlay.value.update(selectedPub.value, isDark.value)
   }
 })
 
@@ -224,7 +209,25 @@ const initMap = () => {
   }
 
   map.value = new google.maps.Map(mapContainer.value, mapOptions)
-  infoWindow.value = new google.maps.InfoWindow()
+  
+  // Initialize custom pub overlay
+  pubOverlay.value = new CustomPubOverlay({
+    onClose: () => {
+      selectedPub.value = null
+      pubOverlay.value?.hide()
+    },
+    onTrackVisit: (pub) => {
+      selectedPub.value = pub
+      showPubDetail.value = true
+    },
+    onSignIn: () => {
+      showLoginDialog.value = true
+    },
+    isAuthenticated: () => isAuthenticated.value,
+    getVisit: (pubId: string) => getVisit(pubId),
+    isVisited: (pubId: string) => isVisited(pubId)
+  })
+  pubOverlay.value.setMap(map.value)
   
   // Request user's current location to center map
   centerOnUserLocation()
@@ -411,9 +414,9 @@ const loadPubs = async () => {
 // Watch for toggle changes to recreate markers
 watch(showClosedPubs, () => {
   createMarkers()
-  // Close info window if it's for a pub that's now hidden
-  if (infoWindow.value) {
-    infoWindow.value.close()
+  // Close overlay if it's for a pub that's now hidden
+  if (pubOverlay.value) {
+    pubOverlay.value.hide()
   }
 })
 
@@ -686,211 +689,11 @@ const updateClusters = () => {
 }
 
 const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement) => {
-  if (!infoWindow.value) return
+  if (!pubOverlay.value) return
 
-  const openState = pub.openState || 'Open'
-  const visited = isVisited(pub.id)
-  
-  // Theme-aware colors
-  const bgColor = isDark.value ? '#1c1917' : '#ffffff'
-  const textColor = isDark.value ? '#fafaf9' : '#1f2937'
-  const mutedColor = isDark.value ? '#a8a29e' : '#6b7280'
-  const buttonBg = isDark.value ? '#fafaf9' : '#0f172a'
-  const buttonTextColor = isDark.value ? '#1c1917' : '#f8fafc'
-  const buttonHoverBg = isDark.value ? '#e7e5e4' : '#1e293b'
-  const linkColor = isDark.value ? '#a1a1aa' : 'hsl(var(--primary))'
-  
-  // Image section with conditional attribution
-  let imageHtml = ''
-  if (pub.imageUrl) {
-    const attribution = pub.imageUrl.includes('jdwetherspoon.com') 
-      ? `<p style="font-size: 10px; color: ${mutedColor}; margin: 4px 0 0 0;">Image © JD Wetherspoon</p>` 
-      : ''
-    imageHtml = `
-      <div style="margin-bottom: 12px;">
-        <img src="${pub.imageUrl}" alt="${pub.name}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px;" />
-        ${attribution}
-      </div>
-    `
-  }
-  
-  // Status badge with color coding
-  let statusBadge = ''
-  let badgeColor = '#22c55e' // green for Open
-  let badgeText = openState
-  
-  if (openState === 'Closed') {
-    badgeColor = '#ef4444' // red
-  } else if (openState === 'Temporary Closed') {
-    badgeColor = '#f97316' // orange
-  } else if (openState.startsWith('Opening')) {
-    badgeColor = '#f97316' // orange
-  } else if (openState.startsWith('Reopening')) {
-    badgeColor = '#f97316' // orange
-  }
-  
-  if (openState !== 'Open') {
-    statusBadge = `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: ${badgeColor}; color: white;">${badgeText}</span>`
-  }
-  
-  // Location type badge
-  let locationBadge = ''
-  if (pub.isHotel) {
-    locationBadge = `<span style="display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #f59e0b; color: white;">🏨 Hotel</span>`
-  } else if (pub.inAirport) {
-    locationBadge = `<span style="display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #3b82f6; color: white;">✈️ Airport</span>`
-  } else if (pub.inTrainStation) {
-    locationBadge = `<span style="display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #8b5cf6; color: white;">🚂 Train Station</span>`
-  }
-  
-  // Visit badge with formatted date (without rating stars)
-  let visitBadge = ''
-  let ratingDisplay = ''
-  let notesPreview = ''
-  if (isAuthenticated.value && visited) {
-    const visit = getVisit(pub.id)
-    const visitDate = visit?.visitedAt
-    let formattedDate = ''
-    if (visitDate) {
-      try {
-        const date = new Date(visitDate)
-        formattedDate = ' ' + date.toLocaleDateString('en-GB', { 
-          day: '2-digit',
-          month: '2-digit',
-          year: '2-digit'
-        })
-      } catch (error) {
-        console.error('Error formatting visit date:', error)
-      }
-    }
-    
-    visitBadge = `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #22c55e; color: white;">✓ Visited${formattedDate}</span>`
-    
-    // Display rating stars inline with the pub name
-    if (visit?.rating) {
-      const filled = '★'.repeat(visit.rating)
-      const empty = '☆'.repeat(5 - visit.rating)
-      ratingDisplay = `<span style="font-size: 16px; color: #fbbf24; margin-left: 8px;">${filled}${empty}</span>`
-    }
-    
-    // Add notes preview if notes exist (will be placed after website link)
-    if (visit?.notes && visit.notes.trim()) {
-      const truncatedNotes = visit.notes.length > 100 
-        ? visit.notes.substring(0, 100) + '...' 
-        : visit.notes
-      notesPreview = `
-        <div style="background-color: ${isDark.value ? '#292524' : '#f5f5f4'}; border: 1px solid ${isDark.value ? '#44403c' : '#e7e5e4'}; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 12px; color: ${mutedColor};">
-          ${truncatedNotes}
-        </div>
-      `
-    }
-  }
-  
-  // Website link
-  let websiteLink = ''
-  if (pub.url) {
-    websiteLink = `<a href="${pub.url}" target="_blank" rel="noopener noreferrer" style="font-size: 14px; color: ${linkColor}; text-decoration: none; display: block; margin-bottom: 12px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">View on Wetherspoons website</a>`
-  }
-  
-  // Button text based on authentication state
-  let buttonText = ''
-  let buttonId = ''
-  if (isAuthenticated.value) {
-    buttonText = visited ? 'Update Visit' : 'Visit'
-    buttonId = `track-visit-btn-${pub.id}`
-  } else {
-    buttonText = 'Sign in to track visit'
-    buttonId = `sign-in-btn-${pub.id}`
-  }
-
-  const content = `
-    <style>
-      .iw-card {
-        min-width: 250px;
-        max-width: 400px;
-        padding: 16px;
-        background: ${bgColor};
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      }
-      .iw-title {
-        font-size: 18px;
-        font-weight: 600;
-        margin: 0 0 8px 0;
-        color: ${textColor};
-      }
-      .iw-badges {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 12px;
-        flex-wrap: wrap;
-      }
-      .iw-address {
-        font-size: 14px;
-        color: ${mutedColor};
-        margin: 0 0 12px 0;
-        line-height: 1.5;
-      }
-      .iw-button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        white-space: nowrap;
-        border-radius: 6px;
-        font-size: 14px;
-        font-weight: 500;
-        background-color: ${buttonBg};
-        color: ${buttonTextColor};
-        height: 36px;
-        padding: 0 16px;
-        width: 100%;
-        border: none;
-        cursor: pointer;
-        transition: background-color 0.2s;
-      }
-      .iw-button:hover {
-        background-color: ${buttonHoverBg};
-      }
-      @media (max-width: 450px) {
-        .iw-card {
-          max-width: calc(100vw - 40px);
-        }
-      }
-    </style>
-    <div class="iw-card">
-      ${imageHtml}
-      <h3 class="iw-title">${pub.name}${ratingDisplay}</h3>
-      <div class="iw-badges">
-        ${visitBadge}
-        ${statusBadge}
-        ${locationBadge}
-      </div>
-      <p class="iw-address">${pub.address}</p>
-      ${websiteLink}
-      ${notesPreview}
-      <button id="${buttonId}" class="iw-button">
-        ${buttonText}
-      </button>
-    </div>
-  `
-
-  infoWindow.value.setContent(content)
-  infoWindow.value.open(map.value!, marker)
-  
-  // Add click listener to button after DOM update
-  setTimeout(() => {
-    const button = document.getElementById(buttonId)
-    if (button) {
-      button.addEventListener('click', () => {
-        if (isAuthenticated.value) {
-          selectedPub.value = pub
-          showPubDetail.value = true
-        } else {
-          showLoginDialog.value = true
-        }
-      })
-    }
-  }, 0)
+  const position = marker.position as google.maps.LatLng
+  pubOverlay.value.show(pub, position, isDark.value)
+  selectedPub.value = pub
 }
 
 const handlePubSelect = (pub: Pub) => {
