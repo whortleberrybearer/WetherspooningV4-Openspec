@@ -48,8 +48,9 @@ const initAutocompleteWidget = async () => {
 
     // Create the PlaceAutocompleteElement
     autocompleteWidget = new google.maps.places.PlaceAutocompleteElement({
-      componentRestrictions: { country: 'uk' },
-    })
+      includedRegionCodes: ['gb', 'ie', 'im'],
+      includedPrimaryTypes: ['administrative_area_level_1', 'administrative_area_level_2', 'country', 'locality', 'postal_code']
+    } as any)
 
     // Set placeholder
     autocompleteWidget.setAttribute('placeholder', 'Search for a location')
@@ -126,7 +127,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .location-search-container {
   width: 100%;
-  max-width: 20rem;
+  max-width: 100%;
 }
 
 .autocomplete-wrapper {
@@ -155,6 +156,12 @@ onBeforeUnmount(() => {
 :deep(.dark-mode) {
   --gm-fillcolor: hsl(var(--input));
   --gm-fontfamily: inherit;
+}
+
+:deep(.dark-mode input) {
+  background: hsl(var(--input)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
 }
 
 /* Ensure dropdown is visible */

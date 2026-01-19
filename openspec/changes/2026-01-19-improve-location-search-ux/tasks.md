@@ -50,15 +50,15 @@
 ## Testing & Validation
 
 ### Manual Testing Checklist
-- [ ] Widget displays correctly on iPhone SE (375px width)
-- [ ] Widget displays correctly on wider devices
-- [ ] Widget background matches dark theme when dark mode is enabled
-- [ ] Widget background matches light theme when light mode is enabled
-- [ ] Toggling theme updates widget appearance immediately
-- [ ] Searching for UK locations returns relevant results
-- [ ] Searching for Ireland locations returns relevant results
-- [ ] No horizontal scroll on narrow devices
-- [ ] Widget maintains appropriate margins on all devices
+- [x] Widget displays correctly on iPhone SE (375px width)
+- [x] Widget displays correctly on wider devices
+- [x] Widget background matches dark theme when dark mode is enabled
+- [x] Widget background matches light theme when light mode is enabled
+- [x] Toggling theme updates widget appearance immediately
+- [x] Searching for UK locations returns relevant results
+- [x] Searching for Ireland locations returns relevant results
+- [x] No horizontal scroll on narrow devices
+- [x] Widget maintains appropriate margins on all devices
 
 ### Automated Testing
 - No new unit tests required (visual/integration change only)
