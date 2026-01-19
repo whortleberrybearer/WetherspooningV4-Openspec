@@ -96,6 +96,44 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
       this.container.style.display = 'block'
       this.attachEventListeners()
       this.draw()
+
+      // Pan map if overlay is off-screen
+      setTimeout(() => {
+        this.ensureVisible()
+      }, 50)
+    }
+  }
+
+  private ensureVisible(): void {
+    if (!this.container || !this.position) return
+
+    const map = this.getMap()
+    if (!(map instanceof google.maps.Map)) return
+
+    const mapDiv = map.getDiv()
+    const mapRect = mapDiv.getBoundingClientRect()
+    const containerRect = this.container.getBoundingClientRect()
+
+    // Calculate how much the overlay extends beyond the map viewport
+    let panX = 0
+    let panY = 0
+
+    if (containerRect.top < mapRect.top) {
+      panY = containerRect.top - mapRect.top - 20 // 20px padding
+    }
+    if (containerRect.bottom > mapRect.bottom) {
+      panY = containerRect.bottom - mapRect.bottom + 20
+    }
+    if (containerRect.left < mapRect.left) {
+      panX = containerRect.left - mapRect.left - 20
+    }
+    if (containerRect.right > mapRect.right) {
+      panX = containerRect.right - mapRect.right + 20
+    }
+
+    // Pan the map if needed
+    if (panX !== 0 || panY !== 0) {
+      map.panBy(panX, panY)
     }
   }
 
