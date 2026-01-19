@@ -119,7 +119,7 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
     let panY = 0
 
     if (containerRect.top < mapRect.top) {
-      panY = containerRect.top - mapRect.top - 20 // 20px padding
+      panY = containerRect.top - mapRect.top - 80 // 80px padding for search bar
     }
     if (containerRect.bottom > mapRect.bottom) {
       panY = containerRect.bottom - mapRect.bottom + 20
