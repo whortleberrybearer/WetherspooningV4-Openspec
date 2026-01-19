@@ -30,6 +30,7 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
   private escKeyHandler: ((e: KeyboardEvent) => void) | null = null
   private closeButtonHandler: (() => void) | null = null
   private actionButtonHandler: (() => void) | null = null
+  private needsReposition = false
 
   constructor() {
     super()
@@ -55,7 +56,7 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
   }
 
   draw(): void {
-    if (!this.container || !this.position) return
+    if (!this.container || !this.position || !this.needsReposition) return
 
     const projection = this.getProjection()
     if (!projection) return
@@ -98,6 +99,9 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
 
     this.container.style.left = `${left}px`
     this.container.style.top = `${top}px`
+    
+    // Reset flag after positioning
+    this.needsReposition = false
   }
 
   onRemove(): void {
@@ -112,13 +116,23 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
     this.pub = pub
     this.position = position
     this.isDark = isDark
+    this.needsReposition = true
 
     if (this.container) {
+      // Set visibility first so dimensions can be calculated
+      this.container.style.visibility = 'hidden'
+      this.container.style.display = 'block'
+      
       this.container.innerHTML = this.generateContent(pub, isDark)
       this.container.setAttribute('aria-label', `Pub information for ${pub.name}`)
-      this.container.style.display = 'block'
       this.attachEventListeners()
+      
+      // Force a layout calculation
+      this.container.offsetHeight
+      
+      // Now position and make visible
       this.draw()
+      this.container.style.visibility = 'visible'
 
       // Move focus to close button
       setTimeout(() => {
@@ -145,6 +159,7 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
       this.cleanupEventListeners()
       this.container.innerHTML = this.generateContent(pub, isDark)
       this.attachEventListeners()
+      // Don't reposition - content update doesn't require repositioning
     }
   }
 
