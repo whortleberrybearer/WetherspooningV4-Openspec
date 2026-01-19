@@ -63,12 +63,15 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
     const point = projection.fromLatLngToDivPixel(this.position)
     if (!point) return
 
+    // Force layout recalculation to get accurate dimensions
+    this.container.offsetHeight
+
     const overlayWidth = this.container.offsetWidth
     const overlayHeight = this.container.offsetHeight
 
-    // Center horizontally and position above the marker
-    const left = point.x - overlayWidth / 2
-    const top = point.y - overlayHeight - 40 // 40px gap above marker
+    // Center horizontally and position above the marker with more gap
+    const left = point.x - (overlayWidth / 2)
+    const top = point.y - overlayHeight - 50 // Increased gap to fully clear marker
 
     this.container.style.left = `${left}px`
     this.container.style.top = `${top}px`
