@@ -30,7 +30,6 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
   private escKeyHandler: ((e: KeyboardEvent) => void) | null = null
   private closeButtonHandler: (() => void) | null = null
   private actionButtonHandler: (() => void) | null = null
-  private needsReposition = false
 
   constructor() {
     super()
@@ -56,7 +55,7 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
   }
 
   draw(): void {
-    if (!this.container || !this.position || !this.needsReposition) return
+    if (!this.container || !this.position) return
 
     const projection = this.getProjection()
     if (!projection) return
@@ -64,44 +63,8 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
     const point = projection.fromLatLngToDivPixel(this.position)
     if (!point) return
 
-    // Calculate overlay dimensions
-    const overlayWidth = this.container.offsetWidth
-    const overlayHeight = this.container.offsetHeight
-
-    // Position overlay centered horizontally and above the marker
-    let left = point.x - overlayWidth / 2
-    let top = point.y - overlayHeight - 40 // 40px gap above marker (includes marker height)
-
-    // Viewport boundary checks
-    const map = this.getMap()
-    if (map instanceof google.maps.Map) {
-      const mapDiv = map.getDiv()
-      const mapWidth = mapDiv.offsetWidth
-      const mapHeight = mapDiv.offsetHeight
-      const margin = 10
-
-      // Prevent overflow on left
-      if (left < margin) left = margin
-
-      // Prevent overflow on right
-      if (left + overlayWidth > mapWidth - margin) {
-        left = mapWidth - overlayWidth - margin
-      }
-
-      // Prevent overflow on top
-      if (top < margin) top = margin
-
-      // Prevent overflow on bottom
-      if (top + overlayHeight > mapHeight - margin) {
-        top = mapHeight - overlayHeight - margin
-      }
-    }
-
-    this.container.style.left = `${left}px`
-    this.container.style.top = `${top}px`
-    
-    // Reset flag after positioning
-    this.needsReposition = false
+    this.container.style.left = `${point.x}px`
+    this.container.style.top = `${point.y}px`
   }
 
   onRemove(): void {
@@ -116,23 +79,12 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
     this.pub = pub
     this.position = position
     this.isDark = isDark
-    this.needsReposition = true
 
     if (this.container) {
-      // Set visibility first so dimensions can be calculated
-      this.container.style.visibility = 'hidden'
-      this.container.style.display = 'block'
-      
       this.container.innerHTML = this.generateContent(pub, isDark)
       this.container.setAttribute('aria-label', `Pub information for ${pub.name}`)
+      this.container.style.display = 'block'
       this.attachEventListeners()
-      
-      // Force a layout calculation
-      this.container.offsetHeight
-      
-      // Now position and make visible
-      this.draw()
-      this.container.style.visibility = 'visible'
 
       // Move focus to close button
       setTimeout(() => {
@@ -159,7 +111,6 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
       this.cleanupEventListeners()
       this.container.innerHTML = this.generateContent(pub, isDark)
       this.attachEventListeners()
-      // Don't reposition - content update doesn't require repositioning
     }
   }
 
