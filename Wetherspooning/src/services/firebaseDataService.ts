@@ -29,6 +29,25 @@ export interface Pub {
 }
 
 /**
+ * User profile information
+ * 
+ * Represents a user's public profile data.
+ * Stored in Firestore `users` collection with document ID matching Firebase UID.
+ */
+export interface UserProfile {
+  /** Firebase UID (matches document ID) */
+  uid: string
+  /** Unique username for shareable URLs */
+  username: string
+  /** User's email address */
+  email: string
+  /** Privacy toggle - whether visits are publicly shareable */
+  visitsPublic: boolean
+  /** ISO 8601 timestamp of when profile was created */
+  createdAt: string
+}
+
+/**
  * Visit information for a pub
  * 
  * Represents a single visit by a user to a Wetherspoon pub.
@@ -569,5 +588,218 @@ export async function deleteUserData(userId: string): Promise<void> {
     // Handle query failures
     console.error(`Failed to retrieve user data for deletion:`, error)
     throw new Error('Failed to retrieve user data for deletion. Please try again.')
+  }
+}
+
+/**
+ * Validate a user profile document from Firestore
+ * 
+ * @param docId - Firestore document ID (should match UID)
+ * @param data - The document data to validate
+ * @returns true if valid, false otherwise
+ */
+function validateUserProfile(docId: string, data: any): data is UserProfile {
+  const requiredFields = ['uid', 'username', 'email', 'visitsPublic', 'createdAt']
+  
+  for (const field of requiredFields) {
+    if (!(field in data)) {
+      console.warn(`Invalid user profile document ${docId}: missing required field '${field}'`)
+      return false
+    }
+  }
+  
+  if (typeof data.uid !== 'string' || data.uid.trim() === '') {
+    console.warn(`Invalid user profile document ${docId}: uid must be a non-empty string`)
+    return false
+  }
+  
+  if (typeof data.username !== 'string' || data.username.trim() === '') {
+    console.warn(`Invalid user profile document ${docId}: username must be a non-empty string`)
+    return false
+  }
+  
+  if (typeof data.email !== 'string' || data.email.trim() === '') {
+    console.warn(`Invalid user profile document ${docId}: email must be a non-empty string`)
+    return false
+  }
+  
+  if (typeof data.visitsPublic !== 'boolean') {
+    console.warn(`Invalid user profile document ${docId}: visitsPublic must be a boolean`)
+    return false
+  }
+  
+  if (typeof data.createdAt !== 'string') {
+    console.warn(`Invalid user profile document ${docId}: createdAt must be a string`)
+    return false
+  }
+  
+  return true
+}
+
+/**
+ * Create a user profile in Firestore
+ * 
+ * @param uid - Firebase UID
+ * @param username - Unique username
+ * @param email - User's email address
+ * @returns Promise resolving when profile is created
+ * @throws Error if creation fails or username already exists
+ */
+export async function createUserProfile(uid: string, username: string, email: string): Promise<void> {
+  try {
+    const profile: UserProfile = {
+      uid,
+      username: username.toLowerCase(),
+      email,
+      visitsPublic: false,
+      createdAt: new Date().toISOString()
+    }
+    
+    const docRef = doc(db, 'users', uid)
+    await setDoc(docRef, profile)
+  } catch (error: any) {
+    console.error('Failed to create user profile:', error)
+    throw new Error('Failed to create user profile. Please try again.')
+  }
+}
+
+/**
+ * Get a user profile by UID from Firestore
+ * 
+ * @param uid - Firebase UID
+ * @returns Promise resolving to UserProfile or null if not found
+ * @throws Error if network fails
+ */
+export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+  try {
+    const docRef = doc(db, 'users', uid)
+    const docSnap = await getDoc(docRef)
+    
+    if (!docSnap.exists()) {
+      return null
+    }
+    
+    const data = docSnap.data()
+    if (!validateUserProfile(docSnap.id, data)) {
+      return null
+    }
+    
+    return data as UserProfile
+  } catch (error: any) {
+    console.error(`Failed to load user profile ${uid}:`, error)
+    throw error
+  }
+}
+
+/**
+ * Get a user profile by username from Firestore
+ * 
+ * @param username - Username to search for (case-insensitive)
+ * @returns Promise resolving to UserProfile or null if not found
+ * @throws Error if network fails or multiple users found
+ */
+export async function getUserProfileByUsername(username: string): Promise<UserProfile | null> {
+  try {
+    const q = query(
+      collection(db, 'users'), 
+      where('username', '==', username.toLowerCase()),
+      limit(1)
+    )
+    const querySnapshot = await getDocs(q)
+    
+    if (querySnapshot.empty) {
+      return null
+    }
+    
+    const docSnap = querySnapshot.docs[0]
+    const data = docSnap.data()
+    
+    if (!validateUserProfile(docSnap.id, data)) {
+      return null
+    }
+    
+    return data as UserProfile
+  } catch (error: any) {
+    console.error(`Failed to load user profile for username ${username}:`, error)
+    throw error
+  }
+}
+
+/**
+ * Update user's visit privacy setting
+ * 
+ * @param uid - Firebase UID
+ * @param visitsPublic - New privacy setting
+ * @returns Promise resolving when update completes
+ * @throws Error if update fails
+ */
+export async function updateUserPrivacy(uid: string, visitsPublic: boolean): Promise<void> {
+  try {
+    const docRef = doc(db, 'users', uid)
+    await updateDoc(docRef, { visitsPublic })
+  } catch (error: any) {
+    console.error('Failed to update user privacy setting:', error)
+    throw new Error('Failed to update privacy setting. Please try again.')
+  }
+}
+
+/**
+ * Check if a username is available
+ * 
+ * @param username - Username to check (case-insensitive)
+ * @returns Promise resolving to true if available, false if taken
+ * @throws Error if network fails
+ */
+export async function checkUsernameAvailable(username: string): Promise<boolean> {
+  try {
+    const profile = await getUserProfileByUsername(username)
+    return profile === null
+  } catch (error: any) {
+    console.error(`Failed to check username availability:`, error)
+    throw error
+  }
+}
+
+/**
+ * Get public visits for a user (for shared visit viewing)
+ * Notes field is excluded for privacy
+ * 
+ * @param userId - Firebase UID of user whose visits to load
+ * @returns Promise resolving to array of Visit objects (without notes)
+ * @throws Error if user has private visits or network fails
+ */
+export async function getPublicVisits(userId: string): Promise<Visit[]> {
+  try {
+    // First check if user has public visits enabled
+    const profile = await getUserProfile(userId)
+    if (!profile) {
+      throw new Error('User not found')
+    }
+    
+    if (!profile.visitsPublic) {
+      throw new Error('This user\'s visits are private')
+    }
+    
+    // Load visits (same as getUserVisits but explicitly for public access)
+    const q = query(collection(db, 'visits'), where('userId', '==', userId))
+    const querySnapshot = await getDocs(q)
+    
+    const visits: Visit[] = []
+    querySnapshot.forEach((doc) => {
+      const visit = docToVisit(doc)
+      if (visit) {
+        // Explicitly remove notes for privacy (defense in depth)
+        const { notes, ...publicVisit } = visit
+        visits.push(publicVisit as Visit)
+      }
+    })
+    
+    return visits
+  } catch (error: any) {
+    if (error.message === 'User not found' || error.message.includes('private')) {
+      throw error
+    }
+    console.error(`Failed to load public visits for user ${userId}:`, error)
+    throw new Error('Failed to load visits. Please try again.')
   }
 }

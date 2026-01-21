@@ -42,6 +42,7 @@
     <PubDetailSheet 
       :pub="selectedPub" 
       :is-open="showPubDetail"
+      :is-readonly="!!props.sharedVisitsMode"
       @update:is-open="showPubDetail = $event"
     />
 
@@ -77,8 +78,17 @@ import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
 import { useTheme } from '@/composables/useTheme'
 import { getAllPubs } from '@/services/pubDataService'
-import type { Pub } from '@/services/firebaseDataService'
+import type { Pub, Visit } from '@/services/firebaseDataService'
 import { createCustomPubOverlay, type CustomPubOverlay } from '@/components/CustomPubOverlay'
+
+// Props for shared visit mode
+const props = defineProps<{
+  sharedVisitsMode?: {
+    userId: string
+    username: string
+    visits: Visit[]
+  } | null
+}>()
 
 const mapContainer = ref<HTMLElement | null>(null)
 const map = shallowRef<google.maps.Map | null>(null)
@@ -103,8 +113,31 @@ const { user, isAuthenticated } = useAuth()
 const { isVisited, getVisit, getVisitDate, loadVisits, clearVisits, visitedPubIds, visits, addVisit } = useVisits()
 const { isDark } = useTheme()
 
-// Watch authentication state to load/clear visit data
+// Shared visit state
+const sharedVisitIds = computed(() => {
+  if (!props.sharedVisitsMode) return new Set<string>()
+  return new Set(props.sharedVisitsMode.visits.map(v => v.pubId))
+})
+
+const sharedVisitMap = computed(() => {
+  if (!props.sharedVisitsMode) return new Map<string, Visit>()
+  return new Map(props.sharedVisitsMode.visits.map(v => [v.pubId, v]))
+})
+
+// Helper functions that work in both own and shared modes
+const isMarkerVisited = (pubId: string): boolean => {
+  return props.sharedVisitsMode ? sharedVisitIds.value.has(pubId) : isVisited(pubId)
+}
+
+const getMarkerVisit = (pubId: string): Visit | null => {
+  return props.sharedVisitsMode ? (sharedVisitMap.value.get(pubId) || null) : getVisit(pubId)
+}
+
+// Watch authentication state to load/clear visit data (only in own visits mode)
 watch(isAuthenticated, async (authenticated) => {
+  // Skip if in shared visits mode
+  if (props.sharedVisitsMode) return
+
   if (authenticated && user.value?.uid) {
     // Load visits when user logs in using Firebase UID
     await loadVisits(user.value.uid)
@@ -119,7 +152,7 @@ watch(isAuthenticated, async (authenticated) => {
 })
 
 // Watch for changes in visit data to update markers and clusters
-watch([visitedPubIds, visits], () => {
+watch([visitedPubIds, visits, () => props.sharedVisitsMode], () => {
   // Recreate markers to reflect visit status changes (checkmark icons)
   createMarkers()
   
@@ -232,8 +265,8 @@ const initMap = () => {
       showLoginDialog.value = true
     },
     isAuthenticated: () => isAuthenticated.value,
-    getVisit: (pubId: string) => getVisit(pubId),
-    isVisited: (pubId: string) => isVisited(pubId)
+    getVisit: (pubId: string) => getMarkerVisit(pubId),
+    isVisited: (pubId: string) => isMarkerVisited(pubId)
   })
   pubOverlay.value.setMap(map.value)
   
@@ -368,9 +401,14 @@ const performProximityCheck = () => {
  * Falls back to default center (54.0, -2.0) if geolocation is unavailable or denied.
  * Non-blocking - map is immediately usable with default center while geolocation request is pending.
  * On first geolocation, checks proximity and auto-centers on nearby pub if within 100m.
+ * 
+ * Disabled in shared visits mode to avoid confusing UX.
  */
 const centerOnUserLocation = () => {
   if (!map.value) return
+
+  // Skip geolocation in shared visits mode
+  if (props.sharedVisitsMode) return
   
   if ('geolocation' in navigator) {
     // Get initial position for map centering and proximity check
@@ -458,7 +496,7 @@ const createMarkers = () => {
 
     // Check if pub is closed and visited for visual differentiation
     const isClosed = pub.openState === 'Closed'
-    const visited = isVisited(pub.id)
+    const visited = isMarkerVisited(pub.id)
 
     // Create enhanced pin marker with SVG
     const markerElement = document.createElement('div')
@@ -617,7 +655,7 @@ const separateMarkers = (): {
     const pub = filteredPubsForMap.value.find(p => p.position?.lat === lat && p.position?.lng === lng)
     
     if (pub) {
-      if (isVisited(pub.id)) {
+      if (isMarkerVisited(pub.id)) {
         visited.push(marker)
       } else {
         unvisited.push(marker)

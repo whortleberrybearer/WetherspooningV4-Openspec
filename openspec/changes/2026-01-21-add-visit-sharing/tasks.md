@@ -8,20 +8,20 @@ Tasks are ordered to deliver user-visible progress incrementally while managing 
 
 ### Phase 1: Foundation (No User-Facing Changes)
 
-- [ ] **Create Firestore users collection structure**
+- [x] **Create Firestore users collection structure**
   - Define UserProfile TypeScript interface in firebaseDataService.ts
   - Add validation function for user profile documents
   - Add indexes for username field (ascending, unique)
   - Test: Verify interface compiles, validation logic works
 
-- [ ] **Update Firestore security rules for users collection**
+- [x] **Update Firestore security rules for users collection**
   - Add rules for `/users/{userId}` path
   - Allow public read (anyone can query username)
   - Allow create/update only by owner (auth.uid matches document ID)
   - Prevent UID field modification after creation
   - Test: Run security rules unit tests in emulator
 
-- [ ] **Update Firestore security rules for public visit access**
+- [x] **Update Firestore security rules for public visit access**
   - Extend `/visits/{visitId}` rules to allow public read when visitsPublic=true
   - Keep existing owner read/write rules
   - Add helper function to check public flag from users collection
@@ -29,33 +29,33 @@ Tasks are ordered to deliver user-visible progress incrementally while managing 
 
 ### Phase 2: User Profile Management
 
-- [ ] **Add username field to User interface**
+- [x] **Add username field to User interface**
   - Update User interface in useAuth.ts to make username required (not optional)
   - Update authState initialization to include username
   - Update Firebase Auth state change handler to load username from users collection
   - Test: Verify type checking passes, auth state includes username
 
-- [ ] **Add username validation logic**
+- [x] **Add username validation logic**
   - Create validateUsername function (3-20 chars, alphanumeric + underscore/hyphen)
   - Create checkUsernameAvailable function (query users collection)
   - Add reserved username list (admin, api, visits, settings)
   - Test: Unit tests for validation rules and availability check
 
-- [ ] **Update signup flow to capture username**
+- [x] **Update signup flow to capture username**
   - Add username input field to signup dialog (between email and password)
   - Add real-time validation (check availability on blur)
   - Update createUserWithEmailAndPassword flow to create user profile
   - Use Firestore transaction to create auth + profile atomically
   - Test: E2E test signup with username, verify profile created
 
-- [ ] **Create user profile service functions**
+- [x] **Create user profile service functions**
   - Add createUserProfile(uid, username, email) to firebaseDataService
   - Add getUserProfile(uid) function
   - Add getUserProfileByUsername(username) function
   - Add updateUserPrivacy(uid, visitsPublic) function
   - Test: Unit tests for each service function
 
-- [ ] **Load user profile on authentication**
+- [x] **Load user profile on authentication**
   - Update onAuthStateChanged handler in useAuth to load user profile
   - Populate username from Firestore users collection
   - Handle missing profile (legacy users) gracefully
@@ -63,21 +63,21 @@ Tasks are ordered to deliver user-visible progress incrementally while managing 
 
 ### Phase 3: Privacy Settings UI
 
-- [ ] **Add privacy toggle to Account Settings dialog**
+- [x] **Add privacy toggle to Account Settings dialog**
   - Import shadcn/vue Switch component
   - Add toggle UI below email, above Delete Account button
   - Add helper text explaining public sharing
   - Bind toggle to visitsPublic state from user profile
   - Test: Toggle renders, state binding works
 
-- [ ] **Implement privacy toggle state management**
+- [x] **Implement privacy toggle state management**
   - Create reactive state for visitsPublic in useAuth or new composable
   - Add updatePrivacy function that calls firebaseDataService
   - Handle loading state during save
   - Handle errors and revert on failure
   - Test: Toggle saves to Firestore, persists across refresh
 
-- [ ] **Add shareable URL display**
+- [x] **Add shareable URL display**
   - Show URL input field when visitsPublic=true
   - Format URL: `${window.location.origin}/visits/@${username}`
   - Add copy button using Clipboard API
@@ -94,55 +94,63 @@ Tasks are ordered to deliver user-visible progress incrementally while managing 
 
 ### Phase 4: Shared Visit Viewing
 
-- [ ] **Add shared visit route to Vue Router**
-  - Define route `/visits/:username` in router/index.ts
-  - Add route guard to load user profile by username
-  - Handle username not found (404)
-  - Handle user exists but visits private (custom message)
-  - Test: Navigation to valid/invalid usernames works
+- [x] **Add shared visit route to Vue Router**
+  - Define route `/visits/@:username` in router/index.ts
+  - Route points to SharedVisitsView component
+  - Test: Navigation to route works
 
-- [ ] **Create SharedVisitView component**
-  - Create new view component in views/SharedVisitView.vue
-  - Extract username from route params
-  - Load user profile by username
+- [x] **Create SharedVisitsView component**
+  - Create new view component in views/SharedVisitsView.vue
+  - Extract username from route params (remove @ prefix)
+  - Load user profile by username using getUserProfileByUsername
   - Display loading, error, and success states
   - Test: Component loads and handles route params
 
-- [ ] **Implement shared visit data loading**
-  - Create loadPublicVisits(userId) in useVisits composable (separate from loadVisits)
+- [x] **Implement shared visit data loading**
+  - Create getPublicVisits(userId) in firebaseDataService
   - Query visits collection filtered by userId
-  - Filter out notes field client-side (defense in depth)
-  - Store in separate reactive state (don't mix with own visits)
+  - Verify user has visitsPublic=true before loading
+  - Filter out notes field from returned visits (privacy requirement)
   - Test: Loads correct user's visits, notes excluded
 
-- [ ] **Add view mode banner UI**
-  - Create banner component showing "Viewing @{username}'s visits"
+- [x] **Add view mode banner UI**
+  - Create banner in SharedVisitsView showing "Viewing @{username}'s visits"
   - Add "View my visits" button for authenticated users
   - Add "Start tracking" button for unauthenticated users
-  - Style with distinct background color
-  - Position at top of main content area
+  - Style with Alert component and shadow
+  - Position at top with absolute positioning and z-index
   - Test: Banner displays, buttons navigate correctly
 
-- [ ] **Integrate shared visits with map**
-  - Reuse existing map component with shared visit data
-  - Apply visited markers for shared user's visits
-  - Update pub detail sheet to show shared visit info
-  - Hide edit/delete buttons in shared view
-  - Hide notes field in pub detail sheet
-  - Test: Map shows correct markers, pub details load correctly
+- [x] **Integrate shared visits with map**
+  - Add sharedVisitsMode prop to PubLocationsMap component
+  - Create helper functions isMarkerVisited and getMarkerVisit for mode-agnostic logic
+  - Pass shared visits data from SharedVisitsView to PubLocationsMap
+  - Apply visited markers for shared user's visits (green markers with checkmarks)
+  - Update overlay to use mode-agnostic visit functions
+  - Disable geolocation/proximity check in shared mode
+  - Test: Map shows correct markers for shared visits
+
+- [x] **Update pub detail sheet for shared view**
+  - Add isReadonly prop to PubDetailSheet component
+  - Hide edit/delete buttons when isReadonly=true
+  - Display visit date and rating in readonly mode
+  - Never show notes field in shared view (privacy requirement)
+  - Show "This pub has not been visited yet" when no visit exists in shared mode
+  - Test: Detail sheet shows correct readonly view
 
 - [ ] **Add visit statistics for shared view**
-  - Calculate total visit count
-  - Calculate average rating (if ratings exist)
-  - Display prominently in shared view
-  - Handle edge cases (no visits, no ratings)
+  - Calculate total visit count from shared visits
+  - Calculate closed pubs count
+  - Calculate remaining visits count
+  - Display in SharedVisitsView below banner
+  - Match existing stats pattern (total/closed/remaining)
   - Test: Statistics calculate correctly
 
 - [ ] **Implement shared view responsive layout**
-  - Apply mobile-first design to shared view
+  - Apply mobile-first design to shared view banner
   - Ensure banner responsive across screen sizes
-  - Test visit list and map on mobile and desktop
-  - Verify touch targets meet 44×44px minimum on mobile
+  - Test on mobile and desktop viewports
+  - Verify banner doesn't overlap search/controls
   - Test: Renders correctly on mobile (320px) and desktop (1920px)
 
 ### Phase 5: Navigation & User Experience

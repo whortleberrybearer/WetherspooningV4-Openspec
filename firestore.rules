@@ -11,7 +11,31 @@ service cloud.firestore {
       allow write: if false;
     }
     
-    // Visits: Users can only read/write their own visits
+    // Users: Public profiles with privacy settings
+    match /users/{userId} {
+      // Anyone can read user profiles (needed for username lookups and public visit viewing)
+      allow read: if true;
+      
+      // Only the user can create their own profile
+      allow create: if request.auth != null 
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == userId
+                    && request.resource.data.username is string
+                    && request.resource.data.email is string
+                    && request.resource.data.visitsPublic is bool
+                    && request.resource.data.createdAt is string;
+      
+      // Only the user can update their own profile
+      // Prevent UID modification after creation
+      allow update: if request.auth != null 
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == resource.data.uid;
+      
+      // Users cannot delete their profile directly (handled by account deletion flow)
+      allow delete: if false;
+    }
+    
+    // Visits: Users can read/write their own visits, or read public visits
     match /visits/{visitId} {
       // Helper function to validate rating field
       function isValidRating() {
@@ -36,9 +60,16 @@ service cloud.firestore {
                request.resource.data.visitedAt is string;
       }
       
-      // Allow read if user is authenticated and visit belongs to them
-      allow read: if request.auth != null 
-                  && resource.data.userId == request.auth.uid;
+      // Helper function to check if user has public visits enabled
+      function userHasPublicVisits() {
+        return exists(/databases/$(database)/documents/users/$(resource.data.userId))
+               && get(/databases/$(database)/documents/users/$(resource.data.userId)).data.visitsPublic == true;
+      }
+      
+      // Allow read if user is authenticated and visit belongs to them (own visits)
+      // OR if the visit owner has enabled public sharing (shared visits)
+      allow read: if (request.auth != null && resource.data.userId == request.auth.uid)
+                  || userHasPublicVisits();
       
       // Allow create if user is authenticated and setting their own userId
       // and all optional fields are valid

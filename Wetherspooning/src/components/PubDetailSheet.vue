@@ -17,8 +17,8 @@
       </DialogHeader>
 
       <div v-if="pub" class="grid gap-4">
-        <!-- Visit Tracking Section (Only for Authenticated Users) -->
-        <div v-if="isAuthenticated">
+        <!-- Visit Tracking Section (Only for Authenticated Users in Own Mode) -->
+        <div v-if="isAuthenticated && !props.isReadonly">
           <div class="grid gap-4">
             <!-- Visit Date -->
             <div class="grid gap-2">
@@ -88,9 +88,36 @@
           </div>
         </div>
 
-        <!-- Unauthenticated Message -->
-        <div v-else class="p-3 bg-muted rounded-md text-sm text-muted-foreground">
+        <!-- Readonly/Shared Visit Display -->
+        <div v-else-if="props.isReadonly && currentVisit" class="grid gap-4">
+          <!-- Visit Date (Display Only) -->
+          <div v-if="currentVisit.visitedAt" class="grid gap-2">
+            <Label>Visit Date</Label>
+            <div class="text-sm p-2 bg-muted rounded-md">
+              {{ new Date(currentVisit.visitedAt).toLocaleDateString() }}
+            </div>
+          </div>
+
+          <!-- Rating (Display Only) -->
+          <div v-if="currentVisit.rating" class="grid gap-2">
+            <Label>Rating</Label>
+            <StarRating 
+              :model-value="currentVisit.rating"
+              :disabled="true"
+            />
+          </div>
+
+          <!-- Notes are NEVER shown in shared view (privacy requirement) -->
+        </div>
+
+        <!-- Unauthenticated Message in Own Mode -->
+        <div v-else-if="!isAuthenticated && !props.isReadonly" class="p-3 bg-muted rounded-md text-sm text-muted-foreground">
           Sign in to track your visits
+        </div>
+
+        <!-- No Visit Data in Shared Mode -->
+        <div v-else-if="props.isReadonly && !currentVisit" class="p-3 bg-muted rounded-md text-sm text-muted-foreground">
+          This pub has not been visited yet.
         </div>
       </div>
     </DialogContent>
@@ -150,6 +177,7 @@ interface Pub {
 interface Props {
   pub: Pub | null
   isOpen: boolean
+  isReadonly?: boolean
 }
 
 const props = defineProps<Props>()
