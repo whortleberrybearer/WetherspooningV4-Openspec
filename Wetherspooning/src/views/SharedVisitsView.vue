@@ -84,8 +84,8 @@ onMounted(async () => {
     
     // Check if visits are public
     if (!profile.visitsPublic) {
-      errorTitle.value = 'Private visits'
-      error.value = 'This user\'s visits are private'
+      errorTitle.value = 'Not found'
+      error.value = `No user found with username @${username.value}`
       isLoading.value = false
       return
     }
