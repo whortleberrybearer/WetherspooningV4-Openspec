@@ -3,7 +3,7 @@
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton size="lg" class="data-[state=collapsed]:px-0">
+          <div class="flex items-center gap-2 px-2 py-2">
             <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
@@ -14,7 +14,7 @@
               <span class="truncate font-semibold">Wetherspooning</span>
               <span class="truncate text-xs">Pub Tracker</span>
             </div>
-          </SidebarMenuButton>
+          </div>
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarHeader>
