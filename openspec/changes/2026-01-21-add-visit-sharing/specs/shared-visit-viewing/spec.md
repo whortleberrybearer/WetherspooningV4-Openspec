@@ -196,26 +196,31 @@ The system MUST display aggregate visit statistics for shared users.
 
 **Acceptance Criteria:**
 - Total visit count displayed prominently
-- Average rating calculated and displayed (if ratings exist)
+- Count of visits to closed pubs displayed (if any)
+- Count of remaining visits (non-closed pubs) displayed
 - Statistics update when visit data loads
-- Statistics exclude visits to closed pubs from counts (consistent with own view)
+- Statistics calculation matches existing stats logic from own view
 - Statistics show "0 visits" for users with no visits
 - Statistics are read-only (no editing in shared view)
 
 #### Scenario: Display Visit Statistics
 **Given** user "iris" has `visitsPublic: true`  
-**And** iris has 25 visits with ratings: 10×5-star, 10×4-star, 5×3-star  
+**And** iris has 25 total visits  
+**And** 3 of those visits are to pubs with `openState === 'Closed'`  
 **When** any user views "/visits/@iris"  
 **Then** the page displays "25 pubs visited"  
-**And** displays "Average rating: 4.2 stars"  
+**And** displays "3 closed" (or similar indicator for closed pubs)  
+**And** displays "22 remaining" (non-closed visits)  
 **And** statistics are visible above the visit list
 
-#### Scenario: Statistics with No Ratings
+#### Scenario: Statistics with All Closed Pubs
 **Given** user "jack" has `visitsPublic: true`  
-**And** jack has 10 visits with no ratings set  
+**And** jack has 10 visits  
+**And** all 10 visits are to pubs with `openState === 'Closed'`  
 **When** any user views "/visits/@jack"  
 **Then** the page displays "10 pubs visited"  
-**And** shows "No ratings yet" or hides average rating
+**And** displays "10 closed"  
+**And** displays "0 remaining"
 
 ---
 
