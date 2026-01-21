@@ -139,10 +139,10 @@
                             <div class="flex items-start justify-between gap-2 flex-1 min-w-0">
                               <div class="flex flex-col gap-0.5 flex-1 min-w-0">
                                 <span :class="['text-sm break-words flex items-center gap-1', isPubClosed(pub) ? 'text-muted-foreground' : '']">
+                                  <span>{{ pub.name }}</span>
                                   <span v-if="pub.isHotel" title="Hotel">🏨</span>
                                   <span v-if="pub.inAirport" title="Airport">✈️</span>
                                   <span v-if="pub.inTrainStation" title="Train Station">🚂</span>
-                                  <span>{{ pub.name }}</span>
                                 </span>
                                 <span class="text-xs text-muted-foreground">{{ pub.townCity }}</span>
                               </div>
@@ -456,9 +456,23 @@ const groupedPubs = computed(() => {
       Object.keys(grouped[country]!)
         .sort()
         .forEach((county) => {
-          const countyPubs = grouped[country]![county]!.sort((a, b) =>
-            a.townCity.localeCompare(b.townCity)
-          )
+          const countyPubs = grouped[country]![county]!.sort((a, b) => {
+            // Primary sort: by name
+            const nameComparison = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+            if (nameComparison !== 0) return nameComparison
+            
+            // Secondary sort: by townCity
+            const townComparison = a.townCity.localeCompare(b.townCity, undefined, { sensitivity: 'base' })
+            if (townComparison !== 0) return townComparison
+            
+            // Tertiary sort: open before closed
+            const aIsClosed = (a.openState || 'Open') === 'Closed'
+            const bIsClosed = (b.openState || 'Open') === 'Closed'
+            if (aIsClosed && !bIsClosed) return 1
+            if (!aIsClosed && bIsClosed) return -1
+            
+            return 0
+          })
           if (countyPubs.length > 0) {
             counties[county] = countyPubs
           }

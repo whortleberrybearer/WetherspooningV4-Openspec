@@ -151,16 +151,16 @@ const countyPubs = grouped[country]![county]!.sort((a, b) => {
 ---
 
 ## Completion Criteria
-- [ ] Pubs within counties sort by name → townCity → openState
-- [ ] Case-insensitive sorting works correctly
-- [ ] Open pubs appear before closed when name+town match
-- [ ] Sidebar width is 400px on desktop
-- [ ] No horizontal scrollbar appears in sidebar
-- [ ] Location type icons appear after pub name
-- [ ] All existing functionality works (expand/collapse, selection, filtering)
-- [ ] Visual regression check passes (icons, alignment, spacing)
-- [ ] Mobile responsiveness unaffected
-- [ ] No console errors or warnings
+- [x] Pubs within counties sort by name → townCity → openState
+- [x] Case-insensitive sorting works correctly
+- [x] Open pubs appear before closed when name+town match
+- [x] Sidebar width is 400px on desktop
+- [x] No horizontal scrollbar appears in sidebar
+- [x] Location type icons appear after pub name
+- [x] All existing functionality works (expand/collapse, selection, filtering)
+- [x] Visual regression check passes (icons, alignment, spacing)
+- [x] Mobile responsiveness unaffected
+- [x] No console errors or warnings
 
 ## Estimated Effort
 - Task 1 (Sorting): 15 minutes
