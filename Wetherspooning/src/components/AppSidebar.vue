@@ -129,7 +129,7 @@
                     <span v-else class="text-xs text-muted-foreground">{{ getCountyTotal(pubList) }}</span>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <SidebarMenu>
+                    <SidebarMenu class="pl-4">
                       <SidebarMenuItem v-for="pub in pubList" :key="pub.id">
                         <SidebarMenuButton
                           @click="$emit('selectPub', pub)"
