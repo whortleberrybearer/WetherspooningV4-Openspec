@@ -135,25 +135,35 @@
                           @click="$emit('selectPub', pub)"
                           :class="[isPubClosed(pub) ? 'opacity-50' : '', 'h-auto py-2']"
                         >
-                          <div class="flex items-start justify-between gap-2 flex-1 min-w-0">
-                            <div class="flex flex-col gap-0.5 flex-1 min-w-0">
-                              <span :class="['text-sm break-words flex items-center gap-1', isPubClosed(pub) ? 'text-muted-foreground' : '']">
+                          <div class="flex flex-col gap-0.5 flex-1 min-w-0">
+                            <!-- First row: Name and Visit Date -->
+                            <div class="flex items-center justify-between gap-2">
+                              <span :class="['text-sm break-words flex items-center gap-1 flex-1', isPubClosed(pub) ? 'text-muted-foreground' : '']">
                                 <span>{{ pub.name }}</span>
                                 <span v-if="pub.isHotel" title="Hotel">🏨</span>
                                 <span v-if="pub.inAirport" title="Airport">✈️</span>
                                 <span v-if="pub.inTrainStation" title="Train Station">🚂</span>
                               </span>
-                              <span class="text-xs text-muted-foreground">{{ pub.townCity }}</span>
+                              <div 
+                                v-if="isAuthenticated && isVisited(pub.id)" 
+                                class="flex items-center gap-1 text-sm text-green-600 font-medium whitespace-nowrap shrink-0"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                <span>{{ formatVisitDate(getVisitDate(pub.id)) }}</span>
+                              </div>
                             </div>
-                            <div 
-                              v-if="isAuthenticated && isVisited(pub.id)" 
-                              class="flex items-center gap-1 text-sm text-green-600 font-medium whitespace-nowrap shrink-0"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                              </svg>
-                              <span>{{ formatVisitDate(getVisitDate(pub.id)) }}</span>
+                            <!-- Second row: Town/City and State -->
+                            <div class="flex items-center justify-between gap-2">
+                              <span class="text-xs text-muted-foreground">{{ pub.townCity }}</span>
+                              <span 
+                                v-if="pub.openState && pub.openState !== 'Open' && pub.openState !== 'Closed'" 
+                                class="text-xs text-muted-foreground whitespace-nowrap shrink-0"
+                              >
+                                {{ pub.openState }}
+                              </span>
                             </div>
                           </div>
                         </SidebarMenuButton>
