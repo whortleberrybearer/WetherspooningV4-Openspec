@@ -19,18 +19,24 @@ const sampleUsers = [
     email: 'test@example.com',
     password: 'password123',
     displayName: 'Test User',
+    username: 'testuser',
+    visitsPublic: true,
     visitProfile: { min: 35, max: 55, type: 'heavy' } // Frequent visitor
   },
   {
     email: 'alice@example.com',
     password: 'password123',
     displayName: 'Alice Smith',
+    username: 'alice_smith',
+    visitsPublic: true,
     visitProfile: { min: 15, max: 35, type: 'moderate' } // Moderate visitor
   },
   {
     email: 'bob@example.com',
     password: 'password123',
     displayName: 'Bob Jones',
+    username: 'bobjones',
+    visitsPublic: false,
     visitProfile: { min: 5, max: 15, type: 'light' } // Light visitor
   }
 ]
@@ -136,8 +142,17 @@ async function seedData() {
           emailVerified: true
         })
         
+        // Create user profile document in Firestore
+        await db.collection('users').doc(user.uid).set({
+          uid: user.uid,
+          username: userData.username,
+          email: userData.email,
+          visitsPublic: userData.visitsPublic,
+          createdAt: new Date().toISOString()
+        })
+        
         userUids[userData.email] = user.uid
-        console.log(`   ✅ Created user: ${userData.email} (uid: ${user.uid})`)
+        console.log(`   ✅ Created user: ${userData.email} (uid: ${user.uid}, username: @${userData.username})`)
         createdUsers++
       } catch (error) {
         if (error.code === 'auth/email-already-exists') {
@@ -214,11 +229,13 @@ async function seedData() {
     console.log('📊 Verification:')
     const pubsSnapshot = await db.collection('pubs').get()
     const visitsSnapshot = await db.collection('visits').get()
+    const usersSnapshot = await db.collection('users').get()
     const authUsers = await auth.listUsers()
     
     console.log(`   🍺 Pubs: ${pubsSnapshot.size}`)
     console.log(`   📍 Visits: ${visitsSnapshot.size}`)
-    console.log(`   👤 Users: ${authUsers.users.length}`)
+    console.log(`   👤 Auth Users: ${authUsers.users.length}`)
+    console.log(`   👤 User Profiles: ${usersSnapshot.size}`)
     
   } catch (error) {
     console.error('\n❌ Error seeding data:', error)
