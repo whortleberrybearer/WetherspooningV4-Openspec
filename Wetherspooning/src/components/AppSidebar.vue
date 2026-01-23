@@ -21,10 +21,10 @@
 
     <SidebarContent>
       <!-- Shared View Banner -->
-      <div v-if="sharedVisitsMode" class="px-2 py-3 bg-primary/10 border-b border-primary/20">
+      <div v-if="props.sharedVisitsMode" class="px-2 py-3 bg-primary/10 border-b border-primary/20">
         <div class="flex items-center justify-between">
           <div class="flex flex-col gap-1">
-            <span class="text-sm font-medium">@{{ sharedVisitsMode.username }}'s Visits</span>
+            <span class="text-sm font-medium">@{{ props.sharedVisitsMode.username }}'s Visits</span>
             <span class="text-xs text-muted-foreground">Public visit data</span>
           </div>
           <button
@@ -45,7 +45,7 @@
       </div>
 
       <!-- Visit Statistics -->
-      <SidebarGroup v-if="isAuthenticated || sharedVisitsMode">
+      <SidebarGroup v-if="isAuthenticated || props.sharedVisitsMode">
         <SidebarGroupContent>
           <div class="grid grid-cols-2 gap-2 px-2">
             <!-- Total Visited Card -->
@@ -73,7 +73,7 @@
         </SidebarGroupContent>
       </SidebarGroup>
 
-      <SidebarSeparator v-if="isAuthenticated || sharedVisitsMode" />
+      <SidebarSeparator v-if="isAuthenticated || props.sharedVisitsMode" />
 
       <!-- Filter Options -->
       <SidebarGroup>
@@ -169,7 +169,7 @@
                                 <span v-if="pub.inTrainStation" title="Train Station">🚂</span>
                               </span>
                               <div 
-                                v-if="(isAuthenticated || sharedVisitsMode) && isSharedVisited(pub.id)" 
+                                v-if="(isAuthenticated || props.sharedVisitsMode) && isSharedVisited(pub.id)"
                                 class="flex items-center gap-1 text-sm text-green-600 font-medium whitespace-nowrap shrink-0"
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -411,6 +411,8 @@ const { isDark, toggleTheme } = useTheme()
 // Shared visit state helpers
 const sharedVisitIds = computed(() => {
   if (!props.sharedVisitsMode) return new Set<string>()
+  console.log('AppSidebar: sharedVisitsMode received:', props.sharedVisitsMode)
+  console.log('AppSidebar: visits count:', props.sharedVisitsMode.visits.length)
   return new Set(props.sharedVisitsMode.visits.map(v => v.pubId))
 })
 

@@ -4,6 +4,7 @@
     <AppSidebar
       :pubs="pubs"
       :show-closed-pubs="showClosedPubs"
+      :shared-visits-mode="props.sharedVisitsMode"
       @selectPub="handlePubSelect"
       @toggleClosedPubs="showClosedPubs = !showClosedPubs"
     />
@@ -89,6 +90,8 @@ const props = defineProps<{
     visits: Visit[]
   } | null
 }>()
+
+console.log('PubLocationsMap: Received sharedVisitsMode:', props.sharedVisitsMode)
 
 const mapContainer = ref<HTMLElement | null>(null)
 const map = shallowRef<google.maps.Map | null>(null)
