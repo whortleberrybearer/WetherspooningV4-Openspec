@@ -1,26 +1,5 @@
 <template>
   <div class="h-screen flex flex-col">
-    <!-- Banner for shared view -->
-    <div v-if="!isLoading && !error" class="bg-primary/10 border-b border-primary/20 px-4 py-3 flex items-center justify-between" role="banner">
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">Viewing @{{ username }}'s visits</span>
-      </div>
-      <button
-        v-if="isAuthenticated"
-        @click="navigateToOwnVisits"
-        class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3"
-      >
-        View my visits
-      </button>
-      <button
-        v-else
-        @click="navigateToStartTracking"
-        class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3"
-      >
-        Start tracking
-      </button>
-    </div>
-
     <!-- Loading State -->
     <div v-if="isLoading" class="flex-1 flex items-center justify-center">
       <div class="flex flex-col items-center gap-4">
