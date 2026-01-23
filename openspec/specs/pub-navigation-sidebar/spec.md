@@ -8,27 +8,107 @@ TBD - created by archiving change add-pub-navigation-sidebar. Update Purpose aft
 **Category:** Functional
 
 **Changes:**
-- MODIFY: Display "Unknown" for missing country in grouping hierarchy
+- MODIFY: Update pub sorting within counties to use multi-level ordering
+- MODIFY: Adjust sidebar width to prevent horizontal scrollbar
+- MODIFY: Reposition location type icons after pub name
 
-The system SHALL display "Unknown" as a country group when pubs have null, undefined, or empty string country fields, ensuring all pubs are visible in the sidebar hierarchy.
+The system SHALL display pubs within each county sorted by name (primary), then townCity (secondary), then openState (tertiary), with open pubs appearing before closed pubs when name and townCity match.
+
+The sidebar SHALL have a fixed width that prevents horizontal scrollbar while maintaining readability (approximately 400px on desktop).
+
+Location type indicators (hotel, airport, train station) SHALL appear after the pub name rather than before it.
 
 **Updated Acceptance Criteria:**
 - Sidebar displays all pubs from the data source
 - Pubs are grouped first by country, then by county
-- **MODIFIED:** Country grouping SHALL use "Unknown" for null, undefined, or empty country values
+- Country grouping SHALL use "Unknown" for null, undefined, or empty country values
 - Countries are sorted alphabetically
 - Counties within each country are sorted alphabetically
-- Pubs within each county are sorted alphabetically by town/city
+- **MODIFIED:** Pubs within each county are sorted by:
+  1. Name (alphabetically, case-insensitive)
+  2. TownCity (alphabetically, case-insensitive)
+  3. OpenState (open before closed)
 - Each grouping level shows the count of pubs it contains
+- **MODIFIED:** Sidebar has fixed width of approximately 400px on desktop
+- **MODIFIED:** Sidebar content does not cause horizontal scrollbar
+- **MODIFIED:** Location type icons (hotel 🏨, airport ✈️, train station 🚂) display after pub name
 
 #### Scenario: Group Pubs with Missing Country
-**ADDED:**
-**Given** some pubs in the data have null or undefined country fields
-**When** the sidebar is displayed
-**Then** those pubs appear in an "Unknown" country group
-**And** the "Unknown" group is sorted alphabetically with other countries
-**And** pubs within "Unknown" are still grouped by county
+**Given** some pubs in the data have null or undefined country fields  
+**When** the sidebar is displayed  
+**Then** those pubs appear in an "Unknown" country group  
+**And** the "Unknown" group is sorted alphabetically with other countries  
+**And** pubs within "Unknown" are still grouped by county  
 **And** all pubs are visible in the sidebar
+
+#### Scenario: Sort Pubs by Name Within County
+**ADDED:**  
+**Given** Greater Manchester county contains pubs:
+  - "The Moon Under Water" in Manchester
+  - "The Paramount" in Manchester  
+  - "The Britannia" in Stockport
+  - "The Angel" in Manchester  
+**When** the county group is expanded  
+**Then** pubs are displayed in this order:
+  1. "The Angel" - Manchester
+  2. "The Britannia" - Stockport
+  3. "The Moon Under Water" - Manchester
+  4. "The Paramount" - Manchester  
+**And** the alphabetical name ordering is maintained
+
+#### Scenario: Sort Pubs with Same Name by TownCity
+**ADDED:**  
+**Given** Essex county contains pubs:
+  - "The Moon Under Water" in Chelmsford
+  - "The Moon Under Water" in Basildon
+  - "The Moon Under Water" in Colchester  
+**When** the county group is expanded  
+**Then** pubs are displayed in this order:
+  1. "The Moon Under Water" - Basildon
+  2. "The Moon Under Water" - Chelmsford
+  3. "The Moon Under Water" - Colchester  
+**And** townCity provides secondary sort when names match
+
+#### Scenario: Sort Open Before Closed When Name and Town Match
+**ADDED:**  
+**Given** a county contains two pubs:
+  - "The Moon Under Water" in Chelmsford (openState: "Open")
+  - "The Moon Under Water" in Chelmsford (openState: "Closed")  
+**When** the county group is expanded  
+**Then** the open pub appears before the closed pub  
+**And** the open pub is displayed with normal opacity  
+**And** the closed pub is displayed with reduced opacity (opacity-50)
+
+#### Scenario: Sidebar Width Prevents Horizontal Scroll
+**ADDED:**  
+**Given** the sidebar is displayed on desktop  
+**And** pubs have visit progress indicators showing  
+**When** the sidebar renders with all content  
+**Then** no horizontal scrollbar appears  
+**And** all content fits within approximately 400px width  
+**And** progress bars, pub names, and visit dates are fully visible  
+**And** content does not overflow horizontally
+
+#### Scenario: Location Type Icons Appear After Pub Name
+**ADDED:**  
+**Given** a pub named "The Crown" has isHotel: true  
+**When** the pub is displayed in the sidebar  
+**Then** the pub name "The Crown" is displayed first  
+**And** the hotel icon 🏨 appears immediately after the name  
+**And** the name and icon are on the same line  
+**And** the name is the leftmost text element for easy scanning
+
+#### Scenario: Multiple Location Type Icons Display After Name
+**ADDED:**  
+**Given** a pub named "Wetherspoons" has:
+  - isHotel: true
+  - inAirport: true  
+**When** the pub is displayed in the sidebar  
+**Then** the pub name "Wetherspoons" is displayed first  
+**And** the hotel icon 🏨 appears after the name  
+**And** the airport icon ✈️ appears after the hotel icon  
+**And** all icons are grouped together after the name  
+**And** icons do not interrupt the visual flow of scanning names
 
 ### Requirement: Group Expansion (REQ-PNS-002)
 **Priority:** MUST  
@@ -272,138 +352,43 @@ The system MUST provide visual progress indicators showing visit completion for 
 **Then** the progress recalculates to exclude closed pubs  
 **And** the progress bar updates within 50ms  
 **And** the new fraction reflects only open pubs (e.g., "8/10")
-
----
-
-### Requirement: Visit Tracking Actions (REQ-PNS-009)
-**Priority:** MUST
-**Category:** Functional
-
-The system MUST provide UI controls in the pub sidebar for tracking visits.
-
-**Acceptance Criteria:**
-- When pub is not visited, display "Mark as Visited" button
-- When pub is visited, display visit details section with:
-  - Visit date (editable via date picker)
-  - Notes field (optional, editable)
-  - "Remove Visit" button
-- "Mark as Visited" button triggers `addVisit()` with default date
-- Date picker allows selecting past dates or clearing date (unknown)
-- Date defaults to today when marking as visited
-- "Remove Visit" button shows confirmation dialog before deletion
-- All mutations show loading state while in progress
-- All mutations display error messages on failure
-- All mutations update UI immediately on success
-
-#### Scenario: Display Mark as Visited Button
-**Given** the sidebar is displaying pub 42
-**And** the user has not visited pub 42
-**When** the sidebar renders
-**Then** a "Mark as Visited" button is displayed
-**And** no visit details section is shown
-
-#### Scenario: Mark Pub as Visited with Default Date
-**Given** the sidebar is displaying pub 42
-**And** pub 42 is not visited
-**And** today is 2025-12-29
-**When** the user clicks "Mark as Visited"
-**Then** `addVisit(42)` is called with no date parameter
-**And** the button shows loading state
-**And** when the operation succeeds, visit details section appears
-**And** the visit date displays 2025-12-29
-
-#### Scenario: Display Visit Details Section
-**Given** the sidebar is displaying pub 42
-**And** the user visited pub 42 on 2025-11-15
-**When** the sidebar renders
-**Then** a visit details section is displayed showing:
-  - Visit date: 2025-11-15 (with edit icon)
-  - Notes field (empty or with existing notes)
-  - "Remove Visit" button
-**And** the "Mark as Visited" button is not shown
-
-#### Scenario: Edit Visit Date
-**Given** the sidebar shows visit details for pub 42 with date 2025-11-15
-**When** the user clicks the edit date icon
-**Then** a date picker opens
-**When** the user selects 2025-12-01
-**Then** `updateVisit(42, { visitedAt: '2025-12-01T00:00:00Z' })` is called
-**And** the date picker shows loading state
-**And** when the operation succeeds, the displayed date updates to 2025-12-01
-
-#### Scenario: Clear Visit Date
-**Given** the sidebar shows visit details for pub 42 with a date
-**When** the user opens the date picker
-**And** clicks "Clear" or removes the date
-**Then** `updateVisit(42, { visitedAt: undefined })` is called
-**And** when the operation succeeds, the date displays as "Date unknown"
-
-#### Scenario: Add Visit Notes
-**Given** the sidebar shows visit details for pub 42
-**And** the notes field is empty
-**When** the user types "Great atmosphere!" in the notes field
-**And** blurs the field or presses Enter
-**Then** `updateVisit(42, { notes: 'Great atmosphere!' })` is called
-**And** when the operation succeeds, the notes are saved
-
-#### Scenario: Remove Visit with Confirmation
-**Given** the sidebar shows visit details for pub 42
-**When** the user clicks "Remove Visit"
-**Then** a confirmation dialog appears with message:
-  - "Remove this visit? This action cannot be undone."
-  - "Cancel" button
-  - "Remove" button (destructive style)
-**When** the user clicks "Remove"
-**Then** `removeVisit(42)` is called
-**And** the dialog shows loading state
-**And** when the operation succeeds:
-  - The dialog closes
-  - Visit details section disappears
-  - "Mark as Visited" button appears
-
-#### Scenario: Cancel Remove Visit
-**Given** the remove visit confirmation dialog is open
-**When** the user clicks "Cancel"
-**Then** the dialog closes
-**And** no `removeVisit()` call is made
-**And** the visit details remain unchanged
-
-#### Scenario: Display Error on Failed Mutation
-**Given** the sidebar is displaying pub 42
-**When** the user clicks "Mark as Visited"
-**And** the `addVisit()` operation fails with network error
-**Then** an error message is displayed: "Unable to save visit. Please try again."
-**And** the button returns to normal state
-**And** the pub remains unvisited in the UI
-
 ---
 
 ### Requirement: Visit Tracking Permissions (REQ-PNS-010)
 **Priority:** MUST
 **Category:** Functional
 
-The system MUST only show visit tracking controls to authenticated users.
+**Changes:**
+- REMOVED: Inline visit tracking buttons from sidebar pub list
+- Visit tracking is now exclusively handled via the pub detail sheet
 
-**Acceptance Criteria:**
-- Visit tracking buttons are hidden when user is not authenticated
-- Attempting to track a visit while unauthenticated shows login prompt
-- Visit details section is hidden for unauthenticated users even if pub was visited (by this user before logout)
+The system SHALL display visit status (checkmark and date) for visited pubs in the sidebar when user is authenticated, but SHALL NOT provide inline buttons to add visits. Visit tracking actions are handled through the pub detail sheet.
 
-#### Scenario: Hide Visit Tracking When Not Authenticated
+**Updated Acceptance Criteria:**
+- Visit status indicator (checkmark and date) is shown for visited pubs when authenticated
+- Visit status is hidden when user is not authenticated
+- No inline "Mark as Visited" button is displayed in the sidebar
+- Visit tracking actions are performed via the pub detail sheet only
+
+#### Scenario: Display Visit Status for Authenticated User
+**Given** the user is authenticated
+**And** the user has visited pub 42 on 2025-11-15
+**When** the sidebar displays pub 42
+**Then** a checkmark icon and visit date "15/11/25" are shown
+**And** no "Mark as Visited" button is displayed
+
+#### Scenario: Hide Visit Status When Not Authenticated
 **Given** the user is not authenticated
 **And** the sidebar is displaying pub 42
 **When** the sidebar renders
-**Then** no "Mark as Visited" button is displayed
-**And** no visit details section is shown
-**And** a message may indicate "Sign in to track visits" (optional)
+**Then** no visit status indicator is displayed
+**And** no visit tracking controls are shown
 
-#### Scenario: Show Visit Tracking After Login
-**Given** the user is not authenticated
-**And** the sidebar is displaying pub 42 with no visit controls
-**When** the user signs in
-**And** the user has previously visited pub 42
-**Then** the visit details section appears
-**And** shows the user's visit date and notes
+#### Scenario: Visit Tracking via Detail Sheet
+**Given** the user wants to track a visit to a pub
+**When** the user clicks on the pub in the sidebar
+**Then** the pub detail sheet opens
+**And** the detail sheet provides visit tracking controls
 
 ### Requirement: Visit Statistics Summary (REQ-PNS-011)
 **Priority:** MUST  

@@ -3,7 +3,7 @@
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton size="lg" class="data-[state=collapsed]:px-0">
+          <div class="flex items-center gap-2 px-2 py-2">
             <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
@@ -12,9 +12,9 @@
             </div>
             <div class="grid flex-1 text-left text-sm leading-tight">
               <span class="truncate font-semibold">Wetherspooning</span>
-              <span class="truncate text-xs">Pub Tracker</span>
+              <span class="truncate text-xs">Visit Tracker</span>
             </div>
-          </SidebarMenuButton>
+          </div>
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarHeader>
@@ -153,23 +153,21 @@
                     <span v-else class="text-xs text-muted-foreground">{{ getCountyTotal(pubList) }}</span>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <SidebarMenu class="ml-4">
+                    <SidebarMenu class="pl-4">
                       <SidebarMenuItem v-for="pub in pubList" :key="pub.id">
-                        <div class="flex items-start gap-1 w-full">
-                          <SidebarMenuButton
-                            @click="$emit('selectPub', pub)"
-                            :class="[isPubClosed(pub) ? 'opacity-50' : '', 'h-auto py-2 flex-1']"
-                          >
-                            <div class="flex items-start justify-between gap-2 flex-1 min-w-0">
-                              <div class="flex flex-col gap-0.5 flex-1 min-w-0">
-                                <span :class="['text-sm break-words flex items-center gap-1', isPubClosed(pub) ? 'text-muted-foreground' : '']">
-                                  <span v-if="pub.isHotel" title="Hotel">🏨</span>
-                                  <span v-if="pub.inAirport" title="Airport">✈️</span>
-                                  <span v-if="pub.inTrainStation" title="Train Station">🚂</span>
-                                  <span>{{ pub.name }}</span>
-                                </span>
-                                <span class="text-xs text-muted-foreground">{{ pub.townCity }}</span>
-                              </div>
+                        <SidebarMenuButton
+                          @click="$emit('selectPub', pub)"
+                          :class="[isPubClosed(pub) ? 'opacity-50' : '', 'h-auto py-2']"
+                        >
+                          <div class="flex flex-col gap-0.5 flex-1 min-w-0">
+                            <!-- First row: Name and Visit Date -->
+                            <div class="flex items-center justify-between gap-2">
+                              <span :class="['text-sm break-words flex items-center gap-1 flex-1', isPubClosed(pub) ? 'text-muted-foreground' : '']">
+                                <span>{{ pub.name }}</span>
+                                <span v-if="pub.isHotel" title="Hotel">🏨</span>
+                                <span v-if="pub.inAirport" title="Airport">✈️</span>
+                                <span v-if="pub.inTrainStation" title="Train Station">🚂</span>
+                              </span>
                               <div 
                                 v-if="(isAuthenticated || sharedVisitsMode) && isSharedVisited(pub.id)" 
                                 class="flex items-center gap-1 text-sm text-green-600 font-medium whitespace-nowrap shrink-0"
@@ -181,21 +179,18 @@
                                 <span>{{ formatVisitDate(getSharedVisitDate(pub.id)) }}</span>
                               </div>
                             </div>
-                          </SidebarMenuButton>
-                          
-                          <!-- Track visit icon for unvisited pubs (only in own mode) -->
-                          <button
-                            v-if="isAuthenticated && !sharedVisitsMode && !isSharedVisited(pub.id)"
-                            @click.stop="openPubTracking(pub)"
-                            class="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-accent transition-colors shrink-0"
-                            title="Track visit"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground">
-                              <circle cx="12" cy="12" r="10"></circle>
-                              <path d="M12 8v8m-4-4h8"></path>
-                            </svg>
-                          </button>
-                        </div>
+                            <!-- Second row: Town/City and State -->
+                            <div class="flex items-center justify-between gap-2">
+                              <span class="text-xs text-muted-foreground">{{ pub.townCity }}</span>
+                              <span 
+                                v-if="pub.openState && pub.openState !== 'Open' && pub.openState !== 'Closed'" 
+                                class="text-xs text-muted-foreground whitespace-nowrap shrink-0"
+                              >
+                                {{ pub.openState }}
+                              </span>
+                            </div>
+                          </div>
+                        </SidebarMenuButton>
                       </SidebarMenuItem>
                     </SidebarMenu>
                   </CollapsibleContent>
@@ -503,9 +498,23 @@ const groupedPubs = computed(() => {
       Object.keys(grouped[country]!)
         .sort()
         .forEach((county) => {
-          const countyPubs = grouped[country]![county]!.sort((a, b) =>
-            a.townCity.localeCompare(b.townCity)
-          )
+          const countyPubs = grouped[country]![county]!.sort((a, b) => {
+            // Primary sort: by name
+            const nameComparison = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+            if (nameComparison !== 0) return nameComparison
+            
+            // Secondary sort: by townCity
+            const townComparison = a.townCity.localeCompare(b.townCity, undefined, { sensitivity: 'base' })
+            if (townComparison !== 0) return townComparison
+            
+            // Tertiary sort: open before closed
+            const aIsClosed = (a.openState || 'Open') === 'Closed'
+            const bIsClosed = (b.openState || 'Open') === 'Closed'
+            if (aIsClosed && !bIsClosed) return 1
+            if (!aIsClosed && bIsClosed) return -1
+            
+            return 0
+          })
           if (countyPubs.length > 0) {
             counties[county] = countyPubs
           }
