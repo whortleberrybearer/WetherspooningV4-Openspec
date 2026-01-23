@@ -118,7 +118,7 @@
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
               <span class="flex-1 text-left">{{ countryName }}</span>
-              <div v-if="isAuthenticated" class="flex items-center gap-2 min-w-[100px]">
+              <div v-if="isAuthenticated || props.sharedVisitsMode" class="flex items-center gap-2 min-w-[100px]">
                 <Progress :model-value="getCountryProgress(counties)" class="h-2 flex-1" />
                 <span class="text-xs text-muted-foreground whitespace-nowrap">{{ getCountryProgressText(counties) }}</span>
               </div>
@@ -146,7 +146,7 @@
                       <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
                     <span class="flex-1 text-left font-medium">{{ countyName }}</span>
-                    <div v-if="isAuthenticated" class="flex items-center gap-2 min-w-[100px]">
+                    <div v-if="isAuthenticated || props.sharedVisitsMode" class="flex items-center gap-2 min-w-[100px]">
                       <Progress :model-value="getCountyProgress(pubList)" class="h-2 flex-1" />
                       <span class="text-xs text-muted-foreground whitespace-nowrap">{{ getCountyProgressText(pubList) }}</span>
                     </div>
@@ -411,8 +411,6 @@ const { isDark, toggleTheme } = useTheme()
 // Shared visit state helpers
 const sharedVisitIds = computed(() => {
   if (!props.sharedVisitsMode) return new Set<string>()
-  console.log('AppSidebar: sharedVisitsMode received:', props.sharedVisitsMode)
-  console.log('AppSidebar: visits count:', props.sharedVisitsMode.visits.length)
   return new Set(props.sharedVisitsMode.visits.map(v => v.pubId))
 })
 

@@ -72,17 +72,12 @@ onMounted(async () => {
     // Load public visits
     const visits = await getPublicVisits(profile.uid)
     
-    console.log('SharedVisitsView: Loaded profile:', profile)
-    console.log('SharedVisitsView: Loaded visits:', visits)
-    
     // Pass shared visits data to map component
     sharedVisitsMode.value = {
       userId: profile.uid,
       username: profile.username,
       visits
     }
-    
-    console.log('SharedVisitsView: sharedVisitsMode set to:', sharedVisitsMode.value)
     
     // Update page title
     document.title = `@${profile.username}'s Visits - Wetherspooning`

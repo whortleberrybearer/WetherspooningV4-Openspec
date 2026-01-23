@@ -91,8 +91,6 @@ const props = defineProps<{
   } | null
 }>()
 
-console.log('PubLocationsMap: Received sharedVisitsMode:', props.sharedVisitsMode)
-
 const mapContainer = ref<HTMLElement | null>(null)
 const map = shallowRef<google.maps.Map | null>(null)
 const markers = ref<google.maps.marker.AdvancedMarkerElement[]>([])
