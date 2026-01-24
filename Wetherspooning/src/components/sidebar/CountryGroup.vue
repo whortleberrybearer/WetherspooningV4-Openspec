@@ -33,7 +33,7 @@
               :county-name="countyName"
               :pubs="pubList"
               :is-authenticated="isAuthenticated"
-              :visited-pub-ids="visitedPubIds"
+              :visits="visits"
               :pub-visits="pubVisits"
               :show-closed-pubs="showClosedPubs"
               @select-pub="$emit('selectPub', $event)"
@@ -66,7 +66,7 @@ interface Props {
   countryName: string
   counties: Record<string, Pub[]>
   isAuthenticated: boolean
-  visitedPubIds: ReadonlySet<string>
+  visits: readonly Visit[]
   pubVisits: Map<string, Visit>
   showClosedPubs: boolean
 }
@@ -77,16 +77,19 @@ defineEmits<{
   selectPub: [pub: Pub]
 }>()
 
+// Compute visitedPubIds Set locally for O(1) lookup
+const visitedPubIds = computed(() => new Set(props.visits.map(v => v.pubId)))
+
 const allPubs = computed(() => Object.values(props.counties).flat())
 
 const progress = computed(() => {
-  const visitedCount = allPubs.value.filter(pub => props.visitedPubIds.has(pub.id)).length
+  const visitedCount = allPubs.value.filter(pub => visitedPubIds.value.has(pub.id)).length
   const total = allPubs.value.length
   return total > 0 ? (visitedCount / total) * 100 : 0
 })
 
 const progressText = computed(() => {
-  const visitedCount = allPubs.value.filter(pub => props.visitedPubIds.has(pub.id)).length
+  const visitedCount = allPubs.value.filter(pub => visitedPubIds.value.has(pub.id)).length
   return `${visitedCount}/${allPubs.value.length}`
 })
 

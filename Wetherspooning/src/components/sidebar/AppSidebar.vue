@@ -24,7 +24,7 @@
       <VisitStatistics 
         v-if="isAuthenticated" 
         :pubs="pubs"
-        :visited-pub-ids="visitedPubIds"
+        :visits="visits"
       />
 
       <SidebarSeparator v-if="isAuthenticated" />
@@ -56,7 +56,7 @@
       <PubGroupList
         :pubs="pubs"
         :is-authenticated="isAuthenticated"
-        :visited-pub-ids="visitedPubIds"
+        :visits="visits"
         :pub-visits="pubVisits"
         :show-closed-pubs="showClosedPubs"
         @select-pub="$emit('selectPub', $event)"
@@ -255,7 +255,7 @@ defineEmits<{
 }>()
 
 const { user, isAuthenticated, logout } = useAuth()
-const { getGroupCounts, loadVisits, clearVisits, visitedPubIds, visits } = useVisits()
+const { getGroupCounts, loadVisits, clearVisits, visits } = useVisits()
 const { isDark, toggleTheme } = useTheme()
 const showLoginDialog = ref(false)
 const showPasswordResetDialog = ref(false)

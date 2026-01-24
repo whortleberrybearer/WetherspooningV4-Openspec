@@ -5,7 +5,7 @@
     :country-name="countryName"
     :counties="counties"
     :is-authenticated="isAuthenticated"
-    :visited-pub-ids="visitedPubIds"
+    :visits="visits"
     :pub-visits="pubVisits"
     :show-closed-pubs="showClosedPubs"
     @select-pub="$emit('selectPub', $event)"
@@ -21,7 +21,7 @@ import { isPubClosed } from '@/utils/pubUtils'
 interface Props {
   pubs: Pub[]
   isAuthenticated: boolean
-  visitedPubIds: ReadonlySet<string>
+  visits: readonly Visit[]
   pubVisits: Map<string, Visit>
   showClosedPubs: boolean
 }

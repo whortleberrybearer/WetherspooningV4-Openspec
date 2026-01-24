@@ -87,7 +87,7 @@ interface Props {
   countyName: string
   pubs: Pub[]
   isAuthenticated: boolean
-  visitedPubIds: ReadonlySet<string>
+  visits: readonly Visit[]
   pubVisits: Map<string, Visit>
   showClosedPubs: boolean
 }
@@ -98,14 +98,17 @@ defineEmits<{
   selectPub: [pub: Pub]
 }>()
 
+// Compute visitedPubIds Set locally for O(1) lookup
+const visitedPubIds = computed(() => new Set(props.visits.map(v => v.pubId)))
+
 const progress = computed(() => {
-  const visitedCount = props.pubs.filter(pub => props.visitedPubIds.has(pub.id)).length
+  const visitedCount = props.pubs.filter(pub => visitedPubIds.value.has(pub.id)).length
   const total = props.pubs.length
   return total > 0 ? (visitedCount / total) * 100 : 0
 })
 
 const progressText = computed(() => {
-  const visitedCount = props.pubs.filter(pub => props.visitedPubIds.has(pub.id)).length
+  const visitedCount = props.pubs.filter(pub => visitedPubIds.value.has(pub.id)).length
   return `${visitedCount}/${props.pubs.length}`
 })
 

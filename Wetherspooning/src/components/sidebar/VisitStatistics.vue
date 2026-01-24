@@ -31,35 +31,40 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { SidebarGroup, SidebarGroupContent } from '@/components/ui/sidebar'
-import type { Pub } from '@/services/firebaseDataService'
+import type { Pub, Visit } from '@/services/firebaseDataService'
 import { isPubClosed } from '@/utils/pubUtils'
 
 interface Props {
   pubs: Pub[]
-  visitedPubIds: ReadonlySet<string>
+  visits: readonly Visit[]
 }
 
 const props = defineProps<Props>()
 
+// Compute visitedPubIds Set locally for O(1) lookup
+const visitedPubIds = computed(() => new Set(props.visits.map(v => v.pubId)))
+
 const stats = computed(() => {
+  const visited = visitedPubIds.value
+  
   // Count visited pubs
-  const visited = props.pubs.filter(pub => props.visitedPubIds.has(pub.id)).length
+  const visitedCount = props.pubs.filter(pub => visited.has(pub.id)).length
   
   // Count how many visited pubs are now closed
   const closedVisited = props.pubs.filter(pub => 
-    props.visitedPubIds.has(pub.id) && isPubClosed(pub)
+    visited.has(pub.id) && isPubClosed(pub)
   ).length
   
   // Not visited should only count open pubs that haven't been visited
   const notVisited = props.pubs.filter(pub => 
-    !props.visitedPubIds.has(pub.id) && !isPubClosed(pub)
+    !visited.has(pub.id) && !isPubClosed(pub)
   ).length
   
   // Total should only count open pubs
   const total = props.pubs.filter(pub => !isPubClosed(pub)).length
   
   return {
-    visited,
+    visited: visitedCount,
     notVisited,
     total,
     closedVisited
