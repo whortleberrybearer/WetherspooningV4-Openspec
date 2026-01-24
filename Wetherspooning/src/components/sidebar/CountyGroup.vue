@@ -16,7 +16,7 @@
         <polyline points="9 18 15 12 9 6"></polyline>
       </svg>
       <span class="flex-1 text-left font-medium">{{ countyName }}</span>
-      <div v-if="showVisitProgress" class="flex items-center gap-2 min-w-[100px]">
+      <div v-if="showVisitProgress" class="flex items-center gap-2 min-w-25">
         <Progress :model-value="progress" class="h-2 flex-1" />
         <span class="text-xs text-muted-foreground whitespace-nowrap">{{ progressText }}</span>
       </div>
@@ -32,7 +32,7 @@
             <div class="flex flex-col gap-0.5 flex-1 min-w-0">
               <!-- First row: Name and Visit Date -->
               <div class="flex items-center justify-between gap-2">
-                <span :class="['text-sm break-words flex items-center gap-1 flex-1', isPubClosed(pub) ? 'text-muted-foreground' : '']">
+                <span :class="['text-sm wrap-break-word flex items-center gap-1 flex-1', isPubClosed(pub) ? 'text-muted-foreground' : '']">
                   <span>{{ pub.name }}</span>
                   <span v-if="pub.isHotel" title="Hotel">🏨</span>
                   <span v-if="pub.inAirport" title="Airport">✈️</span>
@@ -81,7 +81,7 @@ import {
 } from '@/components/ui/sidebar'
 import { Progress } from '@/components/ui/progress'
 import type { Pub, Visit } from '@/services/firebaseDataService'
-import { isPubClosed } from '@/utils/pubUtils'
+import { isPubClosed, formatVisitDate } from '@/utils/pubUtils'
 
 interface Props {
   countyName: string
@@ -129,19 +129,4 @@ const totalText = computed(() => {
   }
   return `${total}`
 })
-
-const formatVisitDate = (isoDate: string | null | undefined): string | null => {
-  if (!isoDate) return null
-  
-  try {
-    const date = new Date(isoDate)
-    const day = String(date.getDate()).padStart(2, '0')
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const year = String(date.getFullYear()).slice(-2)
-    return `${day}/${month}/${year}`
-  } catch (error) {
-    console.error('Error formatting date:', error)
-    return null
-  }
-}
 </script>

@@ -18,7 +18,7 @@
             <polyline points="9 18 15 12 9 6"></polyline>
           </svg>
           <span class="flex-1 text-left">{{ countryName }}</span>
-          <div v-if="showVisitProgress" class="flex items-center gap-2 min-w-[100px]">
+          <div v-if="showVisitProgress" class="flex items-center gap-2 min-w-25">
             <Progress :model-value="progress" class="h-2 flex-1" />
             <span class="text-xs text-muted-foreground whitespace-nowrap">{{ progressText }}</span>
           </div>
