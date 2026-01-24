@@ -219,8 +219,8 @@ import PasswordResetDialog from '@/components/PasswordResetDialog.vue'
 import SignupDialog from '@/components/SignupDialog.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
 import AccountSettingsDialog from '@/components/AccountSettingsDialog.vue'
-import VisitStatistics from '@/components/VisitStatistics.vue'
-import PubGroupList from '@/components/PubGroupList.vue'
+import VisitStatistics from '@/components/sidebar/VisitStatistics.vue'
+import PubGroupList from '@/components/sidebar/PubGroupList.vue'
 
 interface Pub {
   id: string

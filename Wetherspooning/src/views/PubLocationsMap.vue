@@ -65,7 +65,7 @@
 import { ref, onMounted, onBeforeUnmount, shallowRef, computed, watch } from 'vue'
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 import { MarkerClusterer } from '@googlemaps/markerclusterer'
-import AppSidebar from '@/components/AppSidebar.vue'
+import AppSidebar from '@/components/sidebar/AppSidebar.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
 import LoginDialog from '@/components/LoginDialog.vue'
 import PasswordResetDialog from '@/components/PasswordResetDialog.vue'
