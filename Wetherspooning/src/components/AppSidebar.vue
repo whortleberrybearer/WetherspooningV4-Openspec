@@ -21,33 +21,10 @@
 
     <SidebarContent>
       <!-- Visit Statistics -->
-      <SidebarGroup v-if="isAuthenticated">
-        <SidebarGroupContent>
-          <div class="grid grid-cols-2 gap-2 px-2">
-            <!-- Total Visited Card -->
-            <div class="rounded-lg border bg-card p-3 shadow-sm">
-              <div class="flex flex-col gap-1">
-                <span class="text-xs text-muted-foreground">Total Visited</span>
-                <div class="flex items-baseline gap-1">
-                  <span class="text-2xl font-bold">{{ allTimeStats.visited }}</span>
-                </div>
-                <span class="text-xs text-muted-foreground">{{ allTimeStats.closedVisited }} that are now closed</span>
-              </div>
-            </div>
-            
-            <!-- Not Visited Card -->
-            <div class="rounded-lg border bg-card p-3 shadow-sm">
-              <div class="flex flex-col gap-1">
-                <span class="text-xs text-muted-foreground">Not Visited</span>
-                <div class="flex items-baseline gap-1">
-                  <span class="text-2xl font-bold">{{ allTimeStats.notVisited }}</span>
-                </div>
-                <span class="text-xs text-muted-foreground">{{ allTimeStats.total }} Total Pubs</span>
-              </div>
-            </div>
-          </div>
-        </SidebarGroupContent>
-      </SidebarGroup>
+      <VisitStatistics 
+        v-if="isAuthenticated" 
+        :stats="allTimeStats" 
+      />
 
       <SidebarSeparator v-if="isAuthenticated" />
 
@@ -75,107 +52,14 @@
       <SidebarSeparator />
 
       <!-- Pub Listings by Country/County -->
-      <SidebarGroup v-for="(counties, countryName) in groupedPubs" :key="countryName" as-child>
-        <Collapsible :default-open="false" class="group/country">
-          <SidebarGroupLabel as-child>
-            <CollapsibleTrigger class="w-full hover:bg-accent">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="transition-transform group-data-[state=open]/country:rotate-90"
-              >
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-              <span class="flex-1 text-left">{{ countryName }}</span>
-              <div v-if="isAuthenticated" class="flex items-center gap-2 min-w-[100px]">
-                <Progress :model-value="getCountryProgress(counties)" class="h-2 flex-1" />
-                <span class="text-xs text-muted-foreground whitespace-nowrap">{{ getCountryProgressText(counties) }}</span>
-              </div>
-              <span v-else class="text-xs text-muted-foreground">{{ getCountryTotal(counties) }}</span>
-            </CollapsibleTrigger>
-          </SidebarGroupLabel>
-          <CollapsibleContent>
-            <SidebarGroupContent>
-              <!-- Counties within Country -->
-              <div v-for="(pubList, countyName) in counties" :key="countyName">
-                <Collapsible :default-open="false" class="group/county">
-                  <CollapsibleTrigger class="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent rounded-md">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class="transition-transform group-data-[state=open]/county:rotate-90"
-                    >
-                      <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                    <span class="flex-1 text-left font-medium">{{ countyName }}</span>
-                    <div v-if="isAuthenticated" class="flex items-center gap-2 min-w-[100px]">
-                      <Progress :model-value="getCountyProgress(pubList)" class="h-2 flex-1" />
-                      <span class="text-xs text-muted-foreground whitespace-nowrap">{{ getCountyProgressText(pubList) }}</span>
-                    </div>
-                    <span v-else class="text-xs text-muted-foreground">{{ getCountyTotal(pubList) }}</span>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenu class="pl-4">
-                      <SidebarMenuItem v-for="pub in pubList" :key="pub.id">
-                        <SidebarMenuButton
-                          @click="$emit('selectPub', pub)"
-                          :class="[isPubClosed(pub) ? 'opacity-50' : '', 'h-auto py-2']"
-                        >
-                          <div class="flex flex-col gap-0.5 flex-1 min-w-0">
-                            <!-- First row: Name and Visit Date -->
-                            <div class="flex items-center justify-between gap-2">
-                              <span :class="['text-sm break-words flex items-center gap-1 flex-1', isPubClosed(pub) ? 'text-muted-foreground' : '']">
-                                <span>{{ pub.name }}</span>
-                                <span v-if="pub.isHotel" title="Hotel">🏨</span>
-                                <span v-if="pub.inAirport" title="Airport">✈️</span>
-                                <span v-if="pub.inTrainStation" title="Train Station">🚂</span>
-                              </span>
-                              <div 
-                                v-if="isAuthenticated && isVisited(pub.id)" 
-                                class="flex items-center gap-1 text-sm text-green-600 font-medium whitespace-nowrap shrink-0"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                                </svg>
-                                <span>{{ formatVisitDate(getVisitDate(pub.id)) }}</span>
-                              </div>
-                            </div>
-                            <!-- Second row: Town/City and State -->
-                            <div class="flex items-center justify-between gap-2">
-                              <span class="text-xs text-muted-foreground">{{ pub.townCity }}</span>
-                              <span 
-                                v-if="pub.openState && pub.openState !== 'Open' && pub.openState !== 'Closed'" 
-                                class="text-xs text-muted-foreground whitespace-nowrap shrink-0"
-                              >
-                                {{ pub.openState }}
-                              </span>
-                            </div>
-                          </div>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    </SidebarMenu>
-                  </CollapsibleContent>
-                </Collapsible>
-              </div>
-            </SidebarGroupContent>
-          </CollapsibleContent>
-        </Collapsible>
-      </SidebarGroup>
+      <PubGroupList
+        :pubs="pubs"
+        :is-authenticated="isAuthenticated"
+        :visited-pub-ids="visitedPubIds"
+        :pub-visits="pubVisits"
+        :show-closed-pubs="showClosedPubs"
+        @select-pub="$emit('selectPub', $event)"
+      />
     </SidebarContent>
 
     <SidebarFooter>
@@ -325,14 +209,8 @@ import {
   SidebarRail,
   SidebarSeparator,
 } from '@/components/ui/sidebar'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
 import { useTheme } from '@/composables/useTheme'
@@ -341,6 +219,8 @@ import PasswordResetDialog from '@/components/PasswordResetDialog.vue'
 import SignupDialog from '@/components/SignupDialog.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
 import AccountSettingsDialog from '@/components/AccountSettingsDialog.vue'
+import VisitStatistics from '@/components/VisitStatistics.vue'
+import PubGroupList from '@/components/PubGroupList.vue'
 
 interface Pub {
   id: string
@@ -374,7 +254,7 @@ defineEmits<{
 }>()
 
 const { user, isAuthenticated, logout } = useAuth()
-const { getGroupCounts, loadVisits, clearVisits, isVisited, getVisitDate } = useVisits()
+const { getGroupCounts, loadVisits, clearVisits, visitedPubIds, visits } = useVisits()
 const { isDark, toggleTheme } = useTheme()
 const showLoginDialog = ref(false)
 const showPasswordResetDialog = ref(false)
@@ -382,6 +262,15 @@ const showSignupDialog = ref(false)
 const showAccountSettings = ref(false)
 const selectedPubForTracking = ref<Pub | null>(null)
 const showPubDetailDialog = ref(false)
+
+// Convert visits array to a Map for easier lookup
+const pubVisits = computed(() => {
+  const map = new Map()
+  visits.value.forEach(visit => {
+    map.set(visit.pubId, visit)
+  })
+  return map
+})
 
 const handleOpenSignup = () => {
   showLoginDialog.value = false
@@ -419,80 +308,18 @@ const isPubClosed = (pub: Pub): boolean => {
   return state === 'Closed'
 }
 
-const filteredPubs = computed(() => {
-  if (props.showClosedPubs) {
-    return props.pubs
-  }
-  return props.pubs.filter(pub => !isPubClosed(pub))
-})
-
-const groupedPubs = computed(() => {
-  const grouped: Record<string, Record<string, Pub[]>> = {}
-
-  filteredPubs.value.forEach((pub) => {
-    const country = pub.country || 'Unknown'
-    const county = pub.county || 'Unknown'
-    
-    if (!grouped[country]) {
-      grouped[country] = {}
-    }
-    if (!grouped[country]![county]) {
-      grouped[country]![county] = []
-    }
-    grouped[country]![county]!.push(pub)
-  })
-
-  const sortedCountries: Record<string, Record<string, Pub[]>> = {}
-  Object.keys(grouped)
-    .sort()
-    .forEach((country) => {
-      const counties: Record<string, Pub[]> = {}
-      
-      Object.keys(grouped[country]!)
-        .sort()
-        .forEach((county) => {
-          const countyPubs = grouped[country]![county]!.sort((a, b) => {
-            // Primary sort: by name
-            const nameComparison = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-            if (nameComparison !== 0) return nameComparison
-            
-            // Secondary sort: by townCity
-            const townComparison = a.townCity.localeCompare(b.townCity, undefined, { sensitivity: 'base' })
-            if (townComparison !== 0) return townComparison
-            
-            // Tertiary sort: open before closed
-            const aIsClosed = (a.openState || 'Open') === 'Closed'
-            const bIsClosed = (b.openState || 'Open') === 'Closed'
-            if (aIsClosed && !bIsClosed) return 1
-            if (!aIsClosed && bIsClosed) return -1
-            
-            return 0
-          })
-          if (countyPubs.length > 0) {
-            counties[county] = countyPubs
-          }
-        })
-      
-      if (Object.keys(counties).length > 0) {
-        sortedCountries[country] = counties
-      }
-    })
-
-  return sortedCountries
-})
-
 const allTimeStats = computed(() => {
   // Always use all pubs, not filtered
   const { visited } = getGroupCounts(props.pubs)
   
   // Count how many visited pubs are now closed
   const closedVisited = props.pubs.filter(pub => 
-    isVisited(pub.id) && isPubClosed(pub)
+    visitedPubIds.has(pub.id) && isPubClosed(pub)
   ).length
   
   // Not visited should only count open pubs that haven't been visited
   const notVisited = props.pubs.filter(pub => 
-    !isVisited(pub.id) && !isPubClosed(pub)
+    !visitedPubIds.has(pub.id) && !isPubClosed(pub)
   ).length
   
   // Total should only count open pubs
@@ -505,91 +332,6 @@ const allTimeStats = computed(() => {
     closedVisited
   }
 })
-
-const getCountryTotal = (counties: Record<string, Pub[]>) => {
-  const allPubs = Object.values(counties).flat()
-  
-  if (isAuthenticated.value) {
-    const { visited, total } = getGroupCounts(allPubs)
-    const visitText = visited > 0 ? `✓ ${visited}/${total}` : `${visited}/${total}`
-    
-    if (props.showClosedPubs) {
-      const closedCount = allPubs.filter(isPubClosed).length
-      return closedCount > 0 ? `${visitText} (${closedCount} closed)` : visitText
-    }
-    
-    return visitText
-  } else {
-    const total = allPubs.length
-    const closedCount = allPubs.filter(isPubClosed).length
-    
-    if (props.showClosedPubs) {
-      return closedCount > 0 ? `${total} (${closedCount} closed)` : `${total}`
-    } else {
-      return `${total}`
-    }
-  }
-}
-
-const getCountyTotal = (pubs: Pub[]) => {
-  if (isAuthenticated.value) {
-    const { visited, total } = getGroupCounts(pubs)
-    const visitText = visited > 0 ? `✓ ${visited}/${total}` : `${visited}/${total}`
-    
-    if (props.showClosedPubs) {
-      const closedCount = pubs.filter(isPubClosed).length
-      return closedCount > 0 ? `${visitText} (${closedCount} closed)` : visitText
-    }
-    
-    return visitText
-  } else {
-    const total = pubs.length
-    const closedCount = pubs.filter(isPubClosed).length
-    
-    if (props.showClosedPubs) {
-      return closedCount > 0 ? `${total} (${closedCount} closed)` : `${total}`
-    } else {
-      return `${total}`
-    }
-  }
-}
-
-const formatVisitDate = (isoDate: string | null): string | null => {
-  if (!isoDate) return null
-  
-  try {
-    const date = new Date(isoDate)
-    const day = String(date.getDate()).padStart(2, '0')
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const year = String(date.getFullYear()).slice(-2)
-    return `${day}/${month}/${year}`
-  } catch (error) {
-    console.error('Error formatting date:', error)
-    return null
-  }
-}
-
-const getCountryProgress = (counties: Record<string, Pub[]>) => {
-  const allPubs = Object.values(counties).flat()
-  const { visited, total } = getGroupCounts(allPubs)
-  return total > 0 ? (visited / total) * 100 : 0
-}
-
-const getCountryProgressText = (counties: Record<string, Pub[]>) => {
-  const allPubs = Object.values(counties).flat()
-  const { visited, total } = getGroupCounts(allPubs)
-  return `${visited}/${total}`
-}
-
-const getCountyProgress = (pubs: Pub[]) => {
-  const { visited, total } = getGroupCounts(pubs)
-  return total > 0 ? (visited / total) * 100 : 0
-}
-
-const getCountyProgressText = (pubs: Pub[]) => {
-  const { visited, total } = getGroupCounts(pubs)
-  return `${visited}/${total}`
-}
 
 const openPubTracking = (pub: Pub) => {
   selectedPubForTracking.value = pub
