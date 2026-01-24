@@ -15,33 +15,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import CountryGroup from './CountryGroup.vue'
-
-interface Pub {
-  id: string
-  name: string
-  townCity: string
-  address: string
-  county: string
-  region?: string
-  country?: string
-  position: {
-    lat: number
-    lng: number
-  } | null
-  url?: string
-  imageUrl?: string
-  openState?: string
-  isHotel?: boolean
-  inAirport?: boolean
-  inTrainStation?: boolean
-}
-
-interface Visit {
-  pubId: string
-  visitDate: string
-  rating?: number
-  notes?: string
-}
+import type { Pub, Visit } from '@/services/firebaseDataService'
 
 interface Props {
   pubs: Pub[]

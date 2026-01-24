@@ -46,7 +46,7 @@
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                     <polyline points="22 4 12 14.01 9 11.01"></polyline>
                   </svg>
-                  <span>{{ formatVisitDate(pubVisits.get(pub.id)?.visitDate) }}</span>
+                  <span>{{ formatVisitDate(pubVisits.get(pub.id)?.visitedAt) }}</span>
                 </div>
               </div>
               <!-- Second row: Town/City and State -->
@@ -80,33 +80,7 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { Progress } from '@/components/ui/progress'
-
-interface Pub {
-  id: string
-  name: string
-  townCity: string
-  address: string
-  county: string
-  region?: string
-  country?: string
-  position: {
-    lat: number
-    lng: number
-  } | null
-  url?: string
-  imageUrl?: string
-  openState?: string
-  isHotel?: boolean
-  inAirport?: boolean
-  inTrainStation?: boolean
-}
-
-interface Visit {
-  pubId: string
-  visitDate: string
-  rating?: number
-  notes?: string
-}
+import type { Pub, Visit } from '@/services/firebaseDataService'
 
 interface Props {
   countyName: string
