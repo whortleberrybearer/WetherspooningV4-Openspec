@@ -88,7 +88,6 @@ interface Props {
   pubs: Pub[]
   showVisitProgress: boolean
   visits: readonly Visit[]
-  pubVisits: Map<string, Visit>
   showClosedPubs: boolean
 }
 
@@ -100,6 +99,15 @@ defineEmits<{
 
 // Compute visitedPubIds Set locally for O(1) lookup
 const visitedPubIds = computed(() => new Set(props.visits.map(v => v.pubId)))
+
+// Compute pubVisits Map locally for visit date lookup
+const pubVisits = computed(() => {
+  const map = new Map<string, Visit>()
+  props.visits.forEach(visit => {
+    map.set(visit.pubId, visit)
+  })
+  return map
+})
 
 const progress = computed(() => {
   const visitedCount = props.pubs.filter(pub => visitedPubIds.value.has(pub.id)).length

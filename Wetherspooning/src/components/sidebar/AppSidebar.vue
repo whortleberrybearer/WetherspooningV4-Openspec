@@ -57,7 +57,6 @@
         :pubs="pubs"
         :show-visit-progress="isAuthenticated"
         :visits="visits"
-        :pub-visits="pubVisits"
         :show-closed-pubs="showClosedPubs"
         @select-pub="$emit('selectPub', $event)"
       />
@@ -263,15 +262,6 @@ const showSignupDialog = ref(false)
 const showAccountSettings = ref(false)
 const selectedPubForTracking = ref<Pub | null>(null)
 const showPubDetailDialog = ref(false)
-
-// Convert visits array to a Map for easier lookup
-const pubVisits = computed(() => {
-  const map = new Map()
-  visits.value.forEach(visit => {
-    map.set(visit.pubId, visit)
-  })
-  return map
-})
 
 const handleOpenSignup = () => {
   showLoginDialog.value = false

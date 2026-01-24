@@ -34,7 +34,6 @@
               :pubs="pubList"
               :show-visit-progress="showVisitProgress"
               :visits="visits"
-              :pub-visits="pubVisits"
               :show-closed-pubs="showClosedPubs"
               @select-pub="$emit('selectPub', $event)"
             />
@@ -67,7 +66,6 @@ interface Props {
   counties: Record<string, Pub[]>
   showVisitProgress: boolean
   visits: readonly Visit[]
-  pubVisits: Map<string, Visit>
   showClosedPubs: boolean
 }
 
