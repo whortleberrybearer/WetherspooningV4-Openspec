@@ -16,7 +16,7 @@
         <polyline points="9 18 15 12 9 6"></polyline>
       </svg>
       <span class="flex-1 text-left font-medium">{{ countyName }}</span>
-      <div v-if="isAuthenticated" class="flex items-center gap-2 min-w-[100px]">
+      <div v-if="showVisitProgress" class="flex items-center gap-2 min-w-[100px]">
         <Progress :model-value="progress" class="h-2 flex-1" />
         <span class="text-xs text-muted-foreground whitespace-nowrap">{{ progressText }}</span>
       </div>
@@ -39,7 +39,7 @@
                   <span v-if="pub.inTrainStation" title="Train Station">🚂</span>
                 </span>
                 <div 
-                  v-if="isAuthenticated && visitedPubIds.has(pub.id)" 
+                  v-if="showVisitProgress && visitedPubIds.has(pub.id)" 
                   class="flex items-center gap-1 text-sm text-green-600 font-medium whitespace-nowrap shrink-0"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -86,7 +86,7 @@ import { isPubClosed } from '@/utils/pubUtils'
 interface Props {
   countyName: string
   pubs: Pub[]
-  isAuthenticated: boolean
+  showVisitProgress: boolean
   visits: readonly Visit[]
   pubVisits: Map<string, Visit>
   showClosedPubs: boolean

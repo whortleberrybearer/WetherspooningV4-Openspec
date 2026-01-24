@@ -4,7 +4,7 @@
     :key="countryName"
     :country-name="countryName"
     :counties="counties"
-    :is-authenticated="isAuthenticated"
+    :show-visit-progress="showVisitProgress"
     :visits="visits"
     :pub-visits="pubVisits"
     :show-closed-pubs="showClosedPubs"
@@ -20,7 +20,7 @@ import { isPubClosed } from '@/utils/pubUtils'
 
 interface Props {
   pubs: Pub[]
-  isAuthenticated: boolean
+  showVisitProgress: boolean
   visits: readonly Visit[]
   pubVisits: Map<string, Visit>
   showClosedPubs: boolean

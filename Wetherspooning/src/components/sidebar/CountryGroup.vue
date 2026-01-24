@@ -18,7 +18,7 @@
             <polyline points="9 18 15 12 9 6"></polyline>
           </svg>
           <span class="flex-1 text-left">{{ countryName }}</span>
-          <div v-if="isAuthenticated" class="flex items-center gap-2 min-w-[100px]">
+          <div v-if="showVisitProgress" class="flex items-center gap-2 min-w-[100px]">
             <Progress :model-value="progress" class="h-2 flex-1" />
             <span class="text-xs text-muted-foreground whitespace-nowrap">{{ progressText }}</span>
           </div>
@@ -32,7 +32,7 @@
             <CountyGroup
               :county-name="countyName"
               :pubs="pubList"
-              :is-authenticated="isAuthenticated"
+              :show-visit-progress="showVisitProgress"
               :visits="visits"
               :pub-visits="pubVisits"
               :show-closed-pubs="showClosedPubs"
@@ -65,7 +65,7 @@ import { isPubClosed } from '@/utils/pubUtils'
 interface Props {
   countryName: string
   counties: Record<string, Pub[]>
-  isAuthenticated: boolean
+  showVisitProgress: boolean
   visits: readonly Visit[]
   pubVisits: Map<string, Visit>
   showClosedPubs: boolean

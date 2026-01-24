@@ -1,5 +1,5 @@
 <template>
-  <Sidebar collapsible="offcanvas" class="overflow-hidden [&>div]:w-[480px]">
+  <Sidebar collapsible="offcanvas" class="overflow-hidden [&>div]:w-120">
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
@@ -55,7 +55,7 @@
       <!-- Pub Listings by Country/County -->
       <PubGroupList
         :pubs="pubs"
-        :is-authenticated="isAuthenticated"
+        :show-visit-progress="isAuthenticated"
         :visits="visits"
         :pub-visits="pubVisits"
         :show-closed-pubs="showClosedPubs"
