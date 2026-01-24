@@ -16,6 +16,7 @@
 import { computed } from 'vue'
 import CountryGroup from './CountryGroup.vue'
 import type { Pub, Visit } from '@/services/firebaseDataService'
+import { isPubClosed } from '@/utils/pubUtils'
 
 interface Props {
   pubs: Pub[]
@@ -30,11 +31,6 @@ const props = defineProps<Props>()
 defineEmits<{
   selectPub: [pub: Pub]
 }>()
-
-const isPubClosed = (pub: Pub): boolean => {
-  const state = pub.openState || 'Open'
-  return state === 'Closed'
-}
 
 const filteredPubs = computed(() => {
   if (props.showClosedPubs) {

@@ -129,6 +129,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import StarRating from '@/components/StarRating.vue'
+import { isPubClosed as checkIfPubClosed } from '@/utils/pubUtils'
 
 interface Pub {
   id: string
@@ -169,8 +170,7 @@ const rating = ref<number | undefined>(undefined)
 const notes = ref('')
 
 const isPubClosed = computed(() => {
-  const state = props.pub?.openState || 'Open'
-  return state === 'Closed'
+  return props.pub ? checkIfPubClosed(props.pub) : false
 })
 
 const getStateBadgeClass = (openState: string): string => {

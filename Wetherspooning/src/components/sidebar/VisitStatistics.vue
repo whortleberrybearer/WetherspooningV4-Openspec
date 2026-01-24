@@ -29,18 +29,40 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { SidebarGroup, SidebarGroupContent } from '@/components/ui/sidebar'
-
-interface VisitStats {
-  visited: number
-  notVisited: number
-  total: number
-  closedVisited: number
-}
+import type { Pub } from '@/services/firebaseDataService'
+import { isPubClosed } from '@/utils/pubUtils'
 
 interface Props {
-  stats: VisitStats
+  pubs: Pub[]
+  visitedPubIds: ReadonlySet<string>
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const stats = computed(() => {
+  // Count visited pubs
+  const visited = props.pubs.filter(pub => props.visitedPubIds.has(pub.id)).length
+  
+  // Count how many visited pubs are now closed
+  const closedVisited = props.pubs.filter(pub => 
+    props.visitedPubIds.has(pub.id) && isPubClosed(pub)
+  ).length
+  
+  // Not visited should only count open pubs that haven't been visited
+  const notVisited = props.pubs.filter(pub => 
+    !props.visitedPubIds.has(pub.id) && !isPubClosed(pub)
+  ).length
+  
+  // Total should only count open pubs
+  const total = props.pubs.filter(pub => !isPubClosed(pub)).length
+  
+  return {
+    visited,
+    notVisited,
+    total,
+    closedVisited
+  }
+})
 </script>

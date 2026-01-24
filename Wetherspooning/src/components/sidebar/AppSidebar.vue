@@ -23,7 +23,8 @@
       <!-- Visit Statistics -->
       <VisitStatistics 
         v-if="isAuthenticated" 
-        :stats="allTimeStats" 
+        :pubs="pubs"
+        :visited-pub-ids="visitedPubIds"
       />
 
       <SidebarSeparator v-if="isAuthenticated" />
@@ -302,36 +303,6 @@ watch(isAuthenticated, async (authenticated) => {
 const handleLogout = () => {
   logout()
 }
-
-const isPubClosed = (pub: Pub): boolean => {
-  const state = pub.openState || 'Open'
-  return state === 'Closed'
-}
-
-const allTimeStats = computed(() => {
-  // Always use all pubs, not filtered
-  const { visited } = getGroupCounts(props.pubs)
-  
-  // Count how many visited pubs are now closed
-  const closedVisited = props.pubs.filter(pub => 
-    visitedPubIds.has(pub.id) && isPubClosed(pub)
-  ).length
-  
-  // Not visited should only count open pubs that haven't been visited
-  const notVisited = props.pubs.filter(pub => 
-    !visitedPubIds.has(pub.id) && !isPubClosed(pub)
-  ).length
-  
-  // Total should only count open pubs
-  const total = props.pubs.filter(pub => !isPubClosed(pub)).length
-  
-  return {
-    visited,
-    notVisited,
-    total,
-    closedVisited
-  }
-})
 
 const openPubTracking = (pub: Pub) => {
   selectedPubForTracking.value = pub

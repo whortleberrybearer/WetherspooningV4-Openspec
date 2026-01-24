@@ -60,6 +60,7 @@ import {
 import { Progress } from '@/components/ui/progress'
 import CountyGroup from './CountyGroup.vue'
 import type { Pub, Visit } from '@/services/firebaseDataService'
+import { isPubClosed } from '@/utils/pubUtils'
 
 interface Props {
   countryName: string
@@ -75,11 +76,6 @@ const props = defineProps<Props>()
 defineEmits<{
   selectPub: [pub: Pub]
 }>()
-
-const isPubClosed = (pub: Pub): boolean => {
-  const state = pub.openState || 'Open'
-  return state === 'Closed'
-}
 
 const allPubs = computed(() => Object.values(props.counties).flat())
 

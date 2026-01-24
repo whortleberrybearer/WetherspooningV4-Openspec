@@ -81,6 +81,7 @@ import {
 } from '@/components/ui/sidebar'
 import { Progress } from '@/components/ui/progress'
 import type { Pub, Visit } from '@/services/firebaseDataService'
+import { isPubClosed } from '@/utils/pubUtils'
 
 interface Props {
   countyName: string
@@ -96,11 +97,6 @@ const props = defineProps<Props>()
 defineEmits<{
   selectPub: [pub: Pub]
 }>()
-
-const isPubClosed = (pub: Pub): boolean => {
-  const state = pub.openState || 'Open'
-  return state === 'Closed'
-}
 
 const progress = computed(() => {
   const visitedCount = props.pubs.filter(pub => props.visitedPubIds.has(pub.id)).length
