@@ -194,7 +194,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import {
   Sidebar,
   SidebarContent,
@@ -214,6 +214,7 @@ import { Switch } from '@/components/ui/switch'
 import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
 import { useTheme } from '@/composables/useTheme'
+import type { Pub } from '@/services/firebaseDataService'
 import LoginDialog from '@/components/LoginDialog.vue'
 import PasswordResetDialog from '@/components/PasswordResetDialog.vue'
 import SignupDialog from '@/components/SignupDialog.vue'
@@ -221,26 +222,6 @@ import PubDetailSheet from '@/components/PubDetailSheet.vue'
 import AccountSettingsDialog from '@/components/AccountSettingsDialog.vue'
 import VisitStatistics from '@/components/sidebar/VisitStatistics.vue'
 import PubGroupList from '@/components/sidebar/PubGroupList.vue'
-
-interface Pub {
-  id: string
-  name: string
-  townCity: string
-  address: string
-  county: string
-  region?: string
-  country?: string
-  position: {
-    lat: number
-    lng: number
-  } | null
-  url?: string
-  imageUrl?: string
-  openState?: string
-  isHotel?: boolean
-  inAirport?: boolean
-  inTrainStation?: boolean
-}
 
 interface Props {
   pubs: Pub[]
@@ -254,7 +235,7 @@ defineEmits<{
 }>()
 
 const { user, isAuthenticated, logout } = useAuth()
-const { getGroupCounts, loadVisits, clearVisits, visits } = useVisits()
+const { loadVisits, clearVisits, visits } = useVisits()
 const { isDark, toggleTheme } = useTheme()
 const showLoginDialog = ref(false)
 const showPasswordResetDialog = ref(false)
@@ -292,10 +273,5 @@ watch(isAuthenticated, async (authenticated) => {
 
 const handleLogout = () => {
   logout()
-}
-
-const openPubTracking = (pub: Pub) => {
-  selectedPubForTracking.value = pub
-  showPubDetailDialog.value = true
 }
 </script>
