@@ -27,7 +27,7 @@
         </div>
       </div>
 
-      <Alert v-if="error" variant="destructive" class="absolute top-20 left-1/2 -translate-x-1/2 max-w-md z-[1000]">
+      <Alert v-if="error" variant="destructive" class="absolute top-20 left-1/2 -translate-x-1/2 max-w-md z-1000">
         <AlertCircle class="h-4 w-4" />
         <AlertTitle>Error</AlertTitle>
         <AlertDescription>
