@@ -219,7 +219,7 @@ import LoginDialog from '@/components/LoginDialog.vue'
 import PasswordResetDialog from '@/components/PasswordResetDialog.vue'
 import SignupDialog from '@/components/SignupDialog.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
-import AccountSettingsDialog from '@/components/AccountSettingsDialog.vue'
+import AccountSettingsDialog from '@/components/account-settings/AccountSettingsDialog.vue'
 import VisitStatistics from '@/components/sidebar/VisitStatistics.vue'
 import PubGroupList from '@/components/sidebar/PubGroupList.vue'
 
