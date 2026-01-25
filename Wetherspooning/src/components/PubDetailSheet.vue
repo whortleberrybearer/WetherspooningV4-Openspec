@@ -1,6 +1,6 @@
 <template>
   <Dialog :open="isOpen" @update:open="(val) => $emit('update:isOpen', val)">
-    <DialogContent class="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+    <DialogContent class="sm:max-w-125 max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <div class="flex items-center gap-2">
           <DialogTitle class="flex-1">{{ pub?.name }}</DialogTitle>
@@ -129,6 +129,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import StarRating from '@/components/StarRating.vue'
+import { isPubClosed as checkIfPubClosed } from '@/utils/pubUtils'
 
 interface Pub {
   id: string
@@ -169,8 +170,7 @@ const rating = ref<number | undefined>(undefined)
 const notes = ref('')
 
 const isPubClosed = computed(() => {
-  const state = props.pub?.openState || 'Open'
-  return state === 'Closed'
+  return props.pub ? checkIfPubClosed(props.pub) : false
 })
 
 const getStateBadgeClass = (openState: string): string => {

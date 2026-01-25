@@ -1,5 +1,5 @@
 import type { Pub } from '@/services/firebaseDataService'
-
+import { formatVisitDate } from '@/utils/pubUtils'
 interface CustomPubOverlayOptions {
   onClose: () => void
   onTrackVisit: (pub: Pub) => void
@@ -220,24 +220,10 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
     let notesPreview = ''
     if (this.isAuthenticated() && visited) {
       const visit = this.getVisit(pub.id)
-      const visitDate = visit?.visitedAt
-      let formattedDate = ''
-      if (visitDate) {
-        try {
-          const date = new Date(visitDate)
-          formattedDate =
-            ' ' +
-            date.toLocaleDateString('en-GB', {
-              day: '2-digit',
-              month: '2-digit',
-              year: '2-digit'
-            })
-        } catch (error) {
-          console.error('Error formatting visit date:', error)
-        }
-      }
+      const formattedDate = formatVisitDate(visit?.visitedAt)
+      const dateDisplay = formattedDate ? ` ${formattedDate}` : ''
 
-      visitBadge = `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #22c55e; color: white;">✓ Visited${formattedDate}</span>`
+      visitBadge = `<span style="display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid transparent; padding: 2px 10px; font-size: 12px; font-weight: 600; background-color: #22c55e; color: white;">✓ Visited${dateDisplay}</span>`
 
       // Display rating stars inline with the pub name
       if (visit?.rating) {
