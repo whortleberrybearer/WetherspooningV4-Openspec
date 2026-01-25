@@ -6,6 +6,8 @@
       :show-closed-pubs="showClosedPubs"
       @selectPub="handlePubSelect"
       @toggleClosedPubs="showClosedPubs = !showClosedPubs"
+      @openLogin="showLoginDialog = true"
+      @openAccountSettings="showAccountSettings = true"
     />
 
     <!-- Main Content -->
