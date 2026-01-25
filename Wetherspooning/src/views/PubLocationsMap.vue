@@ -60,6 +60,7 @@
     <LoginDialog
       :is-open="showLoginDialog"
       @close="showLoginDialog = false"
+      @open-signup="handleOpenSignup"
       @open-password-reset="handleOpenPasswordReset"
     />
 
@@ -68,6 +69,19 @@
       :is-open="showPasswordResetDialog"
       @close="showPasswordResetDialog = false"
       @open-login="handleOpenLogin"
+    />
+
+    <!-- Signup Dialog -->
+    <SignupDialog
+      :is-open="showSignupDialog"
+      @close="showSignupDialog = false"
+      @open-login="handleOpenLogin"
+    />
+
+    <!-- Account Settings Dialog -->
+    <AccountSettingsDialog
+      :is-open="showAccountSettings"
+      @update:is-open="showAccountSettings = $event"
     />
   </div>
 </template>
@@ -79,6 +93,8 @@ import GoogleMap from '@/components/map/GoogleMap.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
 import LoginDialog from '@/components/LoginDialog.vue'
 import PasswordResetDialog from '@/components/PasswordResetDialog.vue'
+import SignupDialog from '@/components/SignupDialog.vue'
+import AccountSettingsDialog from '@/components/account-settings/AccountSettingsDialog.vue'
 import LocationSearch from '@/components/LocationSearch.vue'
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -97,6 +113,8 @@ const selectedPub = ref<Pub | null>(null)
 const showPubDetail = ref(false)
 const showLoginDialog = ref(false)
 const showPasswordResetDialog = ref(false)
+const showSignupDialog = ref(false)
+const showAccountSettings = ref(false)
 const userLocation = ref<{ lat: number; lng: number } | null>(null)
 
 // Authentication and visit tracking
@@ -141,6 +159,11 @@ const handleOpenPasswordReset = () => {
 const handleOpenLogin = () => {
   showPasswordResetDialog.value = false
   showLoginDialog.value = true
+}
+
+const handleOpenSignup = () => {
+  showLoginDialog.value = false
+  showSignupDialog.value = true
 }
 
 const handlePlaceChanged = (place: google.maps.places.PlaceResult) => {

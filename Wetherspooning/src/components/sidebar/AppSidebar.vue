@@ -101,7 +101,7 @@
 
         <!-- Account Settings (when authenticated) -->
         <SidebarMenuItem v-if="isAuthenticated">
-          <SidebarMenuButton @click="showAccountSettings = true">
+          <SidebarMenuButton @click="$emit('openAccountSettings')">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
               <circle cx="12" cy="12" r="3"></circle>
@@ -112,7 +112,7 @@
 
         <!-- Login Button (when not authenticated) -->
         <SidebarMenuItem v-if="!isAuthenticated">
-          <SidebarMenuButton @click="showLoginDialog = true">
+          <SidebarMenuButton @click="$emit('openLogin')">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
               <polyline points="10 17 15 12 10 7"></polyline>
@@ -154,42 +154,6 @@
     </SidebarFooter>
 
     <SidebarRail />
-
-    <!-- Login Dialog -->
-    <LoginDialog 
-      :is-open="showLoginDialog" 
-      @close="showLoginDialog = false"
-      @open-signup="handleOpenSignup"
-      @open-password-reset="handleOpenPasswordReset"
-    />
-    
-    <!-- Password Reset Dialog -->
-    <PasswordResetDialog
-      :is-open="showPasswordResetDialog"
-      @close="showPasswordResetDialog = false"
-      @open-login="handleOpenLogin"
-    />
-    
-    <!-- Signup Dialog -->
-    <SignupDialog 
-      :is-open="showSignupDialog" 
-      @close="showSignupDialog = false"
-      @open-login="handleOpenLogin"
-    />
-
-    <!-- Account Settings Dialog -->
-    <AccountSettingsDialog
-      :is-open="showAccountSettings"
-      @update:is-open="showAccountSettings = $event"
-    />
-    
-    <!-- Pub Detail Dialog for Visit Tracking -->
-    <PubDetailSheet
-      v-if="selectedPubForTracking"
-      :isOpen="showPubDetailDialog"
-      @update:isOpen="showPubDetailDialog = $event"
-      :pub="selectedPubForTracking"
-    />
   </Sidebar>
 </template>
 
@@ -215,11 +179,6 @@ import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
 import { useTheme } from '@/composables/useTheme'
 import type { Pub } from '@/services/firebaseDataService'
-import LoginDialog from '@/components/LoginDialog.vue'
-import PasswordResetDialog from '@/components/PasswordResetDialog.vue'
-import SignupDialog from '@/components/SignupDialog.vue'
-import PubDetailSheet from '@/components/PubDetailSheet.vue'
-import AccountSettingsDialog from '@/components/account-settings/AccountSettingsDialog.vue'
 import VisitStatistics from '@/components/sidebar/VisitStatistics.vue'
 import PubGroupList from '@/components/sidebar/PubGroupList.vue'
 
@@ -232,33 +191,13 @@ const props = defineProps<Props>()
 defineEmits<{
   selectPub: [pub: Pub]
   toggleClosedPubs: []
+  openLogin: []
+  openAccountSettings: []
 }>()
 
 const { user, isAuthenticated, logout } = useAuth()
 const { loadVisits, clearVisits, visits } = useVisits()
 const { isDark, toggleTheme } = useTheme()
-const showLoginDialog = ref(false)
-const showPasswordResetDialog = ref(false)
-const showSignupDialog = ref(false)
-const showAccountSettings = ref(false)
-const selectedPubForTracking = ref<Pub | null>(null)
-const showPubDetailDialog = ref(false)
-
-const handleOpenSignup = () => {
-  showLoginDialog.value = false
-  showSignupDialog.value = true
-}
-
-const handleOpenLogin = () => {
-  showSignupDialog.value = false
-  showPasswordResetDialog.value = false
-  showLoginDialog.value = true
-}
-
-const handleOpenPasswordReset = () => {
-  showLoginDialog.value = false
-  showPasswordResetDialog.value = true
-}
 
 // Watch authentication state to load/clear visit data
 watch(isAuthenticated, async (authenticated) => {
