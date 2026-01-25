@@ -8,6 +8,7 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
 import { MarkerClusterer } from '@googlemaps/markerclusterer'
 import type { Pub, Visit } from '@/services/firebaseDataService'
 import { createCustomPubOverlay, type CustomPubOverlay } from './CustomPubOverlay'
+import { isPubClosed } from '@/utils/pubUtils'
 
 interface Props {
   pubs: Pub[]
@@ -50,10 +51,7 @@ const filteredPubsForMap = computed(() => {
   
   // Second filter: closed pubs if toggle is off
   if (!props.showClosedPubs) {
-    filtered = filtered.filter(pub => {
-      const state = pub.openState || 'Open'
-      return state !== 'Closed'
-    })
+    filtered = filtered.filter(pub => !isPubClosed(pub))
   }
   
   return filtered
@@ -195,8 +193,7 @@ const checkProximity = (lat: number, lng: number): Pub | null => {
 
   const candidatePubs = props.pubs.filter(pub => {
     if (!pub.position) return false
-    const isClosed = pub.openState === 'Closed'
-    return !isClosed
+    return !isPubClosed(pub)
   })
 
   if (candidatePubs.length === 0) return null
@@ -304,7 +301,7 @@ const createMarkers = () => {
       return
     }
 
-    const isClosed = pub.openState === 'Closed'
+    const isClosed = isPubClosed(pub)
     const visited = isVisited(pub.id)
 
     const markerElement = document.createElement('div')
