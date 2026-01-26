@@ -158,8 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import {
   Sidebar,
   SidebarContent,
@@ -218,17 +217,6 @@ const shouldShowStats = computed(() => {
   if (props.notFoundState?.isNotFound) return false
   if (props.sharedVisitsMode) return true
   return isAuthenticated.value
-})
-
-// Watch authentication state to load/clear visit data
-watch(isAuthenticated, async (authenticated) => {
-  if (authenticated && user.value?.uid) {
-    // Load visits when user logs in using Firebase UID
-    await loadVisits(user.value.uid)
-  } else {
-    // Clear visits when user logs out
-    clearVisits()
-  }
 })
 
 const handleLogout = () => {

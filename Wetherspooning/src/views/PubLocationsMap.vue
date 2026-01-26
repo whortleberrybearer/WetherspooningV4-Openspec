@@ -98,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppSidebar from '@/components/sidebar/AppSidebar.vue'
 import GoogleMap from '@/components/map/GoogleMap.vue'
@@ -154,8 +154,13 @@ const displayVisits = computed(() => {
   return visits.value
 })
 
-// Watch authentication state to load/clear visit data
+// Watch authentication state to load visits on login (but not when viewing shared profiles)
 watch(isAuthenticated, async (authenticated) => {
+  // Don't interfere when viewing shared profiles
+  if (props.sharedVisitsMode || props.notFoundState) {
+    return
+  }
+  
   if (authenticated && user.value?.uid) {
     await loadVisits(user.value.uid)
   } else {
@@ -212,5 +217,10 @@ const handleCloseNotFound = () => {
 
 onMounted(async () => {
   await loadPubs()
+  
+  // Only load authenticated user's visits when NOT viewing a shared profile
+  if (!props.sharedVisitsMode && !props.notFoundState && isAuthenticated.value && user.value?.uid) {
+    await loadVisits(user.value.uid)
+  }
 })
 </script>
