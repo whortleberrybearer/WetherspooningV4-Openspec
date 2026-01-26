@@ -4,7 +4,6 @@
     <AppSidebar
       :pubs="pubs"
       :show-closed-pubs="showClosedPubs"
-      :shared-visits-mode="props.sharedVisitsMode"
       @selectPub="handlePubSelect"
       @toggleClosedPubs="showClosedPubs = !showClosedPubs"
     />
@@ -43,7 +42,6 @@
     <PubDetailSheet 
       :pub="selectedPub" 
       :is-open="showPubDetail"
-      :is-readonly="!!props.sharedVisitsMode"
       @update:is-open="showPubDetail = $event"
     />
 
@@ -79,17 +77,8 @@ import { useAuth } from '@/composables/useAuth'
 import { useVisits } from '@/composables/useVisits'
 import { useTheme } from '@/composables/useTheme'
 import { getAllPubs } from '@/services/pubDataService'
-import type { Pub, Visit } from '@/services/firebaseDataService'
+import type { Pub } from '@/services/firebaseDataService'
 import { createCustomPubOverlay, type CustomPubOverlay } from '@/components/CustomPubOverlay'
-
-// Props for shared visit mode
-const props = defineProps<{
-  sharedVisitsMode?: {
-    userId: string
-    username: string
-    visits: Visit[]
-  } | null
-}>()
 
 const mapContainer = ref<HTMLElement | null>(null)
 const map = shallowRef<google.maps.Map | null>(null)
@@ -114,30 +103,8 @@ const { user, isAuthenticated } = useAuth()
 const { isVisited, getVisit, getVisitDate, loadVisits, clearVisits, visitedPubIds, visits, addVisit } = useVisits()
 const { isDark } = useTheme()
 
-// Shared visit state
-const sharedVisitIds = computed(() => {
-  if (!props.sharedVisitsMode) return new Set<string>()
-  return new Set(props.sharedVisitsMode.visits.map(v => v.pubId))
-})
-
-const sharedVisitMap = computed(() => {
-  if (!props.sharedVisitsMode) return new Map<string, Visit>()
-  return new Map(props.sharedVisitsMode.visits.map(v => [v.pubId, v]))
-})
-
-// Helper functions that work in both own and shared modes
-const isMarkerVisited = (pubId: string): boolean => {
-  return props.sharedVisitsMode ? sharedVisitIds.value.has(pubId) : isVisited(pubId)
-}
-
-const getMarkerVisit = (pubId: string): Visit | null => {
-  return props.sharedVisitsMode ? (sharedVisitMap.value.get(pubId) || null) : getVisit(pubId)
-}
-
-// Watch authentication state to load/clear visit data (only in own visits mode)
+// Watch authentication state to load/clear visit data
 watch(isAuthenticated, async (authenticated) => {
-  // Skip if in shared visits mode
-  if (props.sharedVisitsMode) return
 
   if (authenticated && user.value?.uid) {
     // Load visits when user logs in using Firebase UID
@@ -153,7 +120,7 @@ watch(isAuthenticated, async (authenticated) => {
 })
 
 // Watch for changes in visit data to update markers and clusters
-watch([visitedPubIds, visits, () => props.sharedVisitsMode], () => {
+watch([visitedPubIds, visits], () => {
   // Recreate markers to reflect visit status changes (checkmark icons)
   createMarkers()
   
@@ -402,14 +369,9 @@ const performProximityCheck = () => {
  * Falls back to default center (54.0, -2.0) if geolocation is unavailable or denied.
  * Non-blocking - map is immediately usable with default center while geolocation request is pending.
  * On first geolocation, checks proximity and auto-centers on nearby pub if within 100m.
- * 
- * Disabled in shared visits mode to avoid confusing UX.
  */
 const centerOnUserLocation = () => {
   if (!map.value) return
-
-  // Skip geolocation in shared visits mode
-  if (props.sharedVisitsMode) return
   
   if ('geolocation' in navigator) {
     // Get initial position for map centering and proximity check

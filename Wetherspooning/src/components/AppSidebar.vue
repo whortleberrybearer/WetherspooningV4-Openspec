@@ -20,32 +20,8 @@
     </SidebarHeader>
 
     <SidebarContent>
-      <!-- Shared View Banner -->
-      <div v-if="props.sharedVisitsMode" class="px-2 py-3 bg-primary/10 border-b border-primary/20">
-        <div class="flex items-center justify-between">
-          <div class="flex flex-col gap-1">
-            <span class="text-sm font-medium">@{{ props.sharedVisitsMode.username }}'s Visits</span>
-            <span class="text-xs text-muted-foreground">Public visit data</span>
-          </div>
-          <button
-            v-if="isAuthenticated"
-            @click="router.push('/')"
-            class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3"
-          >
-            My Visits
-          </button>
-          <button
-            v-else
-            @click="router.push('/')"
-            class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3"
-          >
-            Start Tracking
-          </button>
-        </div>
-      </div>
-
       <!-- Visit Statistics -->
-      <SidebarGroup v-if="isAuthenticated || props.sharedVisitsMode">
+      <SidebarGroup v-if="isAuthenticated">
         <SidebarGroupContent>
           <div class="grid grid-cols-2 gap-2 px-2">
             <!-- Total Visited Card -->
@@ -73,7 +49,7 @@
         </SidebarGroupContent>
       </SidebarGroup>
 
-      <SidebarSeparator v-if="isAuthenticated || props.sharedVisitsMode" />
+      <SidebarSeparator v-if="isAuthenticated" />
 
       <!-- Filter Options -->
       <SidebarGroup>
@@ -118,7 +94,7 @@
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
               <span class="flex-1 text-left">{{ countryName }}</span>
-              <div v-if="isAuthenticated || props.sharedVisitsMode" class="flex items-center gap-2 min-w-[100px]">
+              <div v-if="isAuthenticated" class="flex items-center gap-2 min-w-[100px]">
                 <Progress :model-value="getCountryProgress(counties)" class="h-2 flex-1" />
                 <span class="text-xs text-muted-foreground whitespace-nowrap">{{ getCountryProgressText(counties) }}</span>
               </div>
@@ -146,7 +122,7 @@
                       <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
                     <span class="flex-1 text-left font-medium">{{ countyName }}</span>
-                    <div v-if="isAuthenticated || props.sharedVisitsMode" class="flex items-center gap-2 min-w-[100px]">
+                    <div v-if="isAuthenticated" class="flex items-center gap-2 min-w-[100px]">
                       <Progress :model-value="getCountyProgress(pubList)" class="h-2 flex-1" />
                       <span class="text-xs text-muted-foreground whitespace-nowrap">{{ getCountyProgressText(pubList) }}</span>
                     </div>
@@ -169,14 +145,14 @@
                                 <span v-if="pub.inTrainStation" title="Train Station">🚂</span>
                               </span>
                               <div 
-                                v-if="(isAuthenticated || props.sharedVisitsMode) && isSharedVisited(pub.id)"
+                                v-if="isAuthenticated && isVisited(pub.id)"
                                 class="flex items-center gap-1 text-sm text-green-600 font-medium whitespace-nowrap shrink-0"
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                                   <polyline points="22 4 12 14.01 9 11.01"></polyline>
                                 </svg>
-                                <span>{{ formatVisitDate(getSharedVisitDate(pub.id)) }}</span>
+                                <span>{{ formatVisitDate(getVisitDate(pub.id)) }}</span>
                               </div>
                             </div>
                             <!-- Second row: Town/City and State -->
@@ -335,7 +311,6 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import {
   Sidebar,
   SidebarContent,
@@ -390,11 +365,6 @@ interface Pub {
 interface Props {
   pubs: Pub[]
   showClosedPubs: boolean
-  sharedVisitsMode?: {
-    userId: string
-    username: string
-    visits: any[]
-  } | null
 }
 
 const props = defineProps<Props>()
@@ -403,26 +373,9 @@ defineEmits<{
   toggleClosedPubs: []
 }>()
 
-const router = useRouter()
 const { user, isAuthenticated, logout } = useAuth()
 const { getGroupCounts, loadVisits, clearVisits, isVisited, getVisitDate } = useVisits()
 const { isDark, toggleTheme } = useTheme()
-
-// Shared visit state helpers
-const sharedVisitIds = computed(() => {
-  if (!props.sharedVisitsMode) return new Set<string>()
-  return new Set(props.sharedVisitsMode.visits.map(v => v.pubId))
-})
-
-const isSharedVisited = (pubId: string): boolean => {
-  return props.sharedVisitsMode ? sharedVisitIds.value.has(pubId) : isVisited(pubId)
-}
-
-const getSharedVisitDate = (pubId: string): string | null => {
-  if (!props.sharedVisitsMode) return getVisitDate(pubId)
-  const visit = props.sharedVisitsMode.visits.find(v => v.pubId === pubId)
-  return visit?.visitedAt || null
-}
 const showLoginDialog = ref(false)
 const showPasswordResetDialog = ref(false)
 const showSignupDialog = ref(false)
@@ -529,20 +482,17 @@ const groupedPubs = computed(() => {
 })
 
 const allTimeStats = computed(() => {
-  // Check if we're in shared mode or own mode
-  const checkVisited = props.sharedVisitsMode ? isSharedVisited : isVisited
-  
   // Always use all pubs, not filtered
-  const visitedCount = props.pubs.filter(pub => checkVisited(pub.id)).length
+  const visitedCount = props.pubs.filter(pub => isVisited(pub.id)).length
   
   // Count how many visited pubs are now closed
   const closedVisited = props.pubs.filter(pub => 
-    checkVisited(pub.id) && isPubClosed(pub)
+    isVisited(pub.id) && isPubClosed(pub)
   ).length
   
   // Not visited should only count open pubs that haven't been visited
   const notVisited = props.pubs.filter(pub => 
-    !checkVisited(pub.id) && !isPubClosed(pub)
+    !isVisited(pub.id) && !isPubClosed(pub)
   ).length
   
   // Total should only count open pubs
@@ -621,26 +571,26 @@ const formatVisitDate = (isoDate: string | null): string | null => {
 
 const getCountryProgress = (counties: Record<string, Pub[]>) => {
   const allPubs = Object.values(counties).flat()
-  const visited = allPubs.filter(pub => isSharedVisited(pub.id)).length
+  const visited = allPubs.filter(pub => isVisited(pub.id)).length
   const total = allPubs.length
   return total > 0 ? (visited / total) * 100 : 0
 }
 
 const getCountryProgressText = (counties: Record<string, Pub[]>) => {
   const allPubs = Object.values(counties).flat()
-  const visited = allPubs.filter(pub => isSharedVisited(pub.id)).length
+  const visited = allPubs.filter(pub => isVisited(pub.id)).length
   const total = allPubs.length
   return `${visited}/${total}`
 }
 
 const getCountyProgress = (pubs: Pub[]) => {
-  const visited = pubs.filter(pub => isSharedVisited(pub.id)).length
+  const visited = pubs.filter(pub => isVisited(pub.id)).length
   const total = pubs.length
   return total > 0 ? (visited / total) * 100 : 0
 }
 
 const getCountyProgressText = (pubs: Pub[]) => {
-  const visited = pubs.filter(pub => isSharedVisited(pub.id)).length
+  const visited = pubs.filter(pub => isVisited(pub.id)).length
   const total = pubs.length
   return `${visited}/${total}`
 }
