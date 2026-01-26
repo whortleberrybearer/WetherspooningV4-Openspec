@@ -22,12 +22,12 @@
     <SidebarContent>
       <!-- Visit Statistics -->
       <VisitStatistics 
-        v-if="isAuthenticated" 
+        v-if="shouldShowStats" 
         :pubs="pubs"
-        :visits="visits"
+        :visits="displayVisits"
       />
 
-      <SidebarSeparator v-if="isAuthenticated" />
+      <SidebarSeparator v-if="shouldShowStats" />
 
       <!-- Filter Options -->
       <SidebarGroup>
@@ -55,8 +55,8 @@
       <!-- Pub Listings by Country/County -->
       <PubGroupList
         :pubs="pubs"
-        :show-visit-progress="isAuthenticated"
-        :visits="visits"
+        :show-visit-progress="shouldShowStats"
+        :visits="displayVisits"
         :show-closed-pubs="showClosedPubs"
         @select-pub="$emit('selectPub', $event)"
       />
@@ -159,6 +159,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { computed } from 'vue'
 import {
   Sidebar,
   SidebarContent,
@@ -185,9 +186,14 @@ import PubGroupList from '@/components/sidebar/PubGroupList.vue'
 interface Props {
   pubs: Pub[]
   showClosedPubs: boolean
+  sharedVisitsMode?: { userId: string; username: string; visits: any[] } | null
+  notFoundState?: { isNotFound: boolean; username: string } | null
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  sharedVisitsMode: null,
+  notFoundState: null
+})
 defineEmits<{
   selectPub: [pub: Pub]
   toggleClosedPubs: []
@@ -198,6 +204,21 @@ defineEmits<{
 const { user, isAuthenticated, logout } = useAuth()
 const { loadVisits, clearVisits, visits } = useVisits()
 const { isDark, toggleTheme } = useTheme()
+
+// Use shared visits if in shared mode, otherwise use authenticated user's visits
+const displayVisits = computed(() => {
+  if (props.sharedVisitsMode) {
+    return props.sharedVisitsMode.visits
+  }
+  return visits.value
+})
+
+// Show statistics if authenticated (and not in not-found mode) OR if viewing valid shared visits
+const shouldShowStats = computed(() => {
+  if (props.notFoundState?.isNotFound) return false
+  if (props.sharedVisitsMode) return true
+  return isAuthenticated.value
+})
 
 // Watch authentication state to load/clear visit data
 watch(isAuthenticated, async (authenticated) => {

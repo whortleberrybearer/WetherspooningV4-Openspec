@@ -4,6 +4,8 @@
     <AppSidebar
       :pubs="pubs"
       :show-closed-pubs="showClosedPubs"
+      :shared-visits-mode="sharedVisitsMode"
+      :not-found-state="notFoundState"
       @selectPub="handlePubSelect"
       @toggleClosedPubs="showClosedPubs = !showClosedPubs"
       @openLogin="showLoginDialog = true"
@@ -41,7 +43,7 @@
         ref="googleMapRef"
         :pubs="pubs"
         :show-closed-pubs="showClosedPubs"
-        :visits="visits"
+        :visits="displayVisits"
         :is-authenticated="isAuthenticated"
         :is-dark="isDark"
         :user-location="userLocation"
@@ -96,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import AppSidebar from '@/components/sidebar/AppSidebar.vue'
 import GoogleMap from '@/components/map/GoogleMap.vue'
@@ -143,6 +145,14 @@ const userLocation = ref<{ lat: number; lng: number } | null>(null)
 const { user, isAuthenticated } = useAuth()
 const { loadVisits, clearVisits, visits } = useVisits()
 const { isDark } = useTheme()
+
+// Use shared visits if in shared mode, otherwise use authenticated user's visits
+const displayVisits = computed(() => {
+  if (props.sharedVisitsMode) {
+    return props.sharedVisitsMode.visits
+  }
+  return visits.value
+})
 
 // Watch authentication state to load/clear visit data
 watch(isAuthenticated, async (authenticated) => {
