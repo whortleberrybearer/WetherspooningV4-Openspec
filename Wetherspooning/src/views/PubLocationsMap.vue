@@ -85,11 +85,19 @@
       :is-open="showAccountSettings"
       @update:is-open="showAccountSettings = $event"
     />
+
+    <!-- Not Found Dialog -->
+    <UserNotFoundDialog
+      :is-open="notFoundState?.isNotFound ?? false"
+      :username="notFoundState?.username ?? ''"
+      @close="handleCloseNotFound"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import AppSidebar from '@/components/sidebar/AppSidebar.vue'
 import GoogleMap from '@/components/map/GoogleMap.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
@@ -97,6 +105,7 @@ import LoginDialog from '@/components/LoginDialog.vue'
 import PasswordResetDialog from '@/components/PasswordResetDialog.vue'
 import SignupDialog from '@/components/SignupDialog.vue'
 import AccountSettingsDialog from '@/components/account-settings/AccountSettingsDialog.vue'
+import UserNotFoundDialog from '@/components/UserNotFoundDialog.vue'
 import LocationSearch from '@/components/LocationSearch.vue'
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -107,6 +116,17 @@ import { useTheme } from '@/composables/useTheme'
 import { getAllPubs } from '@/services/pubDataService'
 import type { Pub } from '@/services/firebaseDataService'
 
+interface Props {
+  sharedVisitsMode?: { userId: string; username: string; visits: any[] } | null
+  notFoundState?: { isNotFound: boolean; username: string } | null
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  sharedVisitsMode: null,
+  notFoundState: null
+})
+
+const router = useRouter()
 const googleMapRef = ref<InstanceType<typeof GoogleMap> | null>(null)
 const pubs = ref<Pub[]>([])
 const error = ref<string>('')
@@ -170,6 +190,14 @@ const handleOpenSignup = () => {
 
 const handlePlaceChanged = (place: google.maps.places.PlaceResult) => {
   googleMapRef.value?.panToPlace(place)
+}
+
+const navigateToHome = () => {
+  router.push('/')
+}
+
+const handleCloseNotFound = () => {
+  navigateToHome()
 }
 
 onMounted(async () => {
