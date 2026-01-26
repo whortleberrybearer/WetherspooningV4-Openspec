@@ -1,6 +1,6 @@
 <template>
   <Dialog :open="isOpen" @update:open="(open) => !open && handleClose()">
-    <DialogContent class="sm:max-w-[425px]">
+    <DialogContent class="sm:max-w-106.25">
       <DialogHeader>
         <DialogTitle>Reset Password</DialogTitle>
         <DialogDescription>
