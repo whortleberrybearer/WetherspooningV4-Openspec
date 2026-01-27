@@ -18,6 +18,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/composables/useAuth'
+import { useRouter } from 'vue-router'
 
 interface Props {
   isOpen: boolean
@@ -26,13 +27,10 @@ interface Props {
 
 defineProps<Props>()
 
-const emit = defineEmits<{
-  close: []
-}>()
-
 const { isAuthenticated } = useAuth()
+const router = useRouter()
 
 const handleClose = () => {
-  emit('close')
+    router.push('/')
 }
 </script>

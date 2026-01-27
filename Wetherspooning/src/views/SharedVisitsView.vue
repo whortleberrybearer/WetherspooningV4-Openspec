@@ -8,7 +8,6 @@
   <UserNotFoundDialog
     :is-open="notFoundState?.isNotFound ?? false"
     :username="notFoundState?.username ?? ''"
-    @close="navigateToHome"
   />
 </template>
 
@@ -63,8 +62,4 @@ onMounted(async () => {
     notFoundState.value = { isNotFound: true, username: username.value }
   }
 })
-
-const navigateToHome = () => {
-  router.push('/')
-}
 </script>
