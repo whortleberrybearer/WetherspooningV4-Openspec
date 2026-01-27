@@ -2,10 +2,10 @@
   <div class="flex h-screen w-full overflow-hidden">
     <!-- Sidebar -->
     <AppSidebar
-      :pubs="pubs"
+      :pubs="props.pubs"
       :show-closed-pubs="showClosedPubs"
-      :shared-visits-mode="sharedVisitsMode"
-      :not-found-state="notFoundState"
+      :shared-visits-mode="props.sharedVisitsMode"
+      :not-found-state="props.notFoundState"
       @selectPub="handlePubSelect"
       @toggleClosedPubs="showClosedPubs = !showClosedPubs"
       @openLogin="showLoginDialog = true"
@@ -31,19 +31,19 @@
         </div>
       </div>
 
-      <Alert v-if="error" variant="destructive" class="absolute top-20 left-1/2 -translate-x-1/2 max-w-md z-1000">
+      <Alert v-if="props.error" variant="destructive" class="absolute top-20 left-1/2 -translate-x-1/2 max-w-md z-1000">
         <AlertCircle class="h-4 w-4" />
         <AlertTitle>Error</AlertTitle>
         <AlertDescription>
-          {{ error }}
+          {{ props.error }}
         </AlertDescription>
       </Alert>
 
       <GoogleMap
         ref="googleMapRef"
-        :pubs="pubs"
+        :pubs="props.pubs"
         :show-closed-pubs="showClosedPubs"
-        :visits="displayVisits"
+        :visits="props.sharedVisitsMode ? props.sharedVisitsMode.visits : props.visits"
         :is-authenticated="isAuthenticated"
         :is-dark="isDark"
         :user-location="userLocation"
@@ -90,16 +90,15 @@
 
     <!-- Not Found Dialog -->
     <UserNotFoundDialog
-      :is-open="notFoundState?.isNotFound ?? false"
-      :username="notFoundState?.username ?? ''"
+      :is-open="props.notFoundState?.isNotFound ?? false"
+      :username="props.notFoundState?.username ?? ''"
       @close="handleCloseNotFound"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
 import AppSidebar from '@/components/sidebar/AppSidebar.vue'
 import GoogleMap from '@/components/map/GoogleMap.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
@@ -113,25 +112,26 @@ import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-vue-next'
 import { useAuth } from '@/composables/useAuth'
-import { useVisits } from '@/composables/useVisits'
 import { useTheme } from '@/composables/useTheme'
-import { getAllPubs } from '@/services/pubDataService'
 import type { Pub } from '@/services/firebaseDataService'
 
 interface Props {
+  pubs: Pub[]
+  visits: any[]
+  error?: string
   sharedVisitsMode?: { userId: string; username: string; visits: any[] } | null
   notFoundState?: { isNotFound: boolean; username: string } | null
+  onCloseNotFound?: () => void
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  error: '',
   sharedVisitsMode: null,
-  notFoundState: null
+  notFoundState: null,
+  onCloseNotFound: undefined
 })
 
-const router = useRouter()
 const googleMapRef = ref<InstanceType<typeof GoogleMap> | null>(null)
-const pubs = ref<Pub[]>([])
-const error = ref<string>('')
 const showClosedPubs = ref(false)
 const selectedPub = ref<Pub | null>(null)
 const showPubDetail = ref(false)
@@ -141,43 +141,8 @@ const showSignupDialog = ref(false)
 const showAccountSettings = ref(false)
 const userLocation = ref<{ lat: number; lng: number } | null>(null)
 
-// Authentication and visit tracking
-const { user, isAuthenticated } = useAuth()
-const { loadVisits, clearVisits, visits } = useVisits()
+const { isAuthenticated } = useAuth()
 const { isDark } = useTheme()
-
-// Use shared visits if in shared mode, otherwise use authenticated user's visits
-const displayVisits = computed(() => {
-  if (props.sharedVisitsMode) {
-    return props.sharedVisitsMode.visits
-  }
-  return visits.value
-})
-
-// Watch authentication state to load visits on login (but not when viewing shared profiles)
-watch(isAuthenticated, async (authenticated) => {
-  // Don't interfere when viewing shared profiles
-  if (props.sharedVisitsMode || props.notFoundState) {
-    return
-  }
-  
-  if (authenticated && user.value?.uid) {
-    await loadVisits(user.value.uid)
-  } else {
-    clearVisits()
-  }
-})
-
-const loadPubs = async () => {
-  try {
-    const data = await getAllPubs()
-    pubs.value = data
-  } catch (err) {
-    const errorMsg = 'Failed to load pub locations. Please check your connection and try again.'
-    error.value = errorMsg
-    console.error('Error loading pubs from Firestore:', err)
-  }
-}
 
 const handlePubSelect = (pub: Pub) => {
   googleMapRef.value?.panToPub(pub)
@@ -207,20 +172,9 @@ const handlePlaceChanged = (place: google.maps.places.PlaceResult) => {
   googleMapRef.value?.panToPlace(place)
 }
 
-const navigateToHome = () => {
-  router.push('/')
-}
-
 const handleCloseNotFound = () => {
-  navigateToHome()
-}
-
-onMounted(async () => {
-  await loadPubs()
-  
-  // Only load authenticated user's visits when NOT viewing a shared profile
-  if (!props.sharedVisitsMode && !props.notFoundState && isAuthenticated.value && user.value?.uid) {
-    await loadVisits(user.value.uid)
+  if (props.onCloseNotFound) {
+    props.onCloseNotFound()
   }
-})
+}
 </script>

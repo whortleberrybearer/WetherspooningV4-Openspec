@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import PubLocationsMap from '@/views/PubLocationsMap.vue'
+import MyVisitsView from '@/views/MyVisitsView.vue'
 import SharedVisitsView from '@/views/SharedVisitsView.vue'
 
 const router = createRouter({
@@ -8,7 +8,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: PubLocationsMap,
+      component: MyVisitsView,
     },
     {
       path: '/visits/@:username',
