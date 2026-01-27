@@ -712,6 +712,10 @@ export async function getUserProfileByUsername(username: string): Promise<UserPr
     }
     
     const docSnap = querySnapshot.docs[0]
+    if (!docSnap) {
+      return null
+    }
+    
     const data = docSnap.data()
     
     if (!validateUserProfile(docSnap.id, data)) {

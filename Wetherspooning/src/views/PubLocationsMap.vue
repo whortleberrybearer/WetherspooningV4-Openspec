@@ -5,7 +5,6 @@
       :pubs="pubs"
       :show-closed-pubs="showClosedPubs"
       :shared-visits-mode="props.sharedVisitsMode"
-      :not-found-state="props.notFoundState"
       @selectPub="handlePubSelect"
       @toggleClosedPubs="showClosedPubs = !showClosedPubs"
       @openLogin="showLoginDialog = true"
@@ -83,16 +82,10 @@
     />
 
     <!-- Account Settings Dialog -->
+    <!-- Account Settings Dialog -->
     <AccountSettingsDialog
       :is-open="showAccountSettings"
       @update:is-open="showAccountSettings = $event"
-    />
-
-    <!-- Not Found Dialog -->
-    <UserNotFoundDialog
-      :is-open="props.notFoundState?.isNotFound ?? false"
-      :username="props.notFoundState?.username ?? ''"
-      @close="handleCloseNotFound"
     />
   </div>
 </template>
@@ -106,7 +99,6 @@ import LoginDialog from '@/components/LoginDialog.vue'
 import PasswordResetDialog from '@/components/PasswordResetDialog.vue'
 import SignupDialog from '@/components/SignupDialog.vue'
 import AccountSettingsDialog from '@/components/account-settings/AccountSettingsDialog.vue'
-import UserNotFoundDialog from '@/components/UserNotFoundDialog.vue'
 import LocationSearch from '@/components/LocationSearch.vue'
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -117,16 +109,12 @@ import { getAllPubs } from '@/services/pubDataService'
 import type { Pub } from '@/services/firebaseDataService'
 
 interface Props {
-  visits: any[]
+  visits: readonly any[]
   sharedVisitsMode?: { userId: string; username: string; visits: any[] } | null
-  notFoundState?: { isNotFound: boolean; username: string } | null
-  onCloseNotFound?: () => void
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  sharedVisitsMode: null,
-  notFoundState: null,
-  onCloseNotFound: undefined
+  sharedVisitsMode: null
 })
 
 const googleMapRef = ref<InstanceType<typeof GoogleMap> | null>(null)
@@ -146,8 +134,10 @@ const { isDark } = useTheme()
 
 const loadPubs = async () => {
   try {
+    console.log('PubLocationsMap: Loading pubs...')
     const data = await getAllPubs()
     pubs.value = data
+    console.log('PubLocationsMap: Pubs loaded:', data.length, 'pubs')
   } catch (err) {
     const errorMsg = 'Failed to load pub locations. Please check your connection and try again.'
     error.value = errorMsg
@@ -183,13 +173,12 @@ const handlePlaceChanged = (place: google.maps.places.PlaceResult) => {
   googleMapRef.value?.panToPlace(place)
 }
 
-const handleCloseNotFound = () => {
-  if (props.onCloseNotFound) {
-    props.onCloseNotFound()
-  }
-}
-
 onMounted(async () => {
+  console.log('PubLocationsMap mounted with props:', { 
+    visitsLength: props.visits.length, 
+    hasSharedMode: !!props.sharedVisitsMode 
+  })
   await loadPubs()
+  console.log('PubLocationsMap: Pubs loaded, ready to render map')
 })
 </script>
