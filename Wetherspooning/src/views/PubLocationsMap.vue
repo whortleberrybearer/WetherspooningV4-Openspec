@@ -2,7 +2,7 @@
   <div class="flex h-screen w-full overflow-hidden">
     <!-- Sidebar -->
     <AppSidebar
-      :pubs="props.pubs"
+      :pubs="pubs"
       :show-closed-pubs="showClosedPubs"
       :shared-visits-mode="props.sharedVisitsMode"
       :not-found-state="props.notFoundState"
@@ -31,17 +31,17 @@
         </div>
       </div>
 
-      <Alert v-if="props.error" variant="destructive" class="absolute top-20 left-1/2 -translate-x-1/2 max-w-md z-1000">
+      <Alert v-if="error" variant="destructive" class="absolute top-20 left-1/2 -translate-x-1/2 max-w-md z-1000">
         <AlertCircle class="h-4 w-4" />
         <AlertTitle>Error</AlertTitle>
         <AlertDescription>
-          {{ props.error }}
+          {{ error }}
         </AlertDescription>
       </Alert>
 
       <GoogleMap
         ref="googleMapRef"
-        :pubs="props.pubs"
+        :pubs="pubs"
         :show-closed-pubs="showClosedPubs"
         :visits="props.sharedVisitsMode ? props.sharedVisitsMode.visits : props.visits"
         :is-authenticated="isAuthenticated"
@@ -98,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import AppSidebar from '@/components/sidebar/AppSidebar.vue'
 import GoogleMap from '@/components/map/GoogleMap.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
@@ -113,25 +113,25 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-vue-next'
 import { useAuth } from '@/composables/useAuth'
 import { useTheme } from '@/composables/useTheme'
+import { getAllPubs } from '@/services/pubDataService'
 import type { Pub } from '@/services/firebaseDataService'
 
 interface Props {
-  pubs: Pub[]
   visits: any[]
-  error?: string
   sharedVisitsMode?: { userId: string; username: string; visits: any[] } | null
   notFoundState?: { isNotFound: boolean; username: string } | null
   onCloseNotFound?: () => void
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  error: '',
   sharedVisitsMode: null,
   notFoundState: null,
   onCloseNotFound: undefined
 })
 
 const googleMapRef = ref<InstanceType<typeof GoogleMap> | null>(null)
+const pubs = ref<Pub[]>([])
+const error = ref<string>('')
 const showClosedPubs = ref(false)
 const selectedPub = ref<Pub | null>(null)
 const showPubDetail = ref(false)
@@ -143,6 +143,17 @@ const userLocation = ref<{ lat: number; lng: number } | null>(null)
 
 const { isAuthenticated } = useAuth()
 const { isDark } = useTheme()
+
+const loadPubs = async () => {
+  try {
+    const data = await getAllPubs()
+    pubs.value = data
+  } catch (err) {
+    const errorMsg = 'Failed to load pub locations. Please check your connection and try again.'
+    error.value = errorMsg
+    console.error('Error loading pubs from Firestore:', err)
+  }
+}
 
 const handlePubSelect = (pub: Pub) => {
   googleMapRef.value?.panToPub(pub)
@@ -177,4 +188,8 @@ const handleCloseNotFound = () => {
     props.onCloseNotFound()
   }
 }
+
+onMounted(async () => {
+  await loadPubs()
+})
 </script>
