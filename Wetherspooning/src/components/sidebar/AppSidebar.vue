@@ -185,12 +185,12 @@ import PubGroupList from '@/components/sidebar/PubGroupList.vue'
 interface Props {
   pubs: Pub[]
   showClosedPubs: boolean
-  sharedVisitsMode?: { userId: string; username: string; visits: any[] } | null
+  visits?: readonly any[]
   notFoundState?: { isNotFound: boolean; username: string } | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  sharedVisitsMode: null,
+  visits: () => [],
   notFoundState: null
 })
 defineEmits<{
@@ -204,18 +204,18 @@ const { user, isAuthenticated, logout } = useAuth()
 const { loadVisits, clearVisits, visits } = useVisits()
 const { isDark, toggleTheme } = useTheme()
 
-// Use shared visits if in shared mode, otherwise use authenticated user's visits
+// Use passed visits if available (shared mode), otherwise use authenticated user's visits
 const displayVisits = computed(() => {
-  if (props.sharedVisitsMode) {
-    return props.sharedVisitsMode.visits
+  if (props.visits && props.visits.length > 0) {
+    return props.visits
   }
   return visits.value
 })
 
-// Show statistics if authenticated (and not in not-found mode) OR if viewing valid shared visits
+// Show statistics if authenticated (and not in not-found mode) OR if viewing shared visits
 const shouldShowStats = computed(() => {
   if (props.notFoundState?.isNotFound) return false
-  if (props.sharedVisitsMode) return true
+  if (props.visits && props.visits.length > 0) return true
   return isAuthenticated.value
 })
 

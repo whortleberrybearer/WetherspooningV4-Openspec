@@ -1,7 +1,6 @@
 <template>
   <PubLocationsMap 
-    :visits="[]"
-    :shared-visits-mode="sharedVisitsMode"
+    :visits="sharedVisits"
   />
   
   <!-- Not Found Dialog - rendered outside to avoid layout issues -->
@@ -22,7 +21,7 @@ const route = useRoute()
 const router = useRouter()
 
 const username = computed(() => route.params.username as string)
-const sharedVisitsMode = ref<{ userId: string; username: string; visits: any[] } | null>(null)
+const sharedVisits = ref<any[]>([])
 const notFoundState = ref<{ isNotFound: boolean; username: string } | null>(null)
 
 onMounted(async () => {
@@ -47,13 +46,9 @@ onMounted(async () => {
     const visits = await getPublicVisits(profile.uid)
     console.log('Visits loaded:', visits.length, 'visits')
     
-    // Pass shared visits data to map component
-    sharedVisitsMode.value = {
-      userId: profile.uid,
-      username: profile.username,
-      visits
-    }
-    console.log('sharedVisitsMode set:', sharedVisitsMode.value)
+    // Set shared visits
+    sharedVisits.value = visits
+    console.log('sharedVisits set:', sharedVisits.value)
     
     // Update page title
     document.title = `@${profile.username}'s Visits - Wetherspooning`

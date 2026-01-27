@@ -4,7 +4,7 @@
     <AppSidebar
       :pubs="pubs"
       :show-closed-pubs="showClosedPubs"
-      :shared-visits-mode="props.sharedVisitsMode"
+      :visits="props.visits"
       @selectPub="handlePubSelect"
       @toggleClosedPubs="showClosedPubs = !showClosedPubs"
       @openLogin="showLoginDialog = true"
@@ -42,7 +42,7 @@
         ref="googleMapRef"
         :pubs="pubs"
         :show-closed-pubs="showClosedPubs"
-        :visits="props.sharedVisitsMode ? props.sharedVisitsMode.visits : props.visits"
+        :visits="props.visits"
         :is-authenticated="isAuthenticated"
         :is-dark="isDark"
         :user-location="userLocation"
@@ -110,12 +110,9 @@ import type { Pub } from '@/services/firebaseDataService'
 
 interface Props {
   visits: readonly any[]
-  sharedVisitsMode?: { userId: string; username: string; visits: any[] } | null
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  sharedVisitsMode: null
-})
+const props = defineProps<Props>()
 
 const googleMapRef = ref<InstanceType<typeof GoogleMap> | null>(null)
 const pubs = ref<Pub[]>([])
@@ -175,8 +172,7 @@ const handlePlaceChanged = (place: google.maps.places.PlaceResult) => {
 
 onMounted(async () => {
   console.log('PubLocationsMap mounted with props:', { 
-    visitsLength: props.visits.length, 
-    hasSharedMode: !!props.sharedVisitsMode 
+    visitsLength: props.visits.length
   })
   await loadPubs()
   console.log('PubLocationsMap: Pubs loaded, ready to render map')
