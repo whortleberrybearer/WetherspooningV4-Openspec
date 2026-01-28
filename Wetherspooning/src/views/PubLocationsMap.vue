@@ -48,6 +48,7 @@
         :is-authenticated="isAuthenticated"
         :is-dark="isDark"
         :user-location="userLocation"
+        :readonly="props.readonly"
         @update:user-location="userLocation = $event"
         @open-pub-detail="handleOpenPubDetail"
         @open-login="showLoginDialog = true"
@@ -56,7 +57,7 @@
 
     <!-- Pub Detail Sheet -->
     <PubDetailSheet 
-      :pub="selectedPub" 
+      :pub="selectedPub"
       :is-open="showPubDetail"
       @update:is-open="showPubDetail = $event"
     />
@@ -114,10 +115,12 @@ import type { Pub } from '@/services/firebaseDataService'
 interface Props {
   visits: readonly any[]
   sharedUsername?: string
+  readonly?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  sharedUsername: ''
+  sharedUsername: '',
+  readonly: false
 })
 
 const googleMapRef = ref<InstanceType<typeof GoogleMap> | null>(null)

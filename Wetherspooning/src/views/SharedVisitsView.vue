@@ -2,6 +2,7 @@
   <PubLocationsMap 
     :visits="sharedVisits"
     :shared-username="sharedUsername"
+    :readonly="true"
   />
   
   <!-- Not Found Dialog - rendered outside to avoid layout issues -->
