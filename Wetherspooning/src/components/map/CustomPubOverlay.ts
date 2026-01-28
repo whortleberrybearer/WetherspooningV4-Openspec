@@ -224,7 +224,7 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
     let visitBadge = ''
     let ratingDisplay = ''
     let notesPreview = ''
-    if (this.isAuthenticated() && visited) {
+    if (visited) {
       const visit = this.getVisit(pub.id)
       const formattedDate = formatVisitDate(visit?.visitedAt)
       const dateDisplay = formattedDate ? ` ${formattedDate}` : ''
