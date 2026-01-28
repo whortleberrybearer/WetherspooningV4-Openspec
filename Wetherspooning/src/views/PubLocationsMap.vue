@@ -5,10 +5,12 @@
       :pubs="pubs"
       :show-closed-pubs="showClosedPubs"
       :visits="props.visits"
+      :shared-username="props.sharedUsername"
       @selectPub="handlePubSelect"
       @toggleClosedPubs="showClosedPubs = !showClosedPubs"
       @openLogin="showLoginDialog = true"
       @openAccountSettings="showAccountSettings = true"
+      @navigateToMyVisits="handleNavigateToMyVisits"
     />
 
     <!-- Main Content -->
@@ -92,6 +94,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import AppSidebar from '@/components/sidebar/AppSidebar.vue'
 import GoogleMap from '@/components/map/GoogleMap.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
@@ -110,9 +113,12 @@ import type { Pub } from '@/services/firebaseDataService'
 
 interface Props {
   visits: readonly any[]
+  sharedUsername?: string
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  sharedUsername: ''
+})
 
 const googleMapRef = ref<InstanceType<typeof GoogleMap> | null>(null)
 const pubs = ref<Pub[]>([])
@@ -127,6 +133,7 @@ const showAccountSettings = ref(false)
 const userLocation = ref<{ lat: number; lng: number } | null>(null)
 
 const { isAuthenticated } = useAuth()
+const router = useRouter()
 const { isDark } = useTheme()
 
 const loadPubs = async () => {
@@ -169,6 +176,10 @@ const handleOpenSignup = () => {
 const handlePlaceChanged = (place: google.maps.places.PlaceResult) => {
   googleMapRef.value?.panToPlace(place)
 }
+const handleNavigateToMyVisits = () => {
+  router.push('/')
+}
+
 
 onMounted(async () => {
   console.log('PubLocationsMap mounted with props:', { 

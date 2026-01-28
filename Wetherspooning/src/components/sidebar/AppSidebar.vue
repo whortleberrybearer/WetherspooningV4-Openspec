@@ -20,6 +20,28 @@
     </SidebarHeader>
 
     <SidebarContent>
+      <!-- Shared Visit Banner -->
+      <div v-if="props.sharedUsername" class="px-4 py-3 mb-2 bg-muted/50 border-b">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex-1">
+            <p class="text-sm font-semibold">Viewing @{{ props.sharedUsername }}'s Visits</p>
+            <p class="text-xs text-muted-foreground">You are viewing another user's public visits</p>
+          </div>
+        </div>
+        <Button 
+          @click="handleNavigateToMyVisits"
+          variant="outline" 
+          size="sm"
+          class="w-full mt-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+            <path d="m12 19-7-7 7-7"></path>
+            <path d="M19 12H5"></path>
+          </svg>
+          {{ isAuthenticated ? 'Return to My Visits' : 'Start Tracking' }}
+        </Button>
+      </div>
+
       <!-- Visit Statistics -->
       <VisitStatistics 
         v-if="shouldShowStats" 
@@ -186,18 +208,22 @@ interface Props {
   pubs: Pub[]
   showClosedPubs: boolean
   visits?: readonly any[]
+  sharedUsername?: string
   notFoundState?: { isNotFound: boolean; username: string } | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
   visits: () => [],
+  sharedUsername: '',
   notFoundState: null
 })
-defineEmits<{
+
+const emit = defineEmits<{
   selectPub: [pub: Pub]
   toggleClosedPubs: []
   openLogin: []
   openAccountSettings: []
+  navigateToMyVisits: []
 }>()
 
 const { user, isAuthenticated, logout } = useAuth()
@@ -221,5 +247,9 @@ const shouldShowStats = computed(() => {
 
 const handleLogout = () => {
   logout()
+}
+
+const handleNavigateToMyVisits = () => {
+  emit('navigateToMyVisits')
 }
 </script>
