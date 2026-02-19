@@ -20,7 +20,20 @@
             type="text"
             required
             autocomplete="username"
+            aria-describedby="username-description"
           />
+          <p id="username-description" class="text-sm text-muted-foreground">
+            <span v-if="checkingUsername">Checking availability...</span>
+            <span v-else-if="username.trim().length >= 3 && usernameAvailable === true" class="text-green-600">
+              Username available
+            </span>
+            <span v-else-if="username.trim().length >= 3 && usernameAvailable === false" class="text-destructive">
+              Username not available or invalid
+            </span>
+            <span v-else>
+              3-20 characters, letters, numbers, underscores, hyphens only
+            </span>
+          </p>
         </div>
 
         <!-- Email Field -->
@@ -163,7 +176,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useAuth } from '@/composables/useAuth'
+import { useAuth, validateUsername } from '@/composables/useAuth'
 
 interface Props {
   isOpen: boolean
@@ -175,7 +188,7 @@ const emit = defineEmits<{
   openLogin: []
 }>()
 
-const { register, error: authError, clearError } = useAuth()
+const { register, error: authError, clearError, checkUsernameAvailable } = useAuth()
 
 const username = ref('')
 const email = ref('')
@@ -185,14 +198,51 @@ const isLoading = ref(false)
 const error = ref<string | null>(null)
 const success = ref<string | null>(null)
 const usernameInput = ref<HTMLInputElement | null>(null)
+const usernameAvailable = ref<boolean | null>(null)
+const checkingUsername = ref(false)
 
 const canSubmit = computed(() => {
   return (
     username.value.trim() !== '' &&
     email.value.trim() !== '' &&
     password.value.trim() !== '' &&
-    confirmPassword.value.trim() !== ''
+    confirmPassword.value.trim() !== '' &&
+    usernameAvailable.value === true
   )
+})
+
+// Check username availability when user stops typing
+let usernameCheckTimeout: ReturnType<typeof setTimeout> | null = null
+watch(username, async (newUsername) => {
+  if (usernameCheckTimeout) {
+    clearTimeout(usernameCheckTimeout)
+  }
+  
+  usernameAvailable.value = null
+  
+  if (newUsername.trim().length < 3) {
+    return
+  }
+  
+  // Validate format first
+  const formatError = validateUsername(newUsername.trim())
+  if (formatError) {
+    usernameAvailable.value = false
+    return
+  }
+  
+  usernameCheckTimeout = setTimeout(async () => {
+    checkingUsername.value = true
+    try {
+      const available = await checkUsernameAvailable(newUsername.trim())
+      usernameAvailable.value = available
+    } catch (err) {
+      console.error('Failed to check username availability:', err)
+      usernameAvailable.value = null
+    } finally {
+      checkingUsername.value = false
+    }
+  }, 500)
 })
 
 const handleSubmit = async () => {
@@ -203,9 +253,10 @@ const handleSubmit = async () => {
   success.value = null
   clearError()
 
-  // Validate username length
-  if (username.value.trim().length < 3) {
-    error.value = 'Username must be at least 3 characters'
+  // Validate username format
+  const usernameError = validateUsername(username.value.trim())
+  if (usernameError) {
+    error.value = usernameError
     return
   }
 
@@ -246,6 +297,7 @@ const handleClose = () => {
   confirmPassword.value = ''
   error.value = null
   success.value = null
+  usernameAvailable.value = null
   clearError()
   emit('close')
 }

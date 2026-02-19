@@ -17,6 +17,7 @@ interface Props {
   isAuthenticated: boolean
   isDark: boolean
   userLocation?: { lat: number; lng: number } | null
+  readonly?: boolean
 }
 
 const props = defineProps<Props>()
@@ -507,7 +508,7 @@ const showPubInfo = (pub: Pub, marker: google.maps.marker.AdvancedMarkerElement)
   if (!pubOverlay.value) return
 
   const position = marker.position as google.maps.LatLng
-  pubOverlay.value.show(pub, position, props.isDark)
+  pubOverlay.value.show(pub, position, props.isDark, props.readonly)
   selectedPub.value = pub
 }
 

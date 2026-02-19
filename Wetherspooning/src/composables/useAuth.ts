@@ -12,7 +12,13 @@ import {
   type User as FirebaseUser
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
-import { deleteUserData } from '@/services/firebaseDataService'
+import { 
+  deleteUserData, 
+  getUserProfile, 
+  createUserProfile, 
+  checkUsernameAvailable,
+  updateUserPrivacy 
+} from '@/services/firebaseDataService'
 
 /**
  * User information
@@ -21,6 +27,7 @@ export interface User {
   username: string
   email?: string
   uid?: string
+  visitsPublic?: boolean
 }
 
 /**
@@ -65,13 +72,73 @@ function mapFirebaseError(code: string): string {
   }
 }
 
+/**
+ * Reserved usernames that cannot be registered
+ */
+const RESERVED_USERNAMES = ['admin', 'api', 'visits', 'settings', 'app', 'system', 'support', 'help']
+
+/**
+ * Validate username format
+ * 
+ * @param username - Username to validate
+ * @returns Error message if invalid, null if valid
+ */
+export function validateUsername(username: string): string | null {
+  if (!username || username.trim() === '') {
+    return 'Username is required'
+  }
+  
+  const trimmed = username.trim()
+  
+  if (trimmed.length < 3) {
+    return 'Username must be at least 3 characters'
+  }
+  
+  if (trimmed.length > 20) {
+    return 'Username must be 20 characters or less'
+  }
+  
+  if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+    return 'Username can only contain letters, numbers, underscores, and hyphens'
+  }
+  
+  if (RESERVED_USERNAMES.includes(trimmed.toLowerCase())) {
+    return 'This username is reserved and cannot be used'
+  }
+  
+  return null
+}
+
 // Set up auth state observer to persist sessions
-onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
   if (firebaseUser) {
-    authState.user = {
-      username: firebaseUser.email?.split('@')[0] || 'user',
-      email: firebaseUser.email || undefined,
-      uid: firebaseUser.uid
+    try {
+      const profile = await getUserProfile(firebaseUser.uid)
+      
+      if (profile) {
+        authState.user = {
+          username: profile.username,
+          email: profile.email,
+          uid: profile.uid,
+          visitsPublic: profile.visitsPublic
+        }
+      } else {
+        authState.user = {
+          username: firebaseUser.email?.split('@')[0] || 'user',
+          email: firebaseUser.email || undefined,
+          uid: firebaseUser.uid,
+          visitsPublic: false
+        }
+        console.warn('User profile not found in Firestore for uid:', firebaseUser.uid)
+      }
+    } catch (error) {
+      console.error('Failed to load user profile:', error)
+      authState.user = {
+        username: firebaseUser.email?.split('@')[0] || 'user',
+        email: firebaseUser.email || undefined,
+        uid: firebaseUser.uid,
+        visitsPublic: false
+      }
     }
     authState.isAuthenticated = true
   } else {
@@ -143,7 +210,7 @@ export function useAuth() {
    * Register a new user account using Firebase Auth.
    * User is automatically logged in after successful registration.
    * 
-   * @param username - User's username (currently not stored, derived from email)
+   * @param username - User's unique username (3-20 chars, alphanumeric + _-)
    * @param email - User's email
    * @param password - User's password
    * @returns Promise that resolves on successful registration or rejects with error message
@@ -153,10 +220,34 @@ export function useAuth() {
       // Clear previous errors
       authState.error = null
 
-      await createUserWithEmailAndPassword(auth, email, password)
+      // Validate username format
+      const usernameError = validateUsername(username)
+      if (usernameError) {
+        authState.error = usernameError
+        throw new Error(usernameError)
+      }
+
+      // Check username availability
+      const available = await checkUsernameAvailable(username)
+      if (!available) {
+        authState.error = 'Username already taken. Please choose another.'
+        throw new Error(authState.error)
+      }
+
+      // Create Firebase Auth account
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      
+      // Create user profile in Firestore
+      await createUserProfile(userCredential.user.uid, username, email)
+      
       // User is automatically logged in by Firebase
       // Auth state will be updated by onAuthStateChanged observer
     } catch (error: any) {
+      // If it's already our error, rethrow it
+      if (error.message === authState.error) {
+        throw error
+      }
+      
       // Map Firebase error to user-friendly message
       authState.error = mapFirebaseError(error.code)
       throw new Error(authState.error)
@@ -310,6 +401,30 @@ export function useAuth() {
     }
   }
 
+  /**
+   * Update the current user's visit privacy setting.
+   * 
+   * @param visitsPublic - New privacy setting (true = public, false = private)
+   * @returns Promise that resolves when setting is updated
+   * @throws Error if user is not logged in or update fails
+   */
+  const updatePrivacy = async (visitsPublic: boolean): Promise<void> => {
+    try {
+      if (!authState.user?.uid) {
+        throw new Error('No user is currently logged in.')
+      }
+
+      await updateUserPrivacy(authState.user.uid, visitsPublic)
+      
+      // Update local auth state
+      if (authState.user) {
+        authState.user.visitsPublic = visitsPublic
+      }
+    } catch (error: any) {
+      throw error
+    }
+  }
+
   return {
     // Readonly state to prevent direct mutations
     user: readonly(toRef(authState, 'user')),
@@ -323,6 +438,9 @@ export function useAuth() {
     deleteAccount,
     changePassword,
     sendPasswordReset,
-    clearError
+    updatePrivacy,
+    clearError,
+    // Utilities
+    checkUsernameAvailable: async (username: string) => await checkUsernameAvailable(username)
   }
 }

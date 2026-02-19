@@ -7,10 +7,11 @@ interface CustomPubOverlayOptions {
   isAuthenticated: () => boolean
   getVisit: (pubId: string) => { visitedAt?: string | null; rating?: number | null; notes?: string | null } | null | undefined
   isVisited: (pubId: string) => boolean
+  readonly?: boolean
 }
 
 export interface CustomPubOverlay extends google.maps.OverlayView {
-  show(pub: Pub, position: google.maps.LatLng, isDark: boolean): void
+  show(pub: Pub, position: google.maps.LatLng, isDark: boolean, readonly?: boolean): void
   hide(): void
   update(pub: Pub, isDark: boolean): void
 }
@@ -21,6 +22,7 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
   private container: HTMLDivElement | null = null
   private pub: Pub | null = null
   private isDark = false
+  private readonly = false
   private onClose: () => void
   private onTrackVisit: (pub: Pub) => void
   private onSignIn: () => void
@@ -39,6 +41,7 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
     this.isAuthenticated = options.isAuthenticated
     this.getVisit = options.getVisit
     this.isVisited = options.isVisited
+    this.readonly = options.readonly ?? false
   }
 
   onAdd(): void {
@@ -85,10 +88,13 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
     this.container = null
   }
 
-  show(pub: Pub, position: google.maps.LatLng, isDark: boolean): void {
+  show(pub: Pub, position: google.maps.LatLng, isDark: boolean, readonly?: boolean): void {
     this.pub = pub
     this.position = position
     this.isDark = isDark
+    if (readonly !== undefined) {
+      this.readonly = readonly
+    }
 
     if (this.container) {
       this.container.innerHTML = this.generateContent(pub, isDark)
@@ -218,7 +224,7 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
     let visitBadge = ''
     let ratingDisplay = ''
     let notesPreview = ''
-    if (this.isAuthenticated() && visited) {
+    if (visited) {
       const visit = this.getVisit(pub.id)
       const formattedDate = formatVisitDate(visit?.visitedAt)
       const dateDisplay = formattedDate ? ` ${formattedDate}` : ''
@@ -232,8 +238,8 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
         ratingDisplay = `<span style="font-size: 16px; color: #fbbf24; margin-left: 8px;">${filled}${empty}</span>`
       }
 
-      // Add notes preview if notes exist
-      if (visit?.notes && visit.notes.trim()) {
+      // Add notes preview if notes exist and not readonly
+      if (!this.readonly && visit?.notes && visit.notes.trim()) {
         const truncatedNotes = visit.notes.length > 100 ? visit.notes.substring(0, 100) + '...' : visit.notes
         notesPreview = `
           <div style="background-color: ${isDark ? '#292524' : '#f5f5f4'}; border: 1px solid ${isDark ? '#44403c' : '#e7e5e4'}; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 12px; color: ${mutedColor};">
@@ -249,12 +255,16 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
       websiteLink = `<a href="${pub.url}" target="_blank" rel="noopener noreferrer" style="font-size: 14px; color: ${linkColor}; text-decoration: none; display: block; margin-bottom: 12px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">View on Wetherspoons website</a>`
     }
 
-    // Button text based on authentication state
-    let buttonText = ''
-    if (this.isAuthenticated()) {
-      buttonText = visited ? 'Update Visit' : 'Visit'
-    } else {
-      buttonText = 'Sign in to track visit'
+    // Button text based on authentication state (only if not readonly)
+    let buttonHtml = ''
+    if (!this.readonly) {
+      let buttonText = ''
+      if (this.isAuthenticated()) {
+        buttonText = visited ? 'Update Visit' : 'Visit'
+      } else {
+        buttonText = 'Sign in to track visit'
+      }
+      buttonHtml = `<button class="custom-overlay-button">${buttonText}</button>`
     }
 
     return `
@@ -373,9 +383,7 @@ export function createCustomPubOverlay(options: CustomPubOverlayOptions): Custom
         <p class="custom-overlay-address">${pub.address}</p>
         ${websiteLink}
         ${notesPreview}
-        <button class="custom-overlay-button">
-          ${buttonText}
-        </button>
+        ${buttonHtml}
       </div>
     `
   }

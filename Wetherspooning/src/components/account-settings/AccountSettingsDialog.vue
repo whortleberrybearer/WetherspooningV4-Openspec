@@ -18,6 +18,61 @@
           </div>
         </div>
 
+        <!-- Privacy Settings Section -->
+        <div class="border-t pt-4">
+          <div class="flex items-center justify-between">
+            <div class="flex flex-col gap-1 flex-1">
+              <label for="visits-public-toggle" class="text-sm font-medium">
+                Make my visits public
+              </label>
+              <p class="text-sm text-muted-foreground">
+                Allow others to view your visit history via a shareable link. Notes will remain private.
+              </p>
+            </div>
+            <button
+              id="visits-public-toggle"
+              type="button"
+              role="switch"
+              :aria-checked="visitsPublic"
+              :disabled="isUpdatingPrivacy"
+              @click="handlePrivacyToggle"
+              :class="[
+                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                visitsPublic ? 'bg-primary' : 'bg-input'
+              ]"
+            >
+              <span
+                :class="[
+                  'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow ring-0 transition duration-200 ease-in-out',
+                  visitsPublic ? 'translate-x-5' : 'translate-x-0'
+                ]"
+              />
+            </button>
+          </div>
+          
+          <!-- Shareable URL (shown when public) -->
+          <div v-if="visitsPublic" class="mt-3 flex items-center gap-2">
+            <input
+              type="text"
+              :value="shareableUrl"
+              readonly
+              class="flex h-10 flex-1 rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            />
+            <button
+              type="button"
+              @click="copyShareableUrl"
+              class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+            >
+              {{ urlCopied ? 'Copied!' : 'Copy link' }}
+            </button>
+          </div>
+          
+          <!-- Privacy update error -->
+          <p v-if="privacyError" class="mt-2 text-sm text-destructive">
+            {{ privacyError }}
+          </p>
+        </div>
+
         <!-- Change Password Section -->
         <div class="border-t pt-4">
           <h3 class="text-sm font-medium mb-3">Change Password</h3>
@@ -171,12 +226,68 @@ const emit = defineEmits<{
   'update:isOpen': [value: boolean]
 }>()
 
-const { user, deleteAccount, changePassword } = useAuth()
+const { user, deleteAccount, changePassword, updatePrivacy } = useAuth()
 
 const showDeleteConfirm = ref(false)
 const isDeleting = ref(false)
 const showSuccess = ref(false)
 const errorMessage = ref('')
+
+// Privacy settings state
+const visitsPublic = ref(false)
+const isUpdatingPrivacy = ref(false)
+const privacyError = ref('')
+const urlCopied = ref(false)
+const showFirstTimeConfirm = ref(false)
+
+// Watch user's privacy setting
+watch(() => user.value?.visitsPublic, (newValue) => {
+  if (newValue !== undefined) {
+    visitsPublic.value = newValue
+  }
+}, { immediate: true })
+
+const shareableUrl = computed(() => {
+  if (user.value?.username) {
+    return `${window.location.origin}/visits/@${user.value.username}`
+  }
+  return ''
+})
+
+const handlePrivacyToggle = async () => {
+  if (isUpdatingPrivacy.value) return
+  
+  privacyError.value = ''
+  const newValue = !visitsPublic.value
+  const previousValue = visitsPublic.value
+  
+  // Optimistically update UI
+  visitsPublic.value = newValue
+  
+  isUpdatingPrivacy.value = true
+  
+  try {
+    await updatePrivacy(newValue)
+  } catch (error: any) {
+    // Revert on error
+    visitsPublic.value = previousValue
+    privacyError.value = error.message || 'Failed to update privacy setting. Please try again.'
+  } finally {
+    isUpdatingPrivacy.value = false
+  }
+}
+
+const copyShareableUrl = async () => {
+  try {
+    await navigator.clipboard.writeText(shareableUrl.value)
+    urlCopied.value = true
+    setTimeout(() => {
+      urlCopied.value = false
+    }, 2000)
+  } catch (error) {
+    console.error('Failed to copy URL:', error)
+  }
+}
 
 // Password change form state
 const currentPassword = ref('')
@@ -269,6 +380,14 @@ watch(() => props.isOpen, (newValue) => {
     passwordErrorField.value = ''
     passwordSuccess.value = false
     isChangingPassword.value = false
+    // Clear privacy state
+    privacyError.value = ''
+    urlCopied.value = false
+  } else {
+    // Sync privacy setting when dialog opens
+    if (user.value?.visitsPublic !== undefined) {
+      visitsPublic.value = user.value.visitsPublic
+    }
   }
 })
 </script>

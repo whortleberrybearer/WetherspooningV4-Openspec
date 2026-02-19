@@ -20,14 +20,36 @@
     </SidebarHeader>
 
     <SidebarContent>
+      <!-- Shared Visit Banner -->
+      <div v-if="props.sharedUsername" class="px-4 py-3 mb-2 bg-muted/50 border-b">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex-1">
+            <p class="text-sm font-semibold">Viewing @{{ props.sharedUsername }}'s Visits</p>
+            <p class="text-xs text-muted-foreground">You are viewing another user's public visits</p>
+          </div>
+        </div>
+        <Button 
+          @click="handleNavigateToMyVisits"
+          variant="outline" 
+          size="sm"
+          class="w-full mt-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+            <path d="m12 19-7-7 7-7"></path>
+            <path d="M19 12H5"></path>
+          </svg>
+          {{ isAuthenticated ? 'Return to My Visits' : 'Start Tracking' }}
+        </Button>
+      </div>
+
       <!-- Visit Statistics -->
       <VisitStatistics 
-        v-if="isAuthenticated" 
+        v-if="shouldShowStats" 
         :pubs="pubs"
-        :visits="visits"
+        :visits="displayVisits"
       />
 
-      <SidebarSeparator v-if="isAuthenticated" />
+      <SidebarSeparator v-if="shouldShowStats" />
 
       <!-- Filter Options -->
       <SidebarGroup>
@@ -55,8 +77,8 @@
       <!-- Pub Listings by Country/County -->
       <PubGroupList
         :pubs="pubs"
-        :show-visit-progress="isAuthenticated"
-        :visits="visits"
+        :show-visit-progress="shouldShowStats"
+        :visits="displayVisits"
         :show-closed-pubs="showClosedPubs"
         @select-pub="$emit('selectPub', $event)"
       />
@@ -158,7 +180,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed } from 'vue'
 import {
   Sidebar,
   SidebarContent,
@@ -185,32 +207,49 @@ import PubGroupList from '@/components/sidebar/PubGroupList.vue'
 interface Props {
   pubs: Pub[]
   showClosedPubs: boolean
+  visits?: readonly any[]
+  sharedUsername?: string
+  notFoundState?: { isNotFound: boolean; username: string } | null
 }
 
-const props = defineProps<Props>()
-defineEmits<{
+const props = withDefaults(defineProps<Props>(), {
+  visits: () => [],
+  sharedUsername: '',
+  notFoundState: null
+})
+
+const emit = defineEmits<{
   selectPub: [pub: Pub]
   toggleClosedPubs: []
   openLogin: []
   openAccountSettings: []
+  navigateToMyVisits: []
 }>()
 
 const { user, isAuthenticated, logout } = useAuth()
 const { loadVisits, clearVisits, visits } = useVisits()
 const { isDark, toggleTheme } = useTheme()
 
-// Watch authentication state to load/clear visit data
-watch(isAuthenticated, async (authenticated) => {
-  if (authenticated && user.value?.uid) {
-    // Load visits when user logs in using Firebase UID
-    await loadVisits(user.value.uid)
-  } else {
-    // Clear visits when user logs out
-    clearVisits()
+// Use passed visits if available (shared mode), otherwise use authenticated user's visits
+const displayVisits = computed(() => {
+  if (props.visits && props.visits.length > 0) {
+    return props.visits
   }
+  return visits.value
+})
+
+// Show statistics if authenticated (and not in not-found mode) OR if viewing shared visits
+const shouldShowStats = computed(() => {
+  if (props.notFoundState?.isNotFound) return false
+  if (props.visits && props.visits.length > 0) return true
+  return isAuthenticated.value
 })
 
 const handleLogout = () => {
   logout()
+}
+
+const handleNavigateToMyVisits = () => {
+  emit('navigateToMyVisits')
 }
 </script>

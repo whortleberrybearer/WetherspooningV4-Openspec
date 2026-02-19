@@ -4,10 +4,13 @@
     <AppSidebar
       :pubs="pubs"
       :show-closed-pubs="showClosedPubs"
+      :visits="props.visits"
+      :shared-username="props.sharedUsername"
       @selectPub="handlePubSelect"
       @toggleClosedPubs="showClosedPubs = !showClosedPubs"
       @openLogin="showLoginDialog = true"
       @openAccountSettings="showAccountSettings = true"
+      @navigateToMyVisits="handleNavigateToMyVisits"
     />
 
     <!-- Main Content -->
@@ -41,10 +44,11 @@
         ref="googleMapRef"
         :pubs="pubs"
         :show-closed-pubs="showClosedPubs"
-        :visits="visits"
+        :visits="props.visits"
         :is-authenticated="isAuthenticated"
         :is-dark="isDark"
         :user-location="userLocation"
+        :readonly="props.readonly"
         @update:user-location="userLocation = $event"
         @open-pub-detail="handleOpenPubDetail"
         @open-login="showLoginDialog = true"
@@ -53,7 +57,7 @@
 
     <!-- Pub Detail Sheet -->
     <PubDetailSheet 
-      :pub="selectedPub" 
+      :pub="selectedPub"
       :is-open="showPubDetail"
       @update:is-open="showPubDetail = $event"
     />
@@ -81,6 +85,7 @@
     />
 
     <!-- Account Settings Dialog -->
+    <!-- Account Settings Dialog -->
     <AccountSettingsDialog
       :is-open="showAccountSettings"
       @update:is-open="showAccountSettings = $event"
@@ -89,7 +94,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import AppSidebar from '@/components/sidebar/AppSidebar.vue'
 import GoogleMap from '@/components/map/GoogleMap.vue'
 import PubDetailSheet from '@/components/PubDetailSheet.vue'
@@ -102,10 +108,20 @@ import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-vue-next'
 import { useAuth } from '@/composables/useAuth'
-import { useVisits } from '@/composables/useVisits'
 import { useTheme } from '@/composables/useTheme'
 import { getAllPubs } from '@/services/pubDataService'
 import type { Pub } from '@/services/firebaseDataService'
+
+interface Props {
+  visits: readonly any[]
+  sharedUsername?: string
+  readonly?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  sharedUsername: '',
+  readonly: false
+})
 
 const googleMapRef = ref<InstanceType<typeof GoogleMap> | null>(null)
 const pubs = ref<Pub[]>([])
@@ -119,24 +135,16 @@ const showSignupDialog = ref(false)
 const showAccountSettings = ref(false)
 const userLocation = ref<{ lat: number; lng: number } | null>(null)
 
-// Authentication and visit tracking
-const { user, isAuthenticated } = useAuth()
-const { loadVisits, clearVisits, visits } = useVisits()
+const { isAuthenticated } = useAuth()
+const router = useRouter()
 const { isDark } = useTheme()
-
-// Watch authentication state to load/clear visit data
-watch(isAuthenticated, async (authenticated) => {
-  if (authenticated && user.value?.uid) {
-    await loadVisits(user.value.uid)
-  } else {
-    clearVisits()
-  }
-})
 
 const loadPubs = async () => {
   try {
+    console.log('PubLocationsMap: Loading pubs...')
     const data = await getAllPubs()
     pubs.value = data
+    console.log('PubLocationsMap: Pubs loaded:', data.length, 'pubs')
   } catch (err) {
     const errorMsg = 'Failed to load pub locations. Please check your connection and try again.'
     error.value = errorMsg
@@ -171,8 +179,16 @@ const handleOpenSignup = () => {
 const handlePlaceChanged = (place: google.maps.places.PlaceResult) => {
   googleMapRef.value?.panToPlace(place)
 }
+const handleNavigateToMyVisits = () => {
+  router.push('/')
+}
+
 
 onMounted(async () => {
+  console.log('PubLocationsMap mounted with props:', { 
+    visitsLength: props.visits.length
+  })
   await loadPubs()
+  console.log('PubLocationsMap: Pubs loaded, ready to render map')
 })
 </script>
