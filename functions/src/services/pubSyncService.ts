@@ -36,6 +36,47 @@ export function findMatchingPub(
   return null; // No match found - new pub
 }
 
+async function getCandidatePubsByName(name: string, limit: number = 50): Promise<Pub[]> {
+  const db = getFirestore();
+  const snapshot = await db.collection('pubs').where('name', '==', name).limit(limit).get();
+  return snapshot.docs.map((d) => d.data() as Pub);
+}
+
+async function getCandidatePubsByAddress(address: string, limit: number = 50): Promise<Pub[]> {
+  const db = getFirestore();
+  const snapshot = await db.collection('pubs').where('address', '==', address).limit(limit).get();
+  return snapshot.docs.map((d) => d.data() as Pub);
+}
+
+/**
+ * Attempts to find an existing pub in Firestore using the same tiered matching
+ * strategy as full sync, but without loading the entire pubs collection.
+ */
+export async function findMatchingPubInFirestore(scrapedPub: ScrapedPubData): Promise<Pub | null> {
+  // Tier 1 (URL) is handled by callers (getExistingPubByUrl), so start at tier 2.
+
+  try {
+    const candidatesByName = await getCandidatePubsByName(scrapedPub.name);
+    const matchByNameTownCity = candidatesByName.find(
+      (p) => p.openState === 'Open' && p.name === scrapedPub.name && p.townCity === scrapedPub.townCity
+    );
+    if (matchByNameTownCity) return matchByNameTownCity;
+
+    if (scrapedPub.address && scrapedPub.address.length > 10) {
+      const candidatesByAddress = await getCandidatePubsByAddress(scrapedPub.address);
+      const matchByAddress = candidatesByAddress.find(
+        (p) => p.openState === 'Open' && p.address === scrapedPub.address
+      );
+      if (matchByAddress) return matchByAddress;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error finding matching pub in Firestore:', error);
+    return null;
+  }
+}
+
 /**
  * Compares two Position objects for equality.
  * @param pos1 First position

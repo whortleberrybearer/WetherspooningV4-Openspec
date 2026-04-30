@@ -3,6 +3,13 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { getSitemapUrls } from '../services/sitemapService';
 import { scrapePubData } from '../services/pubScraperService';
 import {
+  buildSnapshot,
+  diffSitemaps,
+  getEntriesWithoutLastmod,
+  getStoredSitemapSnapshot,
+  storeSitemapSnapshot,
+} from '../services/sitemapStateService';
+import {
   getBaseSlug,
   isNumericSuffixVariant,
   pickCanonicalSitemapEntry,
@@ -12,6 +19,7 @@ import {
 import { 
   getExistingPubByUrl, 
   findMatchingPub, 
+  findMatchingPubInFirestore,
   hasDataChanged,
   getAllPubs,
   markClosedPubs,
@@ -22,6 +30,7 @@ import { SitemapEntry, Pub } from '../types/pub';
 interface ProcessResult {
   pubsToWrite: Pub[];
   processedIds: Set<string>;
+  renamedFromUrls: Set<string>;
   successCount: number;
   failureCount: number;
   newCount: number;
@@ -41,6 +50,7 @@ async function processPubEntries(
 ): Promise<ProcessResult> {
   const pubsToWriteById = new Map<string, Pub>();
   const processedIds = new Set<string>();
+  const renamedFromUrls = new Set<string>();
   let successCount = 0;
   let failureCount = 0;
   const newPubIds = new Set<string>();
@@ -175,6 +185,18 @@ async function processPubEntries(
             }
           }
         }
+
+        // Rename detection: if URL lookup failed, attempt tiered match without loading all pubs
+        if (!existingPub) {
+          const match = await findMatchingPubInFirestore(pubData);
+          if (match) {
+            existingPub = match;
+
+            if (match.url && match.url !== entry.url) {
+              renamedFromUrls.add(match.url);
+            }
+          }
+        }
       }
       
       if (existingPub) {
@@ -245,6 +267,7 @@ async function processPubEntries(
   return { 
     pubsToWrite: Array.from(pubsToWriteById.values()), 
     processedIds, 
+    renamedFromUrls,
     successCount, 
     failureCount,
     newCount: newPubIds.size,
@@ -296,11 +319,119 @@ export async function runFullSync(count?: number, start: number = 0): Promise<{ 
     if (allPubsToWrite.length > 0) {
       await batchWritePubs(allPubsToWrite);
     }
+
+    // Persist snapshot only for complete full sync (partial runs would corrupt baseline)
+    if (start === 0 && count === undefined) {
+      try {
+        const snapshot = buildSnapshot(entries);
+        await storeSitemapSnapshot(snapshot);
+        console.log(`🗃️  Stored sitemap snapshot (hash: ${snapshot.hash}, entries: ${snapshot.entryCount})`);
+      } catch (error) {
+        console.error('❌ Failed to store sitemap snapshot after full sync:', error);
+      }
+    }
     
     console.log(`✅ Full sync complete: ${result.successCount} processed, ${result.newCount} new, ${result.updatedCount} updated, ${closedPubs.length} closed, ${result.skippedCount} skipped, ${result.failureCount} errors`);
     return { successCount: result.successCount, failureCount: result.failureCount };
   } catch (error) {
     console.error('❌ Fatal error during full sync:', error);
+    throw error;
+  }
+}
+
+/**
+ * Sitemap diff sync: processes only pubs whose sitemap entries were added/changed,
+ * plus any entries missing lastmod (treated as always-changed when not an early-exit run).
+ * Also detects removals and marks removed pubs as closed.
+ */
+export async function runSitemapDiffSync(): Promise<{ successCount: number; failureCount: number }> {
+  console.log('🚀 Starting sitemap diff sync');
+  try {
+    const entries = await getSitemapUrls();
+    console.log(`📍 Fetched sitemap: ${entries.length} entries found`);
+
+    const currentSnapshot = buildSnapshot(entries);
+
+    let previousSnapshot = null as Awaited<ReturnType<typeof getStoredSitemapSnapshot>>;
+    try {
+      previousSnapshot = await getStoredSitemapSnapshot();
+    } catch (error) {
+      console.error('❌ Failed to read previous sitemap snapshot; proceeding without early-exit:', error);
+    }
+
+    if (previousSnapshot && previousSnapshot.hash === currentSnapshot.hash) {
+      console.log(`✅ Sitemap unchanged (hash: ${currentSnapshot.hash}); skipping scraping`);
+      return { successCount: 0, failureCount: 0 };
+    }
+
+    if (!previousSnapshot) {
+      console.log('ℹ️ No previous sitemap snapshot; running baseline full sync');
+      return await runFullSync();
+    }
+
+    const diff = diffSitemaps(previousSnapshot.entries, currentSnapshot.entries);
+    console.log(
+      `🔁 Sitemap diff: ${diff.added.length} added, ${diff.changed.length} changed, ${diff.removed.length} removed, ${diff.unchanged.length} unchanged`
+    );
+
+    const alwaysChanged = getEntriesWithoutLastmod(currentSnapshot.entries);
+    if (alwaysChanged.length > 0) {
+      console.log(`⚠️  Entries without lastmod (treated as always-changed): ${alwaysChanged.length}`);
+    }
+
+    const entriesToProcessByUrl = new Map<string, SitemapEntry>();
+    for (const e of [...diff.added, ...diff.changed, ...alwaysChanged]) {
+      entriesToProcessByUrl.set(e.url, {
+        url: e.url,
+        imageUrl: e.imageUrl ?? '',
+        lastmod: e.lastmod,
+      });
+    }
+
+    const entriesToProcess = Array.from(entriesToProcessByUrl.values());
+    console.log(`📋 Processing ${entriesToProcess.length} pubs (diff-driven)`);
+
+    const result = await processPubEntries(entriesToProcess);
+
+    const pubsToClose: Pub[] = [];
+    for (const removedEntry of diff.removed) {
+      if (result.renamedFromUrls.has(removedEntry.url)) {
+        console.log(`🔁 Skipping removal closure due to URL rename: ${removedEntry.url}`);
+        continue;
+      }
+
+      const existing = await getExistingPubByUrl(removedEntry.url);
+      if (!existing) continue;
+      if (existing.openState !== 'Open') continue;
+
+      console.log(`Marked pub as closed (removed from sitemap): ${existing.id} - ${existing.name}`);
+      pubsToClose.push({
+        ...existing,
+        openState: 'Closed',
+        url: '',
+        lastSyncedAt: Timestamp.now(),
+      });
+    }
+
+    const allPubsToWrite = [...result.pubsToWrite, ...pubsToClose];
+    if (allPubsToWrite.length > 0) {
+      await batchWritePubs(allPubsToWrite);
+    }
+
+    try {
+      await storeSitemapSnapshot(currentSnapshot);
+      console.log(`🗃️  Stored sitemap snapshot (hash: ${currentSnapshot.hash}, entries: ${currentSnapshot.entryCount})`);
+    } catch (error) {
+      console.error('❌ Failed to store sitemap snapshot after diff sync:', error);
+    }
+
+    console.log(
+      `✅ Diff sync complete: ${result.successCount} processed, ${result.newCount} new, ${result.updatedCount} updated, ${pubsToClose.length} closed, ${result.skippedCount} skipped, ${result.failureCount} errors`
+    );
+
+    return { successCount: result.successCount, failureCount: result.failureCount };
+  } catch (error) {
+    console.error('❌ Fatal error during sitemap diff sync:', error);
     throw error;
   }
 }
@@ -344,8 +475,8 @@ export async function runUpdateSync(since: Date): Promise<{ successCount: number
 
 /**
  * Firebase scheduled function wrapper
- * - Runs full sync on Wednesdays
- * - Runs update sync (last 15 hours) on other days
+ * - Runs full sync on the 1st of each month (UTC)
+ * - Runs sitemap diff sync on other days
  */
 export const scheduledSyncPubs = onSchedule(
   {
@@ -357,17 +488,15 @@ export const scheduledSyncPubs = onSchedule(
   },
   async (event) => {
     const now = new Date();
-    const dayOfWeek = now.getDay(); // 0 = Sunday, 3 = Wednesday
-    
-    if (dayOfWeek === 3) {
-      // Wednesday: Full sync
-      console.log('📅 Wednesday: Running full sync');
+
+    const dayOfMonthUtc = now.getUTCDate();
+    if (dayOfMonthUtc === 1) {
+      console.log('📅 1st of the month (UTC): Running full sync');
       await runFullSync();
-    } else {
-      // Other days: Update sync for changes in last 15 hours
-      const fifteenHoursAgo = new Date(now.getTime() - (15 * 60 * 60 * 1000));
-      console.log(`📅 ${now.toDateString()}: Running update sync since ${fifteenHoursAgo.toISOString()}`);
-      await runUpdateSync(fifteenHoursAgo);
+      return;
     }
+
+    console.log(`📅 ${now.toUTCString()}: Running sitemap diff sync`);
+    await runSitemapDiffSync();
   }
 );
