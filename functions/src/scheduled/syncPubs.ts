@@ -2,6 +2,13 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { Timestamp } from 'firebase-admin/firestore';
 import { getSitemapUrls } from '../services/sitemapService';
 import { scrapePubData } from '../services/pubScraperService';
+import {
+  getBaseSlug,
+  isNumericSuffixVariant,
+  pickCanonicalSitemapEntry,
+  SitemapPubEntry,
+  toBaseUrl,
+} from '../services/pubDedupeService';
 import { 
   getExistingPubByUrl, 
   findMatchingPub, 
@@ -32,13 +39,59 @@ async function processPubEntries(
   entries: SitemapEntry[],
   existingPubs?: Pub[]
 ): Promise<ProcessResult> {
-  const pubsToWrite: Pub[] = [];
+  const pubsToWriteById = new Map<string, Pub>();
   const processedIds = new Set<string>();
   let successCount = 0;
   let failureCount = 0;
-  let newCount = 0;
-  let updatedCount = 0;
+  const newPubIds = new Set<string>();
+  const updatedPubIds = new Set<string>();
   let skippedCount = 0;
+
+  const matchCandidates: Pub[] = existingPubs ? [...existingPubs] : [];
+  const pubById = new Map<string, Pub>(matchCandidates.map(p => [p.id, p]));
+
+  type DedupeIndexRecord = {
+    pubId: string;
+    preferred: SitemapPubEntry;
+  };
+
+  const dedupeIndex = new Map<string, DedupeIndexRecord>();
+
+  function getDedupeKey(url: string, address: string): string | null {
+    const normalizedAddress = address.trim();
+    if (!normalizedAddress) return null;
+    const baseSlug = getBaseSlug(url);
+    if (!baseSlug) return null;
+    return `${baseSlug}||${normalizedAddress}`;
+  }
+
+  function maybeSeedDedupeIndexFromPub(pub: Pub): void {
+    if (!pub.url || !pub.address) return;
+    const key = getDedupeKey(pub.url, pub.address);
+    if (!key || dedupeIndex.has(key)) return;
+    dedupeIndex.set(key, {
+      pubId: pub.id,
+      preferred: {
+        url: pub.url,
+        imageUrl: pub.imageUrl ?? '',
+      },
+    });
+  }
+
+  function queueWrite(pub: Pub, kind: 'new' | 'updated'): void {
+    pubsToWriteById.set(pub.id, pub);
+    if (kind === 'new') {
+      newPubIds.add(pub.id);
+      return;
+    }
+    if (!newPubIds.has(pub.id)) {
+      updatedPubIds.add(pub.id);
+    }
+  }
+
+  for (const pub of matchCandidates) {
+    maybeSeedDedupeIndexFromPub(pub);
+  }
 
   // Helper to sleep for ms milliseconds
   function sleep(ms: number) {
@@ -56,15 +109,72 @@ async function processPubEntries(
         failureCount++;
         continue;
       }
+
+      const dedupeKey = getDedupeKey(entry.url, pubData.address);
+      const candidateEntry: SitemapPubEntry = { url: entry.url, imageUrl: entry.imageUrl };
       
       let existingPub: Pub | null = null;
-      
-      if (existingPubs) {
-        // Full sync: use matching logic with in-memory pubs
+
+      if (dedupeKey) {
+        const record = dedupeIndex.get(dedupeKey);
+        if (record) {
+          const canonical = pubById.get(record.pubId);
+          if (canonical) {
+            existingPub = canonical;
+            pubData.id = canonical.id;
+
+            const preferred = pickCanonicalSitemapEntry(record.preferred, candidateEntry);
+            if (preferred.url !== record.preferred.url || preferred.imageUrl !== record.preferred.imageUrl) {
+              console.log(`🔁 Duplicate detected; upgrading canonical URL: ${record.preferred.url} -> ${preferred.url}`);
+              dedupeIndex.set(dedupeKey, { pubId: record.pubId, preferred });
+            } else {
+              console.log(`🧩 Duplicate detected; using canonical pub ${canonical.id}`);
+            }
+
+            const finalPreferred = dedupeIndex.get(dedupeKey)!.preferred;
+            pubData.url = finalPreferred.url;
+            pubData.imageUrl = finalPreferred.imageUrl;
+          }
+        }
+      }
+
+      if (!existingPub && existingPubs) {
+        // Full sync: use matching logic with Firestore-loaded pubs
         existingPub = findMatchingPub(pubData, existingPubs);
-      } else {
+      }
+
+      if (!existingPub && !existingPubs) {
         // Update sync: query individual pub by URL
         existingPub = await getExistingPubByUrl(entry.url);
+
+        // If this is a numeric-suffix URL, also check base URL for a confirmed duplicate
+        if (!existingPub && isNumericSuffixVariant(entry.url)) {
+          const baseUrl = toBaseUrl(entry.url);
+          if (baseUrl && baseUrl !== entry.url) {
+            const basePub = await getExistingPubByUrl(baseUrl);
+            if (basePub && basePub.address && basePub.address.trim() === pubData.address.trim()) {
+              console.log(`🧩 Duplicate detected via base URL lookup: ${entry.url} matches ${baseUrl}`);
+              existingPub = basePub;
+
+              if (!pubById.has(basePub.id)) {
+                matchCandidates.push(basePub);
+                pubById.set(basePub.id, basePub);
+                maybeSeedDedupeIndexFromPub(basePub);
+              }
+
+              const key = dedupeKey ?? getDedupeKey(baseUrl, pubData.address);
+              if (key) {
+                const preferred = pickCanonicalSitemapEntry(
+                  { url: basePub.url, imageUrl: basePub.imageUrl ?? '' },
+                  candidateEntry
+                );
+                dedupeIndex.set(key, { pubId: basePub.id, preferred });
+                pubData.url = preferred.url;
+                pubData.imageUrl = preferred.imageUrl;
+              }
+            }
+          }
+        }
       }
       
       if (existingPub) {
@@ -85,23 +195,44 @@ async function processPubEntries(
             ...pubData,
             lastSyncedAt: Timestamp.now(),
           };
-          pubsToWrite.push(updatedPub);
-          updatedCount++;
+          queueWrite(updatedPub, 'updated');
         } else {
           console.log(`No changes detected for pub ${pubData.id}`);
           skippedCount++;
         }
         
         processedIds.add(pubData.id);
+
+        if (dedupeKey && !dedupeIndex.has(dedupeKey)) {
+          dedupeIndex.set(dedupeKey, {
+            pubId: pubData.id,
+            preferred: {
+              url: pubData.url,
+              imageUrl: pubData.imageUrl,
+            },
+          });
+        }
       } else {
         // New pub
         const newPub: Pub = {
           ...pubData,
           lastSyncedAt: Timestamp.now(),
         };
-        pubsToWrite.push(newPub);
+        queueWrite(newPub, 'new');
         processedIds.add(pubData.id);
-        newCount++;
+
+        matchCandidates.push(newPub);
+        pubById.set(newPub.id, newPub);
+
+        if (dedupeKey && !dedupeIndex.has(dedupeKey)) {
+          dedupeIndex.set(dedupeKey, {
+            pubId: newPub.id,
+            preferred: {
+              url: newPub.url,
+              imageUrl: newPub.imageUrl,
+            },
+          });
+        }
       }
       
       successCount++;
@@ -112,12 +243,12 @@ async function processPubEntries(
   }
   
   return { 
-    pubsToWrite, 
+    pubsToWrite: Array.from(pubsToWriteById.values()), 
     processedIds, 
     successCount, 
     failureCount,
-    newCount,
-    updatedCount,
+    newCount: newPubIds.size,
+    updatedCount: updatedPubIds.size,
     skippedCount
   };
 }
