@@ -1,6 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Sync state: internal-only metadata (clients must not read/write)
+    match /syncState/{docId} {
+      allow read, write: if false;
+    }
+
     // Pubs: Publicly readable, admin-only write
     match /pubs/{pubId} {
       // Allow anyone to read pub data

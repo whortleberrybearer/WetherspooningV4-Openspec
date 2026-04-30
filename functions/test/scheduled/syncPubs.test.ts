@@ -6,6 +6,15 @@ jest.mock('firebase-admin/firestore', () => ({
   Timestamp: {
     now: jest.fn(() => ({ seconds: 1234567890, nanoseconds: 0 })),
   },
+  getFirestore: jest.fn(() => ({
+    collection: jest.fn(() => ({
+      where: jest.fn(() => ({
+        limit: jest.fn(() => ({
+          get: jest.fn(async () => ({ docs: [] })),
+        })),
+      })),
+    })),
+  })),
 }));
 
 jest.mock('../../src/services/sitemapService', () => ({
