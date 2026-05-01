@@ -106,9 +106,11 @@ Look for the `pubs` collection - you'll see your synced pub data there!
 ## Code Structure
 
 The refactoring created:
-1. **`runPubSync(limit)` function** - Core sync logic (can be called from anywhere)
-2. **`scheduledSyncPubs`** - Firebase scheduled function wrapper
-3. **`runPubSync.ts` script** - Standalone CLI tool with Firebase initialization
+1. **`runFullSync(count?, start?)`** - Full sync logic (supports partial runs)
+2. **`runSitemapDiffSync()`** - Incremental scheduled sync logic driven by sitemap diffs
+3. **`runUpdateSync(since)`** - Incremental sync logic for entries updated since a date
+4. **`scheduledSyncPubs`** - Firebase scheduled function wrapper (monthly full sync on 1st UTC, otherwise sitemap diff sync)
+5. **`runPubSync.ts` script** - Standalone CLI tool that runs a full sync locally
 
 This means you can:
 - Run it locally for testing ✅

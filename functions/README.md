@@ -13,7 +13,13 @@ A scheduled function that runs daily at 23:00 UTC to sync pub data from the Weth
 - Extracts pub URLs and image URLs
 - Scrapes pub data (name, address, location, facilities, etc.)
 - Syncs data to Firestore `pubs` collection with change detection
-- Runs full sync on Wednesdays, incremental update sync on other days
+- Stores the latest sitemap snapshot in Firestore (`syncState/pubsSitemap`) for change detection
+- Runs a full sync on the **1st of every month (UTC)** as a safety backstop
+- On other days, runs a **sitemap diff sync**:
+  - Early-exits without scraping when the sitemap is unchanged
+  - Scrapes only pubs whose sitemap entries were added/changed
+  - Treats entries missing `<lastmod>` as always-changed (included whenever a non-early-exit diff run occurs)
+  - Marks pubs as closed when their sitemap entry is removed (unless detected as a URL rename)
 
 **Schedule:** Daily at 23:00 UTC
 
@@ -23,7 +29,7 @@ A callable function that allows authorized administrators to trigger pub syncs r
 
 **What it does:**
 - Provides secure remote access to sync operations
-- Supports both full sync and update sync modes
+- Supports full sync and update sync modes (sitemap diff sync is scheduled)
 - Accepts parameters for partial syncs (`count`, `start`, `since`)
 - Returns sync results (success/failure counts)
 
@@ -143,6 +149,9 @@ npm run sync:pubs
 # With a custom limit (e.g., process 10 pubs)
 npm run sync:pubs 10
 
+# With a custom limit and start offset
+npm run sync:pubs -- --count 10 --start 20
+
 # Process all pubs (use 0)
 npm run sync:pubs 0
 ```
@@ -154,22 +163,27 @@ npx ts-node src/scripts/runPubSync.ts
 
 # With a custom limit
 npx ts-node src/scripts/runPubSync.ts 10
+
+# With a custom limit and start offset
+npx ts-node src/scripts/runPubSync.ts --count 10 --start 20
 ```
 
 #### Option 3: Using the function programmatically
 ```typescript
-import { runPubSync } from './scheduled/syncPubs';
+import { runFullSync, runSitemapDiffSync, runUpdateSync } from './scheduled/syncPubs';
 
-// Run sync with default limit (5 pubs)
-const result = await runPubSync();
+// Full sync (optional count/start for partial runs)
+const full = await runFullSync();
 
-// Run sync with custom limit
-const result = await runPubSync(10);
+// Sitemap diff sync (incremental)
+const diff = await runSitemapDiffSync();
 
-// Run sync for all pubs
-const result = await runPubSync(0);
+// Update sync (process entries updated since a date)
+const update = await runUpdateSync(new Date('2026-01-01T00:00:00Z'));
 
-console.log(`Success: ${result.successCount}, Failed: ${result.failureCount}`);
+console.log(`Full: ${full.successCount}/${full.failureCount}`);
+console.log(`Diff: ${diff.successCount}/${diff.failureCount}`);
+console.log(`Update: ${update.successCount}/${update.failureCount}`);
 ```
 
 ### Build
