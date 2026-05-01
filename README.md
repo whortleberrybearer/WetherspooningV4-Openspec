@@ -7,7 +7,7 @@ Wetherspooning is a website that displays the locations of Wetherspoons pubs and
 - **Pub Location Map** - Interactive map showing all Wetherspoon's pub locations
 - **Visit Tracking** - Track which pubs you've visited
 - **User Authentication** - Secure login and signup with Firebase Auth
-- **Automated Data Sync** - Daily scheduled sync of pub data from Wetherspoon's website
+- **Automated Data Sync** - Daily scheduled sync of pub data (sitemap diff sync with a monthly full-sync backstop)
 - **Caching Architecture** - Multi-layer caching with CDN and browser storage for optimal performance
 
 ## Project Structure
