@@ -59,6 +59,18 @@ async function processPubEntries(
 
   const matchCandidates: Pub[] = existingPubs ? [...existingPubs] : [];
   const pubById = new Map<string, Pub>(matchCandidates.map(p => [p.id, p]));
+  const pubByUrl = new Map<string, Pub>();
+
+  function normalizeUrlKey(url: string): string {
+    return url.trim().replace(/\/+$/, '');
+  }
+
+  if (existingPubs) {
+    for (const pub of existingPubs) {
+      if (!pub.url) continue;
+      pubByUrl.set(normalizeUrlKey(pub.url), pub);
+    }
+  }
 
   type DedupeIndexRecord = {
     pubId: string;
@@ -121,9 +133,17 @@ async function processPubEntries(
       }
 
       const dedupeKey = getDedupeKey(entry.url, pubData.address);
-      const candidateEntry: SitemapPubEntry = { url: entry.url, imageUrl: entry.imageUrl };
+      const candidateEntry: SitemapPubEntry = { url: entry.url, imageUrl: entry.imageUrl ?? '' };
       
       let existingPub: Pub | null = null;
+
+      if (existingPubs) {
+        const existingByUrl = pubByUrl.get(normalizeUrlKey(entry.url));
+        if (existingByUrl) {
+          existingPub = existingByUrl;
+          pubData.id = existingByUrl.id;
+        }
+      }
 
       if (dedupeKey) {
         const record = dedupeIndex.get(dedupeKey);
@@ -133,12 +153,25 @@ async function processPubEntries(
             existingPub = canonical;
             pubData.id = canonical.id;
 
+            const isDistinctUrlVariant = candidateEntry.url !== record.preferred.url;
             const preferred = pickCanonicalSitemapEntry(record.preferred, candidateEntry);
-            if (preferred.url !== record.preferred.url || preferred.imageUrl !== record.preferred.imageUrl) {
-              console.log(`🔁 Duplicate detected; upgrading canonical URL: ${record.preferred.url} -> ${preferred.url}`);
+            const preferredChanged =
+              preferred.url !== record.preferred.url || preferred.imageUrl !== record.preferred.imageUrl;
+
+            if (preferredChanged) {
               dedupeIndex.set(dedupeKey, { pubId: record.pubId, preferred });
-            } else {
-              console.log(`🧩 Duplicate detected; using canonical pub ${canonical.id}`);
+            }
+
+            if (isDistinctUrlVariant) {
+              if (preferredChanged) {
+                console.log(
+                  `🔁 Duplicate detected; canonical pub ${canonical.id}; duplicate URL: ${candidateEntry.url}; canonical selection: ${record.preferred.url} -> ${preferred.url}`
+                );
+              } else {
+                console.log(
+                  `🧩 Duplicate detected; canonical pub ${canonical.id}; duplicate URL: ${candidateEntry.url}`
+                );
+              }
             }
 
             const finalPreferred = dedupeIndex.get(dedupeKey)!.preferred;
