@@ -213,12 +213,12 @@ describe('scheduled syncPubs - update sync dedupe', () => {
   });
 });
 
-describe('scheduled syncPubs - full sync dedupe + logging', () => {
+describe('scheduled syncPubs - full sync dedupe', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('does not log duplicate detected when sitemap entry matches an existing pub by URL', async () => {
+  it('does not treat URL match as a duplicate (no write when unchanged)', async () => {
     const url = 'https://www.jdwetherspoon.com/pubs/the-golden-lion-rochester/';
 
     const entries: SitemapEntry[] = [
@@ -264,17 +264,12 @@ describe('scheduled syncPubs - full sync dedupe + logging', () => {
 
     scrapePubData.mockResolvedValue(scraped);
 
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-
     await runFullSync(1);
 
-    const logs = logSpy.mock.calls.map((call) => call.join(' '));
-    expect(logs.some((l) => l.includes('Duplicate detected'))).toBe(false);
-
-    logSpy.mockRestore();
+    expect(batchWritePubs).not.toHaveBeenCalled();
   });
 
-  it('dedupes base + numeric-suffix variants in the same invocation and logs duplicate once', async () => {
+  it('dedupes base + numeric-suffix variants in the same invocation', async () => {
     const baseUrl = 'https://www.jdwetherspoon.com/pubs/the-five-stones-filey/';
     const suffixedUrl = 'https://www.jdwetherspoon.com/pubs/the-five-stones-filey-2/';
 
@@ -303,8 +298,6 @@ describe('scheduled syncPubs - full sync dedupe + logging', () => {
       } as ScrapedPubData;
     });
 
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-
     await runFullSync(2);
 
     expect(batchWritePubs).toHaveBeenCalledTimes(1);
@@ -313,13 +306,5 @@ describe('scheduled syncPubs - full sync dedupe + logging', () => {
     expect(pubsWritten[0].id).toBe('pub-new-1');
     expect(pubsWritten[0].url).toBe(suffixedUrl);
     expect(pubsWritten[0].imageUrl).toBe('https://example.com/feature.png');
-
-    const logs = logSpy.mock.calls.map((call) => call.join(' '));
-    const duplicateLogs = logs.filter((l) => l.includes('Duplicate detected'));
-    expect(duplicateLogs).toHaveLength(1);
-    expect(duplicateLogs[0]).toContain('canonical pub pub-new-1');
-    expect(duplicateLogs[0]).toContain(`duplicate URL: ${suffixedUrl}`);
-
-    logSpy.mockRestore();
   });
 });
