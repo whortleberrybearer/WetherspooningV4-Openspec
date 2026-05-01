@@ -1,4 +1,4 @@
-import { runUpdateSync } from '../../src/scheduled/syncPubs';
+import { runFullSync, runUpdateSync } from '../../src/scheduled/syncPubs';
 import { toBaseUrl } from '../../src/services/pubDedupeService';
 import type { SitemapEntry, ScrapedPubData, Pub } from '../../src/types/pub';
 
@@ -30,6 +30,7 @@ jest.mock('../../src/services/pubSyncService', () => {
   return {
     ...actual,
     getExistingPubByUrl: jest.fn(),
+    getAllPubs: jest.fn(),
     batchWritePubs: jest.fn(),
   };
 });
@@ -42,8 +43,9 @@ const { scrapePubData } = jest.requireMock('../../src/services/pubScraperService
   scrapePubData: jest.Mock;
 };
 
-const { getExistingPubByUrl, batchWritePubs } = jest.requireMock('../../src/services/pubSyncService') as {
+const { getExistingPubByUrl, getAllPubs, batchWritePubs } = jest.requireMock('../../src/services/pubSyncService') as {
   getExistingPubByUrl: jest.Mock;
+  getAllPubs: jest.Mock;
   batchWritePubs: jest.Mock;
 };
 
@@ -208,5 +210,116 @@ describe('scheduled syncPubs - update sync dedupe', () => {
     expect(pubsWritten).toHaveLength(2);
     const ids = pubsWritten.map(p => p.id).sort();
     expect(ids).toEqual(['id-1', 'id-2']);
+  });
+});
+
+describe('scheduled syncPubs - full sync dedupe + logging', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('does not log duplicate detected when sitemap entry matches an existing pub by URL', async () => {
+    const url = 'https://www.jdwetherspoon.com/pubs/the-golden-lion-rochester/';
+
+    const entries: SitemapEntry[] = [
+      {
+        url,
+        imageUrl: '',
+        lastmod: new Date().toISOString(),
+      },
+    ];
+
+    getSitemapUrls.mockResolvedValue(entries);
+
+    const existing: Pub = {
+      id: 'pub-1',
+      name: 'The Golden Lion',
+      url,
+      imageUrl: '',
+      address: '1 High Street, Rochester, ZZ1 1ZZ',
+      townCity: 'Rochester',
+      position: null,
+      openState: 'Open',
+      isHotel: false,
+      inAirport: false,
+      inTrainStation: false,
+      lastSyncedAt: { seconds: 111, nanoseconds: 0 } as any,
+    };
+
+    getAllPubs.mockResolvedValue([existing]);
+
+    const scraped: ScrapedPubData = {
+      id: 'new-id',
+      name: existing.name,
+      url,
+      imageUrl: '',
+      address: existing.address,
+      townCity: existing.townCity,
+      position: null,
+      openState: existing.openState,
+      isHotel: existing.isHotel,
+      inAirport: existing.inAirport,
+      inTrainStation: existing.inTrainStation,
+    };
+
+    scrapePubData.mockResolvedValue(scraped);
+
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runFullSync(1);
+
+    const logs = logSpy.mock.calls.map((call) => call.join(' '));
+    expect(logs.some((l) => l.includes('Duplicate detected'))).toBe(false);
+
+    logSpy.mockRestore();
+  });
+
+  it('dedupes base + numeric-suffix variants in the same invocation and logs duplicate once', async () => {
+    const baseUrl = 'https://www.jdwetherspoon.com/pubs/the-five-stones-filey/';
+    const suffixedUrl = 'https://www.jdwetherspoon.com/pubs/the-five-stones-filey-2/';
+
+    const entries: SitemapEntry[] = [
+      { url: baseUrl, imageUrl: '', lastmod: new Date().toISOString() },
+      { url: suffixedUrl, imageUrl: 'https://example.com/feature.png', lastmod: new Date().toISOString() },
+    ];
+
+    getSitemapUrls.mockResolvedValue(entries);
+    getAllPubs.mockResolvedValue([]);
+
+    scrapePubData.mockImplementation(async (url: string, imageUrl: string) => {
+      const id = url === baseUrl ? 'pub-new-1' : 'pub-new-2';
+      return {
+        id,
+        name: 'The Five Stones',
+        url,
+        imageUrl,
+        address: '123 Test Street, Filey, AB1 2CD',
+        townCity: 'Filey',
+        position: null,
+        openState: 'Open',
+        isHotel: false,
+        inAirport: false,
+        inTrainStation: false,
+      } as ScrapedPubData;
+    });
+
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runFullSync(2);
+
+    expect(batchWritePubs).toHaveBeenCalledTimes(1);
+    const pubsWritten = batchWritePubs.mock.calls[0][0] as Pub[];
+    expect(pubsWritten).toHaveLength(1);
+    expect(pubsWritten[0].id).toBe('pub-new-1');
+    expect(pubsWritten[0].url).toBe(suffixedUrl);
+    expect(pubsWritten[0].imageUrl).toBe('https://example.com/feature.png');
+
+    const logs = logSpy.mock.calls.map((call) => call.join(' '));
+    const duplicateLogs = logs.filter((l) => l.includes('Duplicate detected'));
+    expect(duplicateLogs).toHaveLength(1);
+    expect(duplicateLogs[0]).toContain('canonical pub pub-new-1');
+    expect(duplicateLogs[0]).toContain(`duplicate URL: ${suffixedUrl}`);
+
+    logSpy.mockRestore();
   });
 });
